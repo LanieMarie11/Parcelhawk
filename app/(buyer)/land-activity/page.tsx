@@ -86,6 +86,10 @@ function LandActivityPageContent() {
       <div className="sticky top-[73px] z-10 shrink-0 border-b border-border bg-background">
         <SearchFiltersBar
           listingIds={listingsData.map((l) => l.id)}
+          priceMin={priceRange.min}
+          priceMax={priceRange.max}
+          sizeMin={sizeRange.min}
+          sizeMax={sizeRange.max}
           onPriceRangeApply={(min, max) => setPriceRange({ min, max })}
           onSizeRangeApply={(min, max) => setSizeRange({ min, max })}
         />

@@ -4,48 +4,170 @@ import { useEffect, useRef, useState } from "react"
 import { ChevronDown, Sparkles } from "lucide-react"
 
 const PROPERTY_TYPES = [
-  "Acreage",
-  "Farm",
-  "Ranch",
-  "Recreational",
+  "Beachfront Property",
+  "Commercial Property",
+  "Farms",
+  "Horse Property",
+  "Hunting Land",
+  "Lakefront Property",
+  "Ranches",
+  "Recreational Property",
+  "Residential Property",
+  "Riverfront Property",
+  "Timberland",
+  "Undeveloped Land",
+  "Waterfront Property",
+]
+
+const ACTIVITIES = [
+  "Aquatic Sporting",
+  "Aviation",
+  "Beach",
+  "Boating",
+  "Camping",
+  "Canoeing/Kayaking",
+  "Conservation",
+  "Fishing",
+  "Golfing",
+  "Horseback Riding",
   "Hunting",
-  "Waterfront",
+  "Off-roading",
+  "RVing",
+  "Skiing",
 ]
 
-const FEATURES = [
-  "Water",
-  "Power",
-  "Road Access",
-  "Fenced",
-  "House",
-  "Barn",
-]
+const PRICE_MIN_OPTIONS = [
+  { label: "No Min", value: 0 },
+  { label: "$50,000", value: 50000 },
+  { label: "$75,000", value: 75000 },
+  { label: "$100,000", value: 100000 },
+  { label: "$150,000", value: 150000 },
+  { label: "$250,000", value: 250000 },
+  { label: "$300,000", value: 300000 },
+  { label: "$350,000", value: 350000 },
+  { label: "$400,000", value: 400000 },
+] as const
 
-const PRICE_MIN_OPTIONS = ["0", "10K", "25K", "50K", "75K", "100K"]
-const PRICE_MAX_OPTIONS = ["50K", "100K", "200K", "500K", "1M", "5M"]
+const PRICE_MAX_OPTIONS = [
+  { label: "$400,000", value: 400000 },
+  { label: "$450,000", value: 450000 },
+  { label: "$500,000", value: 500000 },
+  { label: "$550,000", value: 550000 },
+  { label: "$600,000", value: 600000 },
+  { label: "$650,000", value: 650000 },
+  { label: "$700,000", value: 700000 },
+  { label: "$750,000", value: 750000 },
+  { label: "No MAX", value: 1000000000 },
+] as const
 
-const ACREAGE_MIN_OPTIONS = ["No Min", "5", "10", "20", "50", "100"]
-const ACREAGE_MAX_OPTIONS = ["10", "20", "50", "100", "200", "500", "No Max"]
+const ACREAGE_MIN_OPTIONS = [
+  { label: "No Min", value: 0 },
+  { label: "1 Acres", value: 1 },
+  { label: "5 Acres", value: 5 },
+  { label: "10 Acres", value: 10 },
+  { label: "15 Acres", value: 15 },
+  { label: "25 Acres", value: 25 },
+  { label: "35 Acres", value: 35 },
+  { label: "50 Acres", value: 50 },
+  { label: "75 Acres", value: 75 },
+] as const
+
+const ACREAGE_MAX_OPTIONS = [
+  { label: "40 Acres", value: 40 },
+  { label: "50 Acres", value: 50 },
+  { label: "60 Acres", value: 60 },
+  { label: "75 Acres", value: 75 },
+  { label: "100 Acres", value: 100 },
+  { label: "125 Acres", value: 125 },
+  { label: "150 Acres", value: 150 },
+  { label: "175 Acres", value: 175 },
+  { label: "No Max", value: 999999 },
+] as const
+
+function priceValueToLabel(value: number | null, options: readonly { label: string; value: number }[], isMax: boolean): string {
+  if (value === null || value === undefined) return isMax ? PRICE_MAX_OPTIONS[PRICE_MAX_OPTIONS.length - 1].label : PRICE_MIN_OPTIONS[0].label
+  if (isMax && value >= 1_000_000_000) return PRICE_MAX_OPTIONS[PRICE_MAX_OPTIONS.length - 1].label
+  if (!isMax && value === 0) return PRICE_MIN_OPTIONS[0].label
+  const found = options.find((o) => o.value === value)
+  return found ? found.label : (isMax ? PRICE_MAX_OPTIONS[PRICE_MAX_OPTIONS.length - 1].label : PRICE_MIN_OPTIONS[0].label)
+}
+
+function priceLabelToValue(label: string, options: readonly { label: string; value: number }[]): number | null {
+  const found = options.find((o) => o.label === label)
+  return found ? found.value : null
+}
+
+function acreageValueToOptionValue(value: number | null, isMax: boolean): string {
+  if (value === null || value === undefined) return isMax ? "No Max" : "No Min"
+  if (isMax && value >= 999999) return "No Max"
+  if (!isMax && value === 0) return "No Min"
+  const options = isMax ? ACREAGE_MAX_OPTIONS : ACREAGE_MIN_OPTIONS
+  const found = options.find((o) => o.value === value)
+  if (!found) return isMax ? "No Max" : "No Min"
+  return found.value === 0 ? "No Min" : found.value === 999999 ? "No Max" : String(found.value)
+}
+
+function acreageOptionValueToNumber(optionValue: string): number | null {
+  if (optionValue === "No Min" || optionValue === "No Max") return null
+  const num = Number(optionValue)
+  return Number.isFinite(num) ? num : null
+}
 
 export default function FilterOption({
+  priceMin: controlledPriceMin,
+  priceMax: controlledPriceMax,
+  onPriceChange,
+  sizeMin: controlledSizeMin,
+  sizeMax: controlledSizeMax,
+  onSizeChange,
   onApply,
   onReset,
 }: {
   onClose?: () => void
+  /** Controlled min price (null = no min). When provided, syncs with PriceRange. */
+  priceMin?: number | null
+  /** Controlled max price (null = no max). When provided, syncs with PriceRange. */
+  priceMax?: number | null
+  /** Called when user changes min/max so parent can sync PriceRange. */
+  onPriceChange?: (min: number | null, max: number | null) => void
+  /** Controlled min size in acres (null = no min). When provided, syncs with SizeRange. */
+  sizeMin?: number | null
+  /** Controlled max size in acres (null = no max). When provided, syncs with SizeRange. */
+  sizeMax?: number | null
+  /** Called when user changes acreage min/max so parent can sync SizeRange. */
+  onSizeChange?: (min: number | null, max: number | null) => void
   onApply?: () => void
   onReset?: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [aiPrompt, setAiPrompt] = useState("")
-  const [priceMin, setPriceMin] = useState("0")
-  const [priceMax, setPriceMax] = useState("100K")
+  const isPriceControlled = controlledPriceMin !== undefined || controlledPriceMax !== undefined
+  const isSizeControlled = controlledSizeMin !== undefined || controlledSizeMax !== undefined
+  const [priceMin, setPriceMin] = useState<string>(PRICE_MIN_OPTIONS[0].label)
+  const [priceMax, setPriceMax] = useState<string>(PRICE_MAX_OPTIONS[PRICE_MAX_OPTIONS.length - 1].label)
   const [acreageMin, setAcreageMin] = useState("No Min")
   const [acreageMax, setAcreageMax] = useState("No Max")
   const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>(
     []
   )
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // When controlled, derive display from props so PriceRange updates show immediately
+  const displayPriceMin = isPriceControlled && controlledPriceMin !== undefined
+    ? priceValueToLabel(controlledPriceMin, PRICE_MIN_OPTIONS, false)
+    : priceMin
+  const displayPriceMax = isPriceControlled && controlledPriceMax !== undefined
+    ? priceValueToLabel(controlledPriceMax, PRICE_MAX_OPTIONS, true)
+    : priceMax
+
+  // When controlled, derive acreage display from props so SizeRange updates show immediately
+  const displayAcreageMin = isSizeControlled && controlledSizeMin !== undefined
+    ? acreageValueToOptionValue(controlledSizeMin, false)
+    : acreageMin
+  const displayAcreageMax = isSizeControlled && controlledSizeMax !== undefined
+    ? acreageValueToOptionValue(controlledSizeMax, true)
+    : acreageMax
 
   useEffect(() => {
     if (!open) return
@@ -64,22 +186,24 @@ export default function FilterOption({
     )
   }
 
-  function toggleFeature(feature: string) {
-    setSelectedFeatures((prev) =>
-      prev.includes(feature)
-        ? prev.filter((f) => f !== feature)
-        : [...prev, feature]
+  function toggleActivity(activity: string) {
+    setSelectedActivities((prev) =>
+      prev.includes(activity)
+        ? prev.filter((a) => a !== activity)
+        : [...prev, activity]
     )
   }
 
   function handleReset() {
     setAiPrompt("")
-    setPriceMin("0")
-    setPriceMax("100K")
+    setPriceMin(PRICE_MIN_OPTIONS[0].label)
+    setPriceMax(PRICE_MAX_OPTIONS[PRICE_MAX_OPTIONS.length - 1].label)
     setAcreageMin("No Min")
     setAcreageMax("No Max")
     setSelectedPropertyTypes([])
-    setSelectedFeatures([])
+    setSelectedActivities([])
+    if (isPriceControlled) onPriceChange?.(null, null)
+    if (isSizeControlled) onSizeChange?.(null, null)
     onReset?.()
   }
 
@@ -143,13 +267,20 @@ export default function FilterOption({
               </label>
               <div className="relative">
                 <select
-                  value={priceMin}
-                  onChange={(e) => setPriceMin(e.target.value)}
+                  key={`price-min-${displayPriceMin}`}
+                  value={displayPriceMin}
+                  onChange={(e) => {
+                    const label = e.target.value
+                    if (!isPriceControlled) setPriceMin(label)
+                    const minVal = priceLabelToValue(label, PRICE_MIN_OPTIONS)
+                    const maxVal = priceLabelToValue(displayPriceMax, PRICE_MAX_OPTIONS)
+                    onPriceChange?.(minVal === 0 ? null : minVal, maxVal === 1000000000 ? null : maxVal)
+                  }}
                   className="w-full appearance-none rounded-lg border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30"
                 >
                   {PRICE_MIN_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}
                     </option>
                   ))}
                 </select>
@@ -177,13 +308,20 @@ export default function FilterOption({
               </label>
               <div className="relative">
                 <select
-                  value={priceMax}
-                  onChange={(e) => setPriceMax(e.target.value)}
+                  key={`price-max-${displayPriceMax}`}
+                  value={displayPriceMax}
+                  onChange={(e) => {
+                    const label = e.target.value
+                    if (!isPriceControlled) setPriceMax(label)
+                    const minVal = priceLabelToValue(displayPriceMin, PRICE_MIN_OPTIONS)
+                    const maxVal = priceLabelToValue(label, PRICE_MAX_OPTIONS)
+                    onPriceChange?.(minVal === 0 ? null : minVal, maxVal === 1000000000 ? null : maxVal)
+                  }}
                   className="w-full appearance-none rounded-lg border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30"
                 >
                   {PRICE_MAX_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}
                     </option>
                   ))}
                 </select>
@@ -219,15 +357,25 @@ export default function FilterOption({
               </label>
               <div className="relative">
                 <select
-                  value={acreageMin}
-                  onChange={(e) => setAcreageMin(e.target.value)}
+                  key={`acreage-min-${displayAcreageMin}`}
+                  value={displayAcreageMin}
+                  onChange={(e) => {
+                    const optionValue = e.target.value
+                    if (!isSizeControlled) setAcreageMin(optionValue)
+                    const minVal = acreageOptionValueToNumber(optionValue)
+                    const maxVal = acreageOptionValueToNumber(displayAcreageMax)
+                    onSizeChange?.(minVal, maxVal)
+                  }}
                   className="w-full appearance-none rounded-lg border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30"
                 >
-                  {ACREAGE_MIN_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
+                  {ACREAGE_MIN_OPTIONS.map((opt) => {
+                    const optionValue = opt.value === 0 ? "No Min" : String(opt.value)
+                    return (
+                      <option key={optionValue} value={optionValue}>
+                        {opt.label}
+                      </option>
+                    )
+                  })}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
                   <svg
@@ -253,15 +401,25 @@ export default function FilterOption({
               </label>
               <div className="relative">
                 <select
-                  value={acreageMax}
-                  onChange={(e) => setAcreageMax(e.target.value)}
+                  key={`acreage-max-${displayAcreageMax}`}
+                  value={displayAcreageMax}
+                  onChange={(e) => {
+                    const optionValue = e.target.value
+                    if (!isSizeControlled) setAcreageMax(optionValue)
+                    const minVal = acreageOptionValueToNumber(displayAcreageMin)
+                    const maxVal = acreageOptionValueToNumber(optionValue)
+                    onSizeChange?.(minVal, maxVal)
+                  }}
                   className="w-full appearance-none rounded-lg border border-border bg-background px-3 py-2.5 pr-8 text-sm text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30"
                 >
-                  {ACREAGE_MAX_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
+                  {ACREAGE_MAX_OPTIONS.map((opt) => {
+                    const optionValue = opt.value === 999999 ? "No Max" : String(opt.value)
+                    return (
+                      <option key={optionValue} value={optionValue}>
+                        {opt.label}
+                      </option>
+                    )
+                  })}
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
                   <svg
@@ -331,23 +489,23 @@ export default function FilterOption({
           </div>
         </div>
 
-        {/* Features */}
+        {/* Activities */}
         <div className="mt-6 pb-2">
           <h3 className="mb-3 text-sm font-medium text-foreground">
-            Features
+            Activities
           </h3>
           <div className="flex flex-wrap gap-2.5">
-            {FEATURES.map((feature) => (
+            {ACTIVITIES.map((activity) => (
               <button
-                key={feature}
-                onClick={() => toggleFeature(feature)}
+                key={activity}
+                onClick={() => toggleActivity(activity)}
                 className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                  selectedFeatures.includes(feature)
+                  selectedActivities.includes(activity)
                     ? "border-foreground bg-foreground text-background"
                     : "border-border bg-background text-foreground hover:border-foreground/40"
                 }`}
               >
-                {feature}
+                {activity}
               </button>
             ))}
           </div>

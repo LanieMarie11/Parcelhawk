@@ -6,24 +6,25 @@ import { useEffect, useRef, useState } from "react"
 // Min: 0–40K | Max: 45K–75K
 const MIN_PRESETS = [
   { label: "No Min", value: 0 },
-  { label: "$5K", value: 5000 },
-  { label: "$10K", value: 10000 },
-  { label: "$15K", value: 15000 },
-  { label: "$20K", value: 20000 },
-  { label: "$25K", value: 25000 },
-  { label: "$30K", value: 30000 },
-  { label: "$35K", value: 35000 },
-  { label: "$40K", value: 40000 },
+  { label: "$50,000", value: 50000 },
+  { label: "$75,000", value: 75000 },
+  { label: "$100,000", value: 100000 },
+  { label: "$150,000", value: 150000 },
+  { label: "$250,000", value: 250000 },
+  { label: "$300,000", value: 300000 },
+  { label: "$350,000", value: 350000 },
+  { label: "$400,000", value: 400000 },
 ] as const
 
 const MAX_PRESETS = [
-  { label: "$45K", value: 45000 },
-  { label: "$50K", value: 50000 },
-  { label: "$55K", value: 55000 },
-  { label: "$60K", value: 60000 },
-  { label: "$65K", value: 65000 },
-  { label: "$70K", value: 70000 },
-  { label: "$75K", value: 75000 },
+  { label: "$400,000", value: 400000 },
+  { label: "$450,000", value: 450000 },
+  { label: "$500,000", value: 500000 },
+  { label: "$550,000", value: 550000 },
+  { label: "$600,000", value: 600000 },
+  { label: "$650,000", value: 650000 },
+  { label: "$700,000", value: 700000 },
+  { label: "$750,000", value: 750000 },
   { label: "No MAX", value: 1000000000 },
 ] as const
 
@@ -49,12 +50,22 @@ function parsePriceToNumber(value: string): number | null {
 
 export type PriceRangeOnApply = (min: number | null, max: number | null) => void
 
+export type PriceRangeValue = { min: number | null; max: number | null }
+
 interface PriceRangeProps {
+  /** Controlled min/max (null = no limit). When provided, internal state syncs from this. */
+  value?: PriceRangeValue
   /** Called when user clicks Apply with current min/max (null = no limit). */
   onApply?: PriceRangeOnApply
 }
 
-export default function PriceRange({ onApply }: PriceRangeProps) {
+function valueToDisplay(value: number | null, presets: readonly { label: string; value: number }[]): string {
+  if (value === null || value === 0) return ""
+  const found = presets.find((p) => p.value === value)
+  return found ? found.label.replace(/[$,]/g, "") : value.toLocaleString()
+}
+
+export default function PriceRange({ value, onApply }: PriceRangeProps) {
   const [open, setOpen] = useState(false)
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
@@ -63,6 +74,19 @@ export default function PriceRange({ onApply }: PriceRangeProps) {
   const [activeMaxPreset, setActiveMaxPreset] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const lastActiveInputRef = useRef<"min" | "max">("min")
+
+  // Sync from parent value so FilterOption and PriceRange stay in sync
+  useEffect(() => {
+    if (value === undefined) return
+    const minStr = value.min === null || value.min === 0 ? "" : valueToDisplay(value.min, MIN_PRESETS)
+    const maxStr = value.max === null || value.max >= 1_000_000_000 ? "" : valueToDisplay(value.max, MAX_PRESETS)
+    setMinPrice(minStr === "" ? "" : (Number(minStr.replace(/[^0-9.]/g, ""))).toLocaleString())
+    setMaxPrice(maxStr === "" ? "" : (Number(maxStr.replace(/[^0-9.]/g, ""))).toLocaleString())
+    const minIdx = value.min === null || value.min === 0 ? null : MIN_PRESETS.findIndex((p) => p.value === value.min)
+    const maxIdx = value.max === null || value.max >= 1_000_000_000 ? null : MAX_PRESETS.findIndex((p) => p.value === value.max)
+    setActiveMinPreset(minIdx === -1 ? null : minIdx)
+    setActiveMaxPreset(maxIdx === -1 ? null : maxIdx)
+  }, [value?.min, value?.max])
 
   useEffect(() => {
     if (!open) return

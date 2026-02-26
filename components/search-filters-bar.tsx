@@ -16,6 +16,14 @@ import { useSignInModal } from "@/lib/sign-in-modal-context"
 interface SearchFiltersBarProps {
   /** Listing IDs for "Save Search" (saves these to favorites). Button disabled when empty. */
   listingIds?: number[]
+  /** Current min price from parent (single source of truth so PriceRange and FilterOption stay in sync). */
+  priceMin?: number | null
+  /** Current max price from parent (single source of truth so PriceRange and FilterOption stay in sync). */
+  priceMax?: number | null
+  /** Current min size in acres from parent (single source of truth so SizeRange and FilterOption stay in sync). */
+  sizeMin?: number | null
+  /** Current max size in acres from parent (single source of truth so SizeRange and FilterOption stay in sync). */
+  sizeMax?: number | null
   /** Called when user applies price range (min, max in dollars; null = no limit). */
   onPriceRangeApply?: PriceRangeOnApply
   /** Called when user applies size range (min, max in acres; null = no limit). */
@@ -24,6 +32,10 @@ interface SearchFiltersBarProps {
 
 export function SearchFiltersBar({
   listingIds = [],
+  priceMin: priceMinProp,
+  priceMax: priceMaxProp,
+  sizeMin: sizeMinProp,
+  sizeMax: sizeMaxProp,
   onPriceRangeApply,
   onSizeRangeApply,
 }: SearchFiltersBarProps) {
@@ -35,6 +47,30 @@ export function SearchFiltersBar({
   const searchParams = useSearchParams()
   const locationFromUrl = searchParams.get("location") ?? ""
   const [locationDraft, setLocationDraft] = useState(locationFromUrl)
+
+  // When parent passes price, use it (single source of truth). Otherwise keep local state for pages that don't pass.
+  const [localPriceMin, setLocalPriceMin] = useState<number | null>(null)
+  const [localPriceMax, setLocalPriceMax] = useState<number | null>(null)
+  const priceMin = priceMinProp !== undefined ? priceMinProp : localPriceMin
+  const priceMax = priceMaxProp !== undefined ? priceMaxProp : localPriceMax
+
+  // When parent passes size, use it (single source of truth). Otherwise keep local state.
+  const [localSizeMin, setLocalSizeMin] = useState<number | null>(null)
+  const [localSizeMax, setLocalSizeMax] = useState<number | null>(null)
+  const sizeMin = sizeMinProp !== undefined ? sizeMinProp : localSizeMin
+  const sizeMax = sizeMaxProp !== undefined ? sizeMaxProp : localSizeMax
+
+  const handlePriceApply = (min: number | null, max: number | null) => {
+    if (priceMinProp === undefined) setLocalPriceMin(min)
+    if (priceMaxProp === undefined) setLocalPriceMax(max)
+    onPriceRangeApply?.(min, max)
+  }
+
+  const handleSizeApply = (min: number | null, max: number | null) => {
+    if (sizeMinProp === undefined) setLocalSizeMin(min)
+    if (sizeMaxProp === undefined) setLocalSizeMax(max)
+    onSizeRangeApply?.(min, max)
+  }
 
   useEffect(() => {
     setLocationDraft(locationFromUrl)
@@ -60,9 +96,26 @@ export function SearchFiltersBar({
             className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-        <PriceRange onApply={onPriceRangeApply} />
-        <SizeRange onApply={onSizeRangeApply} />
-        <FilterOption />
+        <PriceRange
+          value={{ min: priceMin, max: priceMax }}
+          onApply={handlePriceApply}
+        />
+        <SizeRange
+          value={{ min: sizeMin, max: sizeMax }}
+          onApply={handleSizeApply}
+        />
+        <FilterOption
+          priceMin={priceMin}
+          priceMax={priceMax}
+          onPriceChange={handlePriceApply}
+          sizeMin={sizeMin}
+          sizeMax={sizeMax}
+          onSizeChange={handleSizeApply}
+          onApply={() => {
+            onPriceRangeApply?.(priceMin, priceMax)
+            onSizeRangeApply?.(sizeMin, sizeMax)
+          }}
+        />
       </div>
       <button
         type="button"
