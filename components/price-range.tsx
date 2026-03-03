@@ -122,6 +122,7 @@ export default function PriceRange({ value, onApply }: PriceRangeProps) {
     minShort || maxShort
       ? `${minShort ? `$${minShort}` : ""}-${maxShort ? `$${maxShort}` : ""}`.replace(/^-|-$/g, "") || "Price"
       : "Price"
+  const hasActiveValue = Boolean(minShort || maxShort)
 
   return (
     <div className="relative inline-block font-ibm-plex-sans" ref={containerRef}>
@@ -129,7 +130,9 @@ export default function PriceRange({ value, onApply }: PriceRangeProps) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full max-w-32 items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#4ECDC4]/50 hover:text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]"
+        className={`flex w-full max-w-32 items-center justify-between gap-2 rounded-lg border ${
+          hasActiveValue ? "border-[#04C0AF]" : "border-border"
+        } bg-card px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#4ECDC4]/50 hover:text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]`}
         aria-expanded={open}
         aria-haspopup="true"
       >

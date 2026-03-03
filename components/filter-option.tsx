@@ -164,6 +164,25 @@ export default function FilterOption({
   const [selectedActivities, setSelectedActivities] = useState<string[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const hasActivePrice =
+    isPriceControlled
+      ? (controlledPriceMin != null && controlledPriceMin !== 0) ||
+        (controlledPriceMax != null && controlledPriceMax < 1_000_000_000)
+      : priceMin !== PRICE_MIN_OPTIONS[0].label ||
+        priceMax !== PRICE_MAX_OPTIONS[PRICE_MAX_OPTIONS.length - 1].label
+
+  const hasActiveAcreage =
+    isSizeControlled
+      ? (controlledSizeMin != null && controlledSizeMin !== 0) ||
+        (controlledSizeMax != null && controlledSizeMax < 999999)
+      : acreageMin !== "No Min" || acreageMax !== "No Max"
+
+  const activeFiltersCount =
+    (hasActivePrice ? 1 : 0) +
+    (hasActiveAcreage ? 1 : 0) +
+    selectedPropertyTypes.length +
+    selectedActivities.length
+
   // When controlled, derive display from props so PriceRange updates show immediately
   const displayPriceMin = isPriceControlled && controlledPriceMin !== undefined
     ? priceValueToLabel(controlledPriceMin, PRICE_MIN_OPTIONS, false)
@@ -244,15 +263,22 @@ export default function FilterOption({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full min-w-28 items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#4ECDC4]/50 hover:text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]"
+        className={`relative flex w-full min-w-28 items-center justify-between gap-2 rounded-lg border ${
+          activeFiltersCount > 0 ? "border-[#04C0AF]" : "border-border"
+        } bg-card px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#4ECDC4]/50 hover:text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]`}
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <span>More Filters</span>
+        <span>Filters</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden
         />
+        {activeFiltersCount > 0 && (
+          <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#04C0AF] px-1.5 text-xs font-semibold text-white">
+            {activeFiltersCount}
+          </span>
+        )}
       </button>
 
       {/* Dropdown panel */}
