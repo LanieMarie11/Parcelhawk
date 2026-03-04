@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
             .select()
             .from(landListings)
             .where(and(...conditions))
-            .orderBy(desc(landListings.id))
+            .orderBy(desc(landListings.listingDate))
             .limit(100)
-        : await db.select().from(landListings).orderBy(desc(landListings.id)).limit(8);
+        : await db.select().from(landListings).orderBy(desc(landListings.listingDate)).limit(8);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;

@@ -35,7 +35,7 @@ export async function GET() {
       .from(favorites)
       .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
       .where(eq(favorites.userId, userId))
-      .orderBy(desc(landListings.id));
+      .orderBy(desc(landListings.listingDate));
 
     const listings = rows.map((row) => ({
       id: row.id,
