@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { and, arrayContains, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import { and, arrayContains, asc, desc, eq, gt, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
@@ -22,8 +22,12 @@ export async function GET(request: NextRequest) {
     const maxPrice = parseNumParam(searchParams.get("maxPrice"));
     const minAcres = parseNumParam(searchParams.get("minAcres"));
     const maxAcres = parseNumParam(searchParams.get("maxAcres"));
+    const sort = (searchParams.get("sort") ?? "default").trim().toLowerCase();
 
     const conditions = [];
+
+    // Exclude junk/invalid prices (0, 1, 2) from results
+    conditions.push(gt(landListings.price, "2"));
 
     if (type) {
       conditions.push(arrayContains(landListings.propertyType, [type]));
@@ -64,15 +68,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const rows =
+    const pricePerAcreAsc = sql`(${landListings.price}::float / NULLIF(${landListings.acres}::float, 0)) ASC`;
+    const pricePerAcreDesc = sql`(${landListings.price}::float / NULLIF(${landListings.acres}::float, 0)) DESC`;
+
+    const orderBy =
+      sort === "price-asc"
+        ? asc(landListings.price)
+        : sort === "price-desc"
+          ? desc(landListings.price)
+          : sort === "acres-asc"
+            ? asc(landListings.acres)
+            : sort === "acres-desc"
+              ? desc(landListings.acres)
+              : sort === "priceperacre-asc"
+                ? pricePerAcreAsc
+                : sort === "priceperacre-desc"
+                  ? pricePerAcreDesc
+                  : desc(landListings.listingDate);
+
+    const baseQuery =
       conditions.length > 0
-        ? await db
-            .select()
-            .from(landListings)
-            .where(and(...conditions))
-            .orderBy(desc(landListings.listingDate))
-            .limit(100)
-        : await db.select().from(landListings).orderBy(desc(landListings.listingDate)).limit(100);
+        ? db.select().from(landListings).where(and(...conditions))
+        : db.select().from(landListings);
+    const rows = await baseQuery.orderBy(orderBy).limit(100);
     // console.log(rows);
 
     const session = await getServerSession(authOptions);
