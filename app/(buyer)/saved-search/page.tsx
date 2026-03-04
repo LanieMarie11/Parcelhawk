@@ -102,14 +102,14 @@ export default function SavedSearches() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8 font-ibm-plex-sans">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Saved Searches
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-base text-muted-foreground">
             Manage your saved filters and get alerts when new land matches.
           </p>
         </div>
@@ -210,7 +210,7 @@ function SearchCard({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         {/* Left content */}
         <div className="flex-1">
-          <h3 className="text-base font-semibold text-foreground">
+          <h3 className="text-lg font-medium text-foreground">
             {search.name}
           </h3>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -226,57 +226,63 @@ function SearchCard({
 
         {/* Right controls */}
         <div className="flex items-center gap-3">
-          {/* Toggle switch */}
-          <div className="flex items-center gap-2">
-            <button
-              role="switch"
-              aria-checked={search.alertsEnabled}
-              onClick={onToggleAlerts}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
-                search.alertsEnabled ? "bg-teal" : "bg-muted"
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block size-5 rounded-full bg-background shadow-sm ring-0 transition-transform ${
-                  search.alertsEnabled ? "translate-x-5.5" : "translate-x-0.5"
+          {/* Alerts + Frequency in one grey pill */}
+          <div className="flex items-center rounded-lg bg-[#F5F5F4] py-2 px-2">
+            {/* Toggle switch */}
+            <div className="flex items-center gap-2">
+              <button
+                role="switch"
+                aria-checked={search.alertsEnabled}
+                onClick={onToggleAlerts}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                  search.alertsEnabled ? "bg-[#04C0AF]" : "bg-[#E5E7EB]"
                 }`}
-              />
-            </button>
-            <span className="text-sm font-medium text-foreground">Alerts</span>
+              >
+                <span
+                  className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-sm ring-0 transition-transform ${
+                    search.alertsEnabled ? "translate-x-5.5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+              <span className="text-xs font-medium text-[#373940]">Alerts</span>
+            </div>
+
+            {/* Vertical separator */}
+            <div className="mx-4 h-5 w-px shrink-0 bg-border" aria-hidden />
+
+            {/* Frequency selector */}
+            <div className="relative" ref={freqRef}>
+              <button
+                onClick={() => setFreqOpen((o) => !o)}
+                className="flex items-center gap-1 text-xs font-medium text-[#5D606D]"
+              >
+                {search.frequency}
+                <ChevronDown className="size-3.5 text-muted-foreground" />
+              </button>
+              {freqOpen && (
+                <div className="absolute right-0 top-full z-20 mt-1 min-w-28 rounded-md border border-border bg-card py-1 shadow-lg">
+                  {frequencyOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        onFrequencyChange(option)
+                        setFreqOpen(false)
+                      }}
+                      className={`block w-full px-3 py-1.5 text-left text-xs transition-colors hover:bg-secondary ${
+                        search.frequency === option
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Frequency selector */}
-          <div className="relative" ref={freqRef}>
-            <button
-              onClick={() => setFreqOpen((o) => !o)}
-              className="flex items-center gap-1 text-sm text-foreground"
-            >
-              {search.frequency}
-              <ChevronDown className="size-3.5 text-muted-foreground" />
-            </button>
-            {freqOpen && (
-              <div className="absolute right-0 top-full z-20 mt-1 min-w-28 rounded-md border border-border bg-card py-1 shadow-lg">
-                {frequencyOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      onFrequencyChange(option)
-                      setFreqOpen(false)
-                    }}
-                    className={`block w-full px-3 py-1.5 text-left text-sm transition-colors hover:bg-secondary ${
-                      search.frequency === option
-                        ? "font-medium text-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Three-dot menu */}
+          {/* Three-dot menu (outside grey box) */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
@@ -289,7 +295,7 @@ function SearchCard({
               <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-border bg-card py-1 shadow-lg">
                 <button
                   onClick={() => setMenuOpen(false)}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-sm text-[#5D606D] transition-colors hover:bg-secondary"
                 >
                   <SquarePen className="size-4" />
                   Edit Search
@@ -299,7 +305,7 @@ function SearchCard({
                     onDelete()
                     setMenuOpen(false)
                   }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
                 >
                   <Trash2 className="size-4" />
                   Delete
@@ -319,7 +325,7 @@ function SearchCard({
 
 function FilterTag({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2.5 py-1 text-xs text-foreground">
+    <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2.5 py-1 text-xs text-[#373940]">
       <span className="text-muted-foreground">{label}:</span>
       <span className="font-medium">{value}</span>
     </span>

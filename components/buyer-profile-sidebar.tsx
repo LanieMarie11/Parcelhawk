@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react"
 
 const menuItems = [
   { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
-  { label: "Saved Searches", href: "/saved-searches", icon: SavedSearchesIcon },
+  { label: "Saved Searches", href: "/saved-search", icon: SavedSearchesIcon },
   { label: "Favorite", href: "/favorite", icon: FavoriteIcon },
   { label: "Profile Settings", href: "/profile-settings", icon: ProfileSettingsIcon },
 ]
