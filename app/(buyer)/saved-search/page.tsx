@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import Link from "next/link"
 import {
   MapPin,
   Plus,
@@ -8,6 +9,7 @@ import {
   SquarePen,
   Trash2,
   ChevronDown,
+  ExternalLink,
 } from "lucide-react"
 
 interface SavedSearch {
@@ -20,6 +22,8 @@ interface SavedSearch {
   activities: string
   alertsEnabled: boolean
   frequency: string
+  /** URL to land-property with this search's filters (for View Result) */
+  viewResultHref: string
 }
 
 /** DB row shape from GET /api/saved-searches */
@@ -81,6 +85,19 @@ function frequencyDisplayLabel(freq: string): string {
   return map[freq] ?? freq
 }
 
+function buildViewResultHref(row: SavedSearchRow): string {
+  const params = new URLSearchParams()
+  if (row.location?.trim()) params.set("location", row.location.trim())
+  if (row.propertyType?.trim()) params.set("type", row.propertyType.trim())
+  if (row.minPrice != null && row.minPrice !== "") params.set("minPrice", row.minPrice)
+  if (row.maxPrice != null && row.maxPrice !== "") params.set("maxPrice", row.maxPrice)
+  if (row.minAcres != null && row.minAcres !== "") params.set("minAcres", row.minAcres)
+  if (row.maxAcres != null && row.maxAcres !== "") params.set("maxAcres", row.maxAcres)
+  row.activities?.forEach((a) => params.append("activity", a))
+  const qs = params.toString()
+  return `/land-property${qs ? `?${qs}` : ""}`
+}
+
 function rowToSavedSearch(row: SavedSearchRow): SavedSearch {
   return {
     id: row.id,
@@ -92,6 +109,7 @@ function rowToSavedSearch(row: SavedSearchRow): SavedSearch {
     activities: row.activities?.length ? row.activities.join(", ") : "Any",
     alertsEnabled: true,
     frequency: frequencyDisplayLabel(row.frequency),
+    viewResultHref: buildViewResultHref(row),
   }
 }
 
@@ -305,10 +323,19 @@ function SearchCard({
     <div className="rounded-lg border border-border bg-card p-5 transition-colors hover:border-muted-foreground/20">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         {/* Left content */}
-        <div className="flex-1">
-          <h3 className="text-lg font-medium text-foreground">
-            {search.name}
-          </h3>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-medium text-foreground">
+              {search.name}
+            </h3>
+            <Link
+              href={search.viewResultHref}
+              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-[#04C0AF] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5]"
+            >
+              <ExternalLink className="size-3.5" />
+              View Result
+            </Link>
+          </div>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="size-3.5" />
             <span>{search.location}</span>
