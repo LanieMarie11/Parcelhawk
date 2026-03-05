@@ -5,11 +5,24 @@ import { X } from "lucide-react"
 
 type Frequency = "instant" | "daily" | "none"
 
+export interface SavedSearchFilters {
+  minPrice?: number | null
+  maxPrice?: number | null
+  minAcres?: number | null
+  maxAcres?: number | null
+  location?: string | null
+  propertyType?: string | null
+  landType?: string | null
+  activities?: string[] | null
+}
+
 interface SavePropertySearchModalProps {
   isOpen: boolean
   onClose: () => void
   onSave?: (data: { searchName: string; frequency: Frequency }) => void
   defaultSearchName?: string
+  /** Current filters to persist to saved_searches when user clicks Save Search */
+  filters?: SavedSearchFilters | null
 }
 
 export function SavePropertySearchModal({
@@ -17,15 +30,57 @@ export function SavePropertySearchModal({
   onClose,
   onSave,
   defaultSearchName = "",
+  filters,
 }: SavePropertySearchModalProps) {
   const [searchName, setSearchName] = useState(defaultSearchName)
   const [frequency, setFrequency] = useState<Frequency>("instant")
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
 
-  const handleSave = () => {
-    onSave?.({ searchName, frequency })
-    onClose()
+  const handleSave = async () => {
+    const name = searchName.trim()
+    if (!name) {
+      setError("Enter a search name")
+      return
+    }
+    setError(null)
+
+    if (filters != null) {
+      setSaving(true)
+      try {
+        const res = await fetch("/api/saved-searches", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            frequency,
+            minPrice: filters.minPrice ?? undefined,
+            maxPrice: filters.maxPrice ?? undefined,
+            minAcres: filters.minAcres ?? undefined,
+            maxAcres: filters.maxAcres ?? undefined,
+            location: filters.location ?? undefined,
+            propertyType: filters.propertyType ?? undefined,
+            landType: filters.landType ?? undefined,
+            activities: filters.activities ?? undefined,
+          }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error ?? "Failed to save search")
+        }
+        onSave?.({ searchName: name, frequency })
+        onClose()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save search")
+      } finally {
+        setSaving(false)
+      }
+    } else {
+      onSave?.({ searchName: name, frequency })
+      onClose()
+    }
   }
 
   const frequencyOptions: { value: Frequency; label: string }[] = [
@@ -115,6 +170,12 @@ export function SavePropertySearchModal({
           </div>
         </fieldset>
 
+        {error && (
+          <p className="mt-3 text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        )}
+
         {/* Divider */}
         <div className="my-5 h-px bg-neutral-200" />
 
@@ -123,17 +184,19 @@ export function SavePropertySearchModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-neutral-200 bg-white py-2.5 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+            disabled={saving}
+            className="flex-1 rounded-lg border border-neutral-200 bg-white py-2.5 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50 disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90"
+            disabled={saving}
+            className="flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
             style={{ backgroundColor: teal }}
           >
-            Save Search
+            {saving ? "Saving…" : "Save Search"}
           </button>
         </div>
       </div>

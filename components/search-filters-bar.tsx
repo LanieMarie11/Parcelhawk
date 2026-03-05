@@ -10,7 +10,7 @@ import type { PriceRangeOnApply } from "@/components/price-range"
 import SizeRange from "@/components/size-range"
 import type { SizeRangeOnApply } from "@/components/size-range"
 import FilterOption, { type FilterApplyPayload } from "@/components/filter-option"
-import { SavePropertySearchModal } from "@/components/save-search-property-modal"
+import { SavePropertySearchModal, type SavedSearchFilters } from "@/components/save-search-property-modal"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
 
 interface SearchFiltersBarProps {
@@ -30,6 +30,8 @@ interface SearchFiltersBarProps {
   onSizeRangeApply?: SizeRangeOnApply
   /** Called when user applies the full filter panel (price, size, property types, activities). */
   onFilterApply?: (payload: FilterApplyPayload) => void
+  /** Current filters to save when user saves search (from parent state / URL). */
+  currentFilters?: SavedSearchFilters | null
 }
 
 export function SearchFiltersBar({
@@ -41,6 +43,7 @@ export function SearchFiltersBar({
   onPriceRangeApply,
   onSizeRangeApply,
   onFilterApply,
+  currentFilters,
 }: SearchFiltersBarProps) {
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
@@ -139,6 +142,7 @@ export function SearchFiltersBar({
         isOpen={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
         onSave={() => setSaveModalOpen(false)}
+        filters={currentFilters}
       />
     </div>
   )

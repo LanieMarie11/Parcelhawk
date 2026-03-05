@@ -18,7 +18,7 @@ const SORT_OPTIONS = [
   { id: "pricePerAcre-desc", label: "Price per Acre: High to Low" },
 ] as const
 
-type SortId = (typeof SORT_OPTIONS)[number]["id"]
+export type SortId = (typeof SORT_OPTIONS)[number]["id"]
 
 export interface ListingItem {
   id: number
@@ -42,13 +42,22 @@ export interface ListingItem {
 interface PropertyMapListProps {
   listings: ListingItem[]
   title?: string
+  /** When provided, sort is controlled by parent (e.g. to refetch API with sort param). */
+  sortId?: SortId
+  onSortChange?: (sortId: SortId) => void
 }
 
-export function PropertyMapList({ listings, title = "Acreage" }: PropertyMapListProps) {
+export function PropertyMapList({ listings, title = "Acreage", sortId: controlledSortId, onSortChange }: PropertyMapListProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortOpen, setSortOpen] = useState(false)
-  const [sortId, setSortId] = useState<SortId>("default")
+  const [internalSortId, setInternalSortId] = useState<SortId>("default")
   const sortRef = useRef<HTMLDivElement>(null)
+
+  const sortId = controlledSortId ?? internalSortId
+  const setSortId = (id: SortId) => {
+    if (onSortChange) onSortChange(id)
+    else setInternalSortId(id)
+  }
 
   const totalPages = Math.max(1, Math.ceil(listings.length / PAGE_SIZE))
   const paginatedListings = listings.slice(

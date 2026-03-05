@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
-import { PropertyMapList } from "@/components/property-map-list"
+import { PropertyMapList, type SortId } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -44,6 +44,7 @@ function LandPropertyPageContent() {
   }>({ min: null, max: null })
   const [propertyTypes, setPropertyTypes] = useState<string[]>([])
   const [activities, setActivities] = useState<string[]>([])
+  const [sortId, setSortId] = useState<SortId>("default")
 
   useEffect(() => {
     const maxFromUrl = maxPriceFromUrl != null && maxPriceFromUrl !== "" ? Number(maxPriceFromUrl) : null
@@ -69,6 +70,7 @@ function LandPropertyPageContent() {
         if (sizeRange.max != null) params.set("maxAcres", String(sizeRange.max))
         propertyTypes.forEach((t) => params.append("propertyType", t))
         activities.forEach((a) => params.append("activity", a))
+        if (sortId && sortId !== "default") params.set("sort", sortId)
         if (useLocationSearch) {
           if (minAcresFromUrl != null && minAcresFromUrl !== "") params.set("minAcres", minAcresFromUrl)
           if (maxPriceFromUrl != null && maxPriceFromUrl !== "") params.set("maxPrice", maxPriceFromUrl)
@@ -103,7 +105,7 @@ function LandPropertyPageContent() {
     }
     load()
     return () => { cancelled = true }
-  }, [typeFromUrl, activitiesFromUrl.join(","), locationFromUrl, minAcresFromUrl, maxPriceFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities])
+  }, [typeFromUrl, activitiesFromUrl.join(","), locationFromUrl, minAcresFromUrl, maxPriceFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities, sortId])
 
   return (
     <div className="flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
@@ -122,9 +124,24 @@ function LandPropertyPageContent() {
             setPropertyTypes(payload.propertyTypes)
             setActivities(payload.activities)
           }}
+          currentFilters={{
+            minPrice: priceRange.min,
+            maxPrice: priceRange.max,
+            minAcres: sizeRange.min,
+            maxAcres: sizeRange.max,
+            location: locationFromUrl || null,
+            propertyType: typeFromUrl || propertyTypes[0] || null,
+            landType: typeFromUrl || propertyTypes[0] || null,
+            activities: activities.length > 0 ? activities : activitiesFromUrl.length > 0 ? activitiesFromUrl : null,
+          }}
         />
       </div>
-      <PropertyMapList listings={listingsData} title="Acreage" />
+      <PropertyMapList
+        listings={listingsData}
+        title="Acreage"
+        sortId={sortId}
+        onSortChange={setSortId}
+      />
     </div>
   )
 }

@@ -263,12 +263,8 @@ export default function FilterOption({
     if (isPriceControlled) onPriceChange?.(null, null)
     if (isSizeControlled) onSizeChange?.(null, null)
     onReset?.()
-    if (searchParams) {
-      const params = new URLSearchParams(searchParams.toString())
-      params.delete("type")
-      params.delete("activity")
-      const qs = params.toString()
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    if (searchParams && pathname) {
+      router.replace(pathname, { scroll: false })
     }
   }
 
