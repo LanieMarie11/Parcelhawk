@@ -41,3 +41,4 @@ ROADMAP.md
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+embedding.py

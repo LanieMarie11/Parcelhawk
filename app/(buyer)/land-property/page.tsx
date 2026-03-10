@@ -107,6 +107,36 @@ function LandPropertyPageContent() {
     return () => { cancelled = true }
   }, [typeFromUrl, activitiesFromUrl.join(","), locationFromUrl, minAcresFromUrl, maxPriceFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities, sortId])
 
+  const handleEmbeddingSearch = async (prompt: string) => {
+    const base = getBaseUrl()
+    const res = await fetch(`${base}/api/embedding-search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    })
+    if (!res.ok) return
+    const contentType = res.headers.get("content-type") ?? ""
+    if (!contentType.includes("application/json")) return
+    const listing = await res.json()
+    if (!Array.isArray(listing)) return
+    const mapped = listing.map((item: any) => ({
+      id: item.id,
+      images: item.photos,
+      category: item.propertyType?.[0],
+      categoryColor: "#3b8a6e",
+      name: item.title,
+      price: item.price,
+      location: item.city,
+      acreage: item.acres,
+      latitude: item.latitude != null ? Number(item.latitude) : null,
+      longitude: item.longitude != null ? Number(item.longitude) : null,
+      isFavorite: !!item.isFavorite,
+      url: item.url,
+      description: item.description,
+    }))
+    setListingsData(mapped)
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
       <div className="sticky top-[73px] z-20 shrink-0 border-b border-border bg-background">
@@ -124,6 +154,7 @@ function LandPropertyPageContent() {
             setPropertyTypes(payload.propertyTypes)
             setActivities(payload.activities)
           }}
+          onEmbeddingSearch={handleEmbeddingSearch}
           currentFilters={{
             minPrice: priceRange.min,
             maxPrice: priceRange.max,

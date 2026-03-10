@@ -30,6 +30,8 @@ interface SearchFiltersBarProps {
   onSizeRangeApply?: SizeRangeOnApply
   /** Called when user applies the full filter panel (price, size, property types, activities). */
   onFilterApply?: (payload: FilterApplyPayload) => void
+  /** Called when user clicks Generate Filters with a prompt; parent POSTs to embedding search and sets results. */
+  onEmbeddingSearch?: (prompt: string) => Promise<void>
   /** Current filters to save when user saves search (from parent state / URL). */
   currentFilters?: SavedSearchFilters | null
 }
@@ -43,6 +45,7 @@ export function SearchFiltersBar({
   onPriceRangeApply,
   onSizeRangeApply,
   onFilterApply,
+  onEmbeddingSearch,
   currentFilters,
 }: SearchFiltersBarProps) {
   const { data: session } = useSession()
@@ -122,6 +125,7 @@ export function SearchFiltersBar({
             onSizeRangeApply?.(payload.acreageMin, payload.acreageMax)
             onFilterApply?.(payload)
           }}
+          onGenerateFiltersClick={onEmbeddingSearch}
         />
       </div>
       <button

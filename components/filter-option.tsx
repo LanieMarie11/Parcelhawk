@@ -132,6 +132,7 @@ export default function FilterOption({
   sizeMax: controlledSizeMax,
   onSizeChange,
   onApply,
+  onGenerateFiltersClick,
   onReset,
 }: {
   onClose?: () => void
@@ -149,6 +150,8 @@ export default function FilterOption({
   onSizeChange?: (min: number | null, max: number | null) => void
   /** Called when user applies filters; receives numeric values and selected property types/activities. */
   onApply?: (payload: FilterApplyPayload) => void
+  /** Called when user clicks Generate Filters with a prompt; parent should POST to embedding search and set results. */
+  onGenerateFiltersClick?: (prompt: string) => Promise<void>
   onReset?: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -163,6 +166,7 @@ export default function FilterOption({
     []
   )
   const [selectedActivities, setSelectedActivities] = useState<string[]>([])
+  const [embeddingSearching, setEmbeddingSearching] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -332,9 +336,24 @@ export default function FilterOption({
             placeholder="e.g, 10 acres near a lake in Texas under $200k"
             className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-2 focus:ring-[#4ECDC4]/30"
           />
-          <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#04C0AF] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5]">
+          <button
+            type="button"
+            disabled={!aiPrompt.trim() || embeddingSearching}
+            onClick={async () => {
+              const q = aiPrompt.trim()
+              if (!q || !onGenerateFiltersClick) return
+              setEmbeddingSearching(true)
+              try {
+                await onGenerateFiltersClick(q)
+                setOpen(false)
+              } finally {
+                setEmbeddingSearching(false)
+              }
+            }}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#04C0AF] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:opacity-50 disabled:pointer-events-none"
+          >
             <Sparkles className="h-4 w-4" />
-            Generate Filters
+            {embeddingSearching ? "Searching…" : "Generate Filters"}
           </button>
         </div>
 
