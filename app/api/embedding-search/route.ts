@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { getEmbedding } from "@/lib/embedding";
+import { extractFiltersWithLlm } from "@/lib/searchQueryExtraction";
 
 const EMBEDDING_SEARCH_LIMIT = 100;
 
@@ -20,9 +21,22 @@ export async function POST(request: NextRequest) {
     if (!prompt) {
       return NextResponse.json({ error: "Missing or empty prompt" }, { status: 400 });
     }
-//TODO: Have to update this for SQL search
+
+    // Use Vertex LLM (Gemini) to extract structured SQL filters from the prompt.
+    // This returns normalized numeric ranges and string arrays for activities / property types.
+    let extractedFilters;
+    try {
+      extractedFilters = await extractFiltersWithLlm(prompt);
+      console.log("embedding-search llmExtractedFilters", extractedFilters);
+    } catch (llmError) {
+      console.error("LLM filter extraction failed, continuing with embedding-only search:", llmError);
+    }
+
+    // TODO: Replace vector search with SQL search using `extractedFilters`.
+    // For now we keep the existing embedding-based search behaviour, but you
+    // can now plug `extractedFilters` into a drizzle query over `landListings`.
+
     const embedding = await getEmbedding(prompt);
-    console.log("embedding", embedding);
     const vectorStr = "[" + embedding.join(",") + "]";
     const rows = (await db.execute(
       sql`SELECT listing_id FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
