@@ -77,7 +77,7 @@ export function SignUpPreferencesStep({
 
   return (
     <>
-      <div className="relative w-full rounded-2xl border border-border bg-card p-8 shadow-lg font-ibm-plex-sans">
+      <div className="relative w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-lg font-ibm-plex-sans mx-auto">
         <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
           Tell us what you&apos;re looking for
         </h1>

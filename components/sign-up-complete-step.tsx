@@ -92,7 +92,7 @@ export function SignUpCompleteStep({
             </button>
           ) : (
             <Link
-              href="/dashboard"
+              href="/"
               className="w-full rounded-xl bg-[#04C0AF] py-3 text-center text-base font-medium text-white transition-colors hover:bg-[#3dbdb5]/80 active:bg-[#35aba3]"
             >
               Go to Buyer Dashboard

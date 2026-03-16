@@ -12,10 +12,12 @@ import BuyerProfileSidebar from "./buyer-profile-sidebar";
 import Image from "next/image";
 import Link from "next/link";
 import { useSignInModal } from "@/lib/sign-in-modal-context";
+import { useRouter } from "next/navigation";
 
 const THEME_KEY = "theme";
 
 export const MainHeader = () => {
+  const router = useRouter();
   const { data: session, status } = useSession();
   const { registerOpenSignInModal } = useSignInModal();
   const [isDark, setIsDark] = useState(false);
@@ -141,7 +143,8 @@ export const MainHeader = () => {
               />
               <button
                 type="button"
-                onClick={() => setShowSignUpModal(true)}
+                // onClick={() => setShowSignUpModal(true)}
+                onClick={() => router.push("/sign-up")}
                 className={`rounded-r-md px-4 py-2 transition-colors ${
                   isDark
                     ? "hover:bg-white/20 hover:border-white"

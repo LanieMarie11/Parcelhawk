@@ -25,6 +25,13 @@ const STEPS = [
   { number: 3, label: "Complete" },
 ] as const
 
+const isValidEmail = (value: string) => {
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  // Basic email pattern: text@text.domain
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+}
+
 export default function SignUpForm({ onClose }: SignUpFormProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
@@ -40,6 +47,13 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
 
   const handleSignUp = async () => {
     try {
+      if (!isValidEmail(email)) {
+        toast.error("Invalid email address", {
+          description: "Please enter a valid email (e.g. name@example.com).",
+        })
+        return
+      }
+
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,7 +131,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
   }
 
   const card = (
-    <div className="flex w-full max-w-2xl flex-col items-center justify-center py-20">
+    <div className="flex w-full max-w-xl flex-col items-center justify-center py-10">
       <StepProgress
         steps={STEPS}
         currentStep={currentStep}
@@ -125,7 +139,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
       />
 
       {currentStep === 1 && (
-        <div className="relative w-full rounded-2xl border border-border bg-card p-8 shadow-lg font-ibm-plex-sans">
+        <div className="relative w-full rounded-2xl border border-border bg-card p-6 shadow-lg font-ibm-plex-sans">
           {onClose && (
             <button
               type="button"
@@ -282,7 +296,14 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
         <SignUpPreferencesStep
           onBack={() => setCurrentStep(1)}
           onContinue={handleContinueFromPreferences}
-          onSkip={() => (onClose ? onClose() : router.push("/"))}
+          onSkip={() => {
+            setCompletedPreferences({
+              budget: null,
+              purpose: null,
+              timeframe: null,
+            })
+            setCurrentStep(3)
+          }}
         />
       )}
 
@@ -295,7 +316,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
         />
       )}
 
-      {/* Skip for Now - step 1 only (step 2 has its own) */}
+      {/* Skip for Now - step 1 only (step 2 has its own)
       {currentStep === 1 && (
         <p className="mt-6 text-center">
           <button
@@ -306,7 +327,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
             Skip for Now
           </button>
         </p>
-      )}
+      )} */}
     </div>
   )
   
