@@ -1,13 +1,45 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, arrayContains, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { getEmbedding } from "@/lib/embedding";
-import { extractFiltersWithLlm } from "@/lib/searchQueryExtraction";
+import {
+  extractFiltersWithLlm,
+  type SearchQueryFilters,
+} from "@/lib/searchQueryExtraction";
 
 const EMBEDDING_SEARCH_LIMIT = 100;
+
+function buildSqlFilterConditions(filters: SearchQueryFilters) {
+  const conditions = [];
+  if (filters.minPrice != null) {
+    conditions.push(gte(landListings.price, String(filters.minPrice)));
+  }
+  if (filters.maxPrice != null) {
+    conditions.push(lte(landListings.price, String(filters.maxPrice)));
+  }
+  if (filters.minAcres != null) {
+    conditions.push(gte(landListings.acres, String(filters.minAcres)));
+  }
+  if (filters.maxAcres != null) {
+    conditions.push(lte(landListings.acres, String(filters.maxAcres)));
+  }
+  if (filters.activities != null && filters.activities.length > 0) {
+    conditions.push(
+      or(...filters.activities.map((a) => arrayContains(landListings.activities, [a])))!
+    );
+  }
+  if (filters.propertyTypes != null && filters.propertyTypes.length > 0) {
+    conditions.push(
+      or(
+        ...filters.propertyTypes.map((t) => arrayContains(landListings.propertyType, [t]))
+      )!
+    );
+  }
+  return conditions;
+}
 
 /**
  * POST: prompt-only embedding search. No other filters.
@@ -23,8 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use Vertex LLM (Gemini) to extract structured SQL filters from the prompt.
-    // This returns normalized numeric ranges and string arrays for activities / property types.
-    let extractedFilters;
+    let extractedFilters: SearchQueryFilters | undefined;
     try {
       extractedFilters = await extractFiltersWithLlm(prompt);
       console.log("embedding-search llmExtractedFilters", extractedFilters);
@@ -32,21 +63,39 @@ export async function POST(request: NextRequest) {
       console.error("LLM filter extraction failed, continuing with embedding-only search:", llmError);
     }
 
-    // TODO: Replace vector search with SQL search using `extractedFilters`.
-    // For now we keep the existing embedding-based search behaviour, but you
-    // can now plug `extractedFilters` into a drizzle query over `landListings`.
+    // SQL filter: get listing IDs that match extracted filters (price, acres, activities, propertyType).
+    let allowedListingIds: number[] | null = null;
+    if (extractedFilters) {
+      const conditions = buildSqlFilterConditions(extractedFilters);
+      if (conditions.length > 0) {
+        const filtered = await db
+          .select({ id: landListings.id })
+          .from(landListings)
+          .where(and(...conditions));
+        allowedListingIds = filtered.map((r) => r.id);
+        if (allowedListingIds.length === 0) {
+          return NextResponse.json([]);
+        }
+      }
+    }
 
     const embedding = await getEmbedding(prompt);
     const vectorStr = "[" + embedding.join(",") + "]";
-    const rows = (await db.execute(
-      sql`SELECT listing_id FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
-    )) as { listing_id: number }[];
+
+    const rows =
+      allowedListingIds != null && allowedListingIds.length > 0
+        ? ((await db.execute(
+            sql`SELECT listing_id FROM land_listing_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
+          )) as { listing_id: number }[])
+        : ((await db.execute(
+            sql`SELECT listing_id FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
+          )) as { listing_id: number }[]);
+
     const listingIds = rows.map((r) => r.listing_id);
     if (listingIds.length === 0) {
-      const list: unknown[] = [];
-      return NextResponse.json(list);
+      return NextResponse.json([]);
     }
-// TODO: Have to update this for SQL search
+
     // Fetch full listings in the same order as vector search (by id order).
     const listings = await db
       .select()
