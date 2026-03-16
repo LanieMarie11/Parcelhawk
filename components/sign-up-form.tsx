@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Eye, EyeOff, X } from "lucide-react"
 import BuyerIcon from "@/components/icons/buyer"
@@ -13,7 +15,15 @@ type SignUpFormProps = {
   onClose?: () => void
 }
 
+const STEPS = [
+  { number: 1, label: "Create Account" },
+  { number: 2, label: "Preferences" },
+  { number: 3, label: "Complete" },
+] as const
+const CURRENT_STEP = 1
+
 export default function SignUpForm({ onClose }: SignUpFormProps) {
+  const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<Role>("buyer")
   const [showPassword, setShowPassword] = useState(false)
   const [firstName, setFirstName] = useState("")
@@ -80,24 +90,61 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
           <X className="h-5 w-5" />
         </button>
       )}
+      {/* Step progress */}
+      <div className="mb-8 flex items-start justify-center">
+        {STEPS.map((step, index) => {
+          const isActive = step.number === CURRENT_STEP
+          const isPast = step.number < CURRENT_STEP
+          const isLast = index === STEPS.length - 1
+          return (
+            <div key={step.number} className="flex flex-col items-center">
+              <div className="flex items-center">
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-medium ${
+                    isActive
+                      ? "bg-[#04C0AF] text-white"
+                      : isPast
+                        ? "bg-[#04C0AF] text-white"
+                        : "border border-gray-300 bg-white text-gray-400"
+                  }`}
+                >
+                  {step.number}
+                </div>
+                {!isLast && (
+                  <div
+                    className={`h-0.5 w-8 sm:w-14 ${
+                      isActive || isPast ? "bg-[#04C0AF]" : "bg-gray-200"
+                    }`}
+                  />
+                )}
+              </div>
+              <span
+                className={`mt-2 text-center text-sm font-medium ${
+                  isActive ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
       {/* Header */}
-      <h1 className="text-3xl font-phudu font-medium uppercase tracking-wide text-foreground">
-        Create Your Account
+      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        Create your account
       </h1>
-      <p className="mt-1 text-lg text-muted-foreground">
+      <p className="mt-1 text-base text-muted-foreground">
         Create an account to get started.
       </p>
 
       {/* Role Selector */}
       <div className="mt-6">
-        <p className="text-base font-phudu font-medium uppercase tracking-wide text-foreground">
-          Select Your Role
-        </p>
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setSelectedRole("buyer")}
-            className={`flex items-center justify-center gap-2 rounded-lg border px-16 py-3 text-base font-medium transition-colors ${
+            className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
               selectedRole === "buyer"
                 ? "border-[#04C0AF]! bg-[#E4FFFD] text-[#096D64]"
                 : "border-border bg-card text-muted-foreground hover:border-border"
@@ -219,12 +266,12 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
       {/* Terms */}
       <p className="mt-3 text-center text-sm text-muted-foreground">
         {"By signing up, I agree to the "}
-        <a
-          href="#"
-          className="font-semibold text-foreground underline hover:text-[#4ECDC4]"
+        <Link
+          href="/terms"
+          className="font-medium text-[#04C0AF] underline hover:text-[#3dbdb5]"
         >
           Terms of use.
-        </a>
+        </Link>
       </p>
 
       {/* Divider */}
@@ -243,15 +290,26 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
         Continue with Google
       </button>
 
-      {/* Sign In Link */}
+      {/* Log In Link */}
       <p className="mt-5 text-center text-base text-muted-foreground">
         {"Already have an account? "}
-        <a
-          href="#"
-          className="text-[#4ECDC4] hover:text-[#04C0AF]"
+        <Link
+          href="/"
+          className="font-medium text-[#04C0AF] hover:text-[#3dbdb5]"
         >
-          Sign In
-        </a>
+          Log In
+        </Link>
+      </p>
+
+      {/* Skip for Now */}
+      <p className="mt-6 text-center">
+        <button
+          type="button"
+          onClick={() => (onClose ? onClose() : router.push("/"))}
+          className="text-sm text-muted-foreground hover:text-foreground"
+        >
+          Skip for Now
+        </button>
       </p>
     </div>
   )
@@ -261,7 +319,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-white px-4 py-8">
       {card}
     </div>
   )

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, IBM_Plex_Sans, Phudu } from "next/font/google";
-import { MainHeader } from "@/components/main-header";
-import Footer from "@/components/footer";
+import { LayoutShell } from "@/components/layout-shell";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -43,9 +42,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexSans.variable} ${phudu.variable} antialiased`}
       >
         <Providers>
-          <MainHeader />
-          <div className="pt-[73px]">{children}</div>
-          <Footer />
+          <LayoutShell>{children}</LayoutShell>
         </Providers>
       </body>
     </html>
