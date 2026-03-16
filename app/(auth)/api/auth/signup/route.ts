@@ -39,16 +39,19 @@ export async function POST(request: Request) {
 
     const hashedPassword = await hash(password, 10);
 
-    await db.insert(users).values({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim().toLowerCase(),
-      password: hashedPassword,
-      role: userRole,
-    });
+    const [created] = await db
+      .insert(users)
+      .values({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        password: hashedPassword,
+        role: userRole,
+      })
+      .returning({ id: users.id });
 
     return NextResponse.json(
-      { message: "Account created successfully" },
+      { message: "Account created successfully", userId: created.id },
       { status: 201 }
     );
   } catch (error) {

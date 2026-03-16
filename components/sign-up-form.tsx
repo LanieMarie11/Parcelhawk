@@ -36,6 +36,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
   const [password, setPassword] = useState("")
   const [completedPreferences, setCompletedPreferences] =
     useState<SignUpPreferencesData | null>(null)
+  const [createdUserId, setCreatedUserId] = useState<string | null>(null)
 
   const handleSignUp = async () => {
     try {
@@ -50,10 +51,14 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
           role: selectedRole,
         }),
       })
-      const data = await response.json().catch(() => ({}))
+      const data = await response.json().catch(() => ({} as Record<string, unknown>))
       const message = data.error ?? data.message
 
       if (response.ok) {
+        const userId = typeof data.userId === "string" ? data.userId : null
+        if (userId) {
+          setCreatedUserId(userId)
+        }
         toast.success("Account created", {
           description: "You can sign in with your new account.",
         })
@@ -88,8 +93,26 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
     }
   }
 
-  const handleContinueFromPreferences = (prefs: SignUpPreferencesData) => {
+  const handleContinueFromPreferences = async (prefs: SignUpPreferencesData) => {
     setCompletedPreferences(prefs)
+
+    if (createdUserId) {
+      try {
+        await fetch("/api/auth/signup/preferences", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: createdUserId,
+            budget: prefs.budget,
+            purpose: prefs.purpose,
+            timeframe: prefs.timeframe,
+          }),
+        })
+      } catch (error) {
+        console.error("Failed to save preferences", error)
+      }
+    }
+
     setCurrentStep(3)
   }
 
