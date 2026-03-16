@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "assets.land.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "ssl.cdn-redfin.com",
+        pathname: "/**",
+      },
     ],
   },
 };
