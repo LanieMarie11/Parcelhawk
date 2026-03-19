@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { and, arrayContains, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
+import { and, arrayContains, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
@@ -11,6 +11,16 @@ import {
 } from "@/lib/searchQueryExtraction";
 
 const EMBEDDING_SEARCH_LIMIT = 100;
+
+function toTokenContainsPattern(raw: string): string {
+  // Turn "St. Louis" into "%st%louis%" so it matches across punctuation differences.
+  const tokens = raw
+    .trim()
+    .split(/[^a-zA-Z0-9]+/g)
+    .filter(Boolean);
+  if (tokens.length === 0) return `%${raw}%`;
+  return `%${tokens.join("%")}%`;
+}
 
 function buildSqlFilterConditions(filters: SearchQueryFilters) {
   const conditions = [];
@@ -38,6 +48,41 @@ function buildSqlFilterConditions(filters: SearchQueryFilters) {
       )!
     );
   }
+
+  if (filters.stateNames != null && filters.stateNames.length > 0) {
+    conditions.push(
+      or(
+        ...filters.stateNames.map((sn) => ilike(landListings.stateName, toTokenContainsPattern(sn)))
+      )!
+    );
+  }
+
+  if (filters.stateAbbreviations != null && filters.stateAbbreviations.length > 0) {
+    conditions.push(
+      or(
+        ...filters.stateAbbreviations.map((abbr) =>
+          ilike(landListings.stateAbbreviation, toTokenContainsPattern(abbr))
+        )
+      )!
+    );
+  }
+
+  if (filters.cities != null && filters.cities.length > 0) {
+    conditions.push(
+      or(
+        ...filters.cities.map((city) => ilike(landListings.city, toTokenContainsPattern(city)))
+      )!
+    );
+  }
+
+  if (filters.counties != null && filters.counties.length > 0) {
+    conditions.push(
+      or(
+        ...filters.counties.map((county) => ilike(landListings.county, toTokenContainsPattern(county)))
+      )!
+    );
+  }
+
   return conditions;
 }
 
