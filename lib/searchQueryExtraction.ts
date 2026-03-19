@@ -1,8 +1,5 @@
 import { GoogleAuth } from "google-auth-library";
 
-import statesJson from "../states.json";
-import countyJson from "../county.json";
-
 export type SearchQueryFilters = {
   minPrice?: number;
   maxPrice?: number;
@@ -48,21 +45,6 @@ const PROPERTY_TYPE_KEYWORDS = [
   "Undeveloped Land",
   "Waterfront Property",
 ];
-
-type StateRecord = { state_name: string };
-type CountyRecord = { county: string };
-
-const STATES: StateRecord[] = statesJson as unknown as StateRecord[];
-const COUNTIES: CountyRecord[] = countyJson as unknown as CountyRecord[];
-
-function normalizeForMatch(s: string): string {
-  // Normalize for "same place, different punctuation/case"
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function normalizeCityForFilters(s: string): string {
   // Keep periods in names like "St. Louis", but remove trailing commas and extra whitespace.
@@ -127,16 +109,6 @@ const STATE_ABBREVIATION_TO_NAME: Record<string, string> = {
   WI: "Wisconsin",
   WY: "Wyoming",
 };
-
-const CANONICAL_STATE_NAME_BY_NORMALIZED = new Map<string, string>();
-for (const st of STATES) {
-  CANONICAL_STATE_NAME_BY_NORMALIZED.set(normalizeForMatch(st.state_name), st.state_name);
-}
-
-const CANONICAL_COUNTY_BY_NORMALIZED = new Map<string, string>();
-for (const c of COUNTIES) {
-  CANONICAL_COUNTY_BY_NORMALIZED.set(normalizeForMatch(c.county), c.county);
-}
 
 function normalizeNumber(raw: string): number {
   const trimmed = raw.replace(/[, ]/g, "").toLowerCase();
@@ -271,14 +243,16 @@ export function buildSearchExtractionPrompt(userPrompt: string): string {
     "- propertyTypes (array of strings). ONLY use values from this exact list, with exact spelling and casing:",
     `  ${propertyTypesList}`,
     "- cities (array of strings). ONLY city name(s) as written in the query (e.g. \"Dallas\", \"St. Louis\"). Do not include state/county suffixes.",
-    "- stateNames (array of strings). ONLY full US state names (e.g. \"Texas\", \"North Carolina\").",
-    "- stateAbbreviations (array of strings). ONLY 2-letter US state abbreviations in uppercase (e.g. \"TX\", \"NC\").",
+    "- stateNames (array of strings). US state names (full names only, e.g. \"Texas\", \"North Carolina\").",
+    "- stateAbbreviations (array of strings). US state abbreviations (2-letter uppercase only, e.g. \"TX\", \"NC\").",
     "- counties (array of strings). ONLY the county/parish name (no state suffix). Examples: \"Orange County\", \"Baldwin Parish\". Do not guess counties.",
     "",
     "IMPORTANT RULES:",
     "- If a field is not clearly stated, set it to null instead of guessing.",
     "- For activities and propertyTypes, only include values that match the user's intent and that appear in the lists above; use the exact string from the list.",
-    "- For stateNames/stateAbbreviations/counties: only extract what is explicitly mentioned in the query. Do not infer or guess.",
+    "- For stateNames/stateAbbreviations: allow minor misspellings/typos (e.g. \"Floridaa\", \"Califronia\") or minor formatting issues (e.g. \"N Carolina\"). If the intended state is clear, output the correct canonical full state name and/or 2-letter abbreviation.",
+    "- Do NOT fuzzy-match cities or counties; only extract them when explicitly and correctly mentioned in the query.",
+    "- For states/counties: only extract what is explicitly mentioned in the query. Do not infer or guess (e.g. do not assume a state from a city name).",
     "- For cities: only extract what is explicitly mentioned in the query. Do not infer or guess.",
     "- Convert shorthand like '250k' to full numbers (250000).",
     "- Ranges: '10-40 acres' or 'between 10 and 40 acres' → set both minAcres and maxAcres. '200k-500k' → set both minPrice and maxPrice.",
@@ -442,17 +416,14 @@ export async function extractFiltersWithLlm(userPrompt: string): Promise<SearchQ
     );
   }
 
-  // Canonicalize extracted locations so they match the local JSON sources exactly.
-  // This prevents "almost the same" strings from surviving into filters.
   if (Array.isArray(parsed.stateNames) && parsed.stateNames.length > 0) {
-    const canonical = parsed.stateNames
+    filters.stateNames = Array.from(
+      new Set(
+        parsed.stateNames
       .map((s) => s.trim())
-      .filter((s) => s.length > 0)
-      .map((s) => CANONICAL_STATE_NAME_BY_NORMALIZED.get(normalizeForMatch(s)))
-      .filter((s): s is string => typeof s === "string");
-    if (canonical.length > 0) {
-      filters.stateNames = Array.from(new Set(canonical));
-    }
+          .filter((s) => s.length > 0)
+      )
+    );
   }
 
   if (Array.isArray(parsed.stateAbbreviations) && parsed.stateAbbreviations.length > 0) {
@@ -468,8 +439,7 @@ export async function extractFiltersWithLlm(userPrompt: string): Promise<SearchQ
 
       // If we have valid abbreviations, also populate the corresponding full names.
       const namesFromAbbr = canonicalAbbr
-        .map((abbr) => STATE_ABBREVIATION_TO_NAME[abbr])
-        .filter((name) => CANONICAL_STATE_NAME_BY_NORMALIZED.has(normalizeForMatch(name)));
+        .map((abbr) => STATE_ABBREVIATION_TO_NAME[abbr]);
 
       if (namesFromAbbr.length > 0) {
         const existing = new Set(filters.stateNames ?? []);
@@ -480,15 +450,9 @@ export async function extractFiltersWithLlm(userPrompt: string): Promise<SearchQ
   }
 
   if (Array.isArray(parsed.counties) && parsed.counties.length > 0) {
-    const canonicalCounties = parsed.counties
-      .map((c) => c.trim())
-      .filter((c) => c.length > 0)
-      .map((c) => CANONICAL_COUNTY_BY_NORMALIZED.get(normalizeForMatch(c)))
-      .filter((c): c is string => typeof c === "string");
-
-    if (canonicalCounties.length > 0) {
-      filters.counties = Array.from(new Set(canonicalCounties));
-    }
+    filters.counties = Array.from(
+      new Set(parsed.counties.map((c) => c.trim()).filter((c) => c.length > 0))
+    );
   }
 
   return filters;
