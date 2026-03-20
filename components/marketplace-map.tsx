@@ -17,6 +17,7 @@ export type ListingMapItem = {
   longitude?: number | null
   name?: string
   price?: string | number
+  location?: string
 }
 
 const containerStyle = {
@@ -73,6 +74,47 @@ export function MarketplaceMap({
     [mapOptions]
   )
 
+  const makePinSvgDataUrl = (fillColor: string) => {
+    // "Classic pin" SVG (data URL) so we can change fill color on hover.
+    // This mimics a location-marker silhouette rather than a simple circle.
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+        <path
+          d="M32 3C20.4 3 11 12.4 11 24c0 16.7 21 37 21 37s21-20.3 21-37c0-11.6-9.4-21-21-21z"
+          fill="${fillColor}"
+          stroke="#ffffff"
+          stroke-width="4"
+          stroke-linejoin="round"
+        />
+        <circle cx="32" cy="26" r="12" fill="#ffffff" opacity="0.92"/>
+        <circle cx="32" cy="26" r="7" fill="${fillColor}"/>
+      </svg>
+    `.trim()
+
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`
+  }
+
+  const defaultMarkerIcon = useMemo<google.maps.Icon | undefined>(() => {
+    if (!isLoaded) return undefined
+    const url = makePinSvgDataUrl("#04C0AF")
+    return {
+      url,
+      // Size + anchor so the "tip" points at the coordinate.
+      scaledSize: new google.maps.Size(38, 38),
+      anchor: new google.maps.Point(19, 38),
+    }
+  }, [isLoaded])
+
+  const highlightedMarkerIcon = useMemo<google.maps.Icon | undefined>(() => {
+    if (!isLoaded) return undefined
+    const url = makePinSvgDataUrl("#FF6B35")
+    return {
+      url,
+      scaledSize: new google.maps.Size(42, 42),
+      anchor: new google.maps.Point(21, 42),
+    }
+  }, [isLoaded])
+
   if (!apiKey) {
     return (
       <div
@@ -127,9 +169,11 @@ export function MarketplaceMap({
       >
         {markersWithCoords.map((listing) => (
           <Marker
-            key={listing.id}
+            key={`${listing.id}-${selectedId != null && String(selectedId) === String(listing.id) ? "h" : "d"}`}
             position={{ lat: listing.latitude!, lng: listing.longitude! }}
             title={[listing.name, listing.price].filter(Boolean).join(" — ") || undefined}
+            icon={selectedId != null && String(selectedId) === String(listing.id) ? highlightedMarkerIcon : defaultMarkerIcon}
+            zIndex={selectedId != null && String(selectedId) === String(listing.id) ? 999 : undefined}
           />
         ))}
       </GoogleMap>

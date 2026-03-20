@@ -51,6 +51,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
   const [currentPage, setCurrentPage] = useState(1)
   const [sortOpen, setSortOpen] = useState(false)
   const [internalSortId, setInternalSortId] = useState<SortId>("default")
+  const [hoveredListingId, setHoveredListingId] = useState<number | null>(null)
   const sortRef = useRef<HTMLDivElement>(null)
 
   const sortId = controlledSortId ?? internalSortId
@@ -89,6 +90,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
         <div className="relative h-full w-full">
           <MarketplaceMap
             listings={listings}
+            selectedId={hoveredListingId}
             className="h-full w-full rounded-r-lg"
           />
         </div>
@@ -161,6 +163,8 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
                 initialIsFavorite={listing.isFavorite}
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
+                onMouseEnter={() => setHoveredListingId(listing.id)}
+                onMouseLeave={() => setHoveredListingId(null)}
               />
             ))}
           </div>
