@@ -148,8 +148,12 @@ export function extractFiltersFromPrompt(prompt: string): SearchQueryFilters {
         if (op.includes("over") || op.includes("more") || op.includes(">") || op.includes("minimum") || op.includes("at least") || op.includes("min") || op.includes("+")) {
           filters.minAcres = value;
         } else {
-          // treat as exact / lower bound if no operator is specified
-          filters.minAcres = value;
+          // No operator -> treat the given acres as the middle value.
+          // Example: "10 acres" => minAcres = 10*0.93, maxAcres = 10*1.07
+          const min = Math.max(0, Math.round(value * 0.93 * 100) / 100);
+          const max = Math.max(0, Math.round(value * 1.07 * 100) / 100);
+          filters.minAcres = min;
+          filters.maxAcres = max;
         }
       }
     }
@@ -176,8 +180,12 @@ export function extractFiltersFromPrompt(prompt: string): SearchQueryFilters {
         } else if (op.includes("over") || op.includes("more") || op.includes("above") || op.includes("minimum") || op.includes("min") || op.includes("at least") || op.includes(">") || op.includes("+")) {
           filters.minPrice = value;
         } else {
-          // no operator -> treat as upper bound by default ("up to 500k" style)
-          filters.maxPrice = value;
+          // No operator -> treat the given price as the middle price.
+          // Example: "500k" => minPrice = 500k*0.93, maxPrice = 500k*1.07
+          const min = Math.max(0, Math.round(value * 0.93));
+          const max = Math.max(0, Math.round(value * 1.07));
+          filters.minPrice = min;
+          filters.maxPrice = max;
         }
       }
     }
@@ -256,7 +264,8 @@ export function buildSearchExtractionPrompt(userPrompt: string): string {
     "- For cities: only extract what is explicitly mentioned in the query. Do not infer or guess.",
     "- Convert shorthand like '250k' to full numbers (250000).",
     "- Ranges: '10-40 acres' or 'between 10 and 40 acres' → set both minAcres and maxAcres. '200k-500k' → set both minPrice and maxPrice.",
-    "- Single value defaults: When only ONE price is given (no range), set it as maxPrice (e.g. '500k' or 'under 500k' → maxPrice only). When only ONE acres value is given (no range), set it as minAcres (e.g. '11.5 acres' or 'at least 11 acres' → minAcres only). Use minPrice only when the user says 'at least X' for price; use maxAcres only when the user says 'under X acres' or 'max X acres'.",
+    "- Single value defaults (price): When only ONE price is given (no range) AND no lower/upper constraint words are used (e.g. '500k'), treat the given price as the middle price: set minPrice = price*0.93 and maxPrice = price*1.07. When the user explicitly constrains the budget (e.g. 'at least X', 'minimum X', 'X+' or '>= X'), set minPrice only. When the user explicitly constrains the budget downward (e.g. 'under X', 'max X', 'below X'), set maxPrice only.",
+    "- Single value defaults (acres): When only ONE acres value is given (no range) AND no lower/upper constraint words are used (e.g. '11.5 acres'), treat the given acres as the middle value and set minAcres = acres*0.93 and maxAcres = acres*1.07. When the user explicitly constrains the acreage (e.g. 'at least X', 'minimum X', 'X+' or '>= X'), set minAcres only. When the user explicitly constrains the acreage downward (e.g. 'under X acres', 'max X acres', 'below X acres'), set maxAcres only.",
     "- Phrases like 'under 500k' mean maxPrice = 500000 only.",
     "- Phrases like 'at least 20 acres' mean minAcres = 20 only.",
     "- Only use information in the query; do not infer budget or size.",
