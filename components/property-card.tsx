@@ -24,6 +24,8 @@ interface PropertyCardProps {
   initialIsFavorite?: boolean
   /** URL to open when image is clicked (new tab). Use landListings.url when available; defaults to /property?id={id} */
   detailUrl?: string
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 function formatPrice(price: string): string {
@@ -55,6 +57,8 @@ export function PropertyCard({
   description,
   initialIsFavorite = false,
   detailUrl,
+  onMouseEnter,
+  onMouseLeave,
 }: PropertyCardProps) {
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
@@ -88,7 +92,11 @@ export function PropertyCard({
   }
 
   return (
-    <div className="group flex flex-col font-ibm-plex-sans p-4 rounded-xl bg-[#F3F3F5]">
+    <div
+      className="group flex flex-col font-ibm-plex-sans p-4 rounded-xl bg-[#F3F3F5]"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <a
         href={linkUrl}
         target="_blank"
