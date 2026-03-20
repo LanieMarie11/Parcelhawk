@@ -7,6 +7,7 @@ import Footer from "@/components/footer"
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isSignUp = pathname === "/sign-up"
+  const isLandProperty = pathname.endsWith("/land-property")
 
   if (isSignUp) {
     return <>{children}</>
@@ -16,7 +17,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     <>
       <MainHeader />
       <div className="pt-[73px]">{children}</div>
-      <Footer />
+      <Footer className={isLandProperty ? "ml-auto w-1/2" : ""} />
     </>
   )
 }
