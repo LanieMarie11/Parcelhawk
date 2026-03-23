@@ -1,4 +1,5 @@
 import PersonalInfo from "../components/personal-info"
+import LandPreferences from "../components/land-preferences"
 import NotificationPreferences from "../components/notification-preferences"
 import SavedSearchAlerts from "../components/saved-search-alerts"
 import Security from "../components/security"
@@ -18,6 +19,7 @@ export default function ProfileSettingsPage() {
         {/* Main content */}
         <main className="flex flex-col gap-6">
           <PersonalInfo />
+          <LandPreferences />
           {/* <NotificationPreferences /> */}
           {/* <SavedSearchAlerts /> */}
           <Security />
