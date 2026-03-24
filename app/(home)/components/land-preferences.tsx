@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const budgetOptions = [
   "$10K-$30K",
@@ -67,6 +68,69 @@ export default function LandPreferences() {
   const [selectedBudget, setSelectedBudget] = useState(budgetOptions[0])
   const [selectedBuyerType, setSelectedBuyerType] = useState("myself")
   const [selectedTimeframe, setSelectedTimeframe] = useState(timeframeOptions[0])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    const loadProfilePreferences = async () => {
+      try {
+        const response = await fetch("/api/profile", { method: "GET" })
+        const data = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error((data as { error?: string }).error ?? "Failed to load preferences")
+        }
+
+        const profile = data as {
+          preferenceBudget?: string
+          preferencePurpose?: string
+          preferenceTimeframe?: string
+        }
+
+        if (profile.preferenceBudget && budgetOptions.includes(profile.preferenceBudget)) {
+          setSelectedBudget(profile.preferenceBudget)
+        }
+        if (profile.preferencePurpose && buyerTypes.some((type) => type.id === profile.preferencePurpose)) {
+          setSelectedBuyerType(profile.preferencePurpose)
+        }
+        if (profile.preferenceTimeframe && timeframeOptions.includes(profile.preferenceTimeframe)) {
+          setSelectedTimeframe(profile.preferenceTimeframe)
+        }
+      } catch {
+        toast.error("Could not load saved preferences.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void loadProfilePreferences()
+  }, [])
+
+  const handleSavePreferences = async () => {
+    setIsSaving(true)
+    try {
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          preferenceBudget: selectedBudget,
+          preferencePurpose: selectedBuyerType,
+          preferenceTimeframe: selectedTimeframe,
+        }),
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (response.ok) {
+        toast.success("Preferences updated successfully")
+      } else {
+        toast.error((data as { error?: string }).error ?? "Failed to update preferences")
+      }
+    } catch {
+      toast.error("Connection failed. Please try again.")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   return (
     <section className="rounded-lg border border-border bg-card p-6">
@@ -154,6 +218,17 @@ export default function LandPreferences() {
             })}
           </div>
         </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <button
+          type="button"
+          onClick={handleSavePreferences}
+          disabled={isSaving || isLoading}
+          className="rounded-md bg-[#04C0AF] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#03ac9d] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSaving ? "Saving..." : "Save Preferences"}
+        </button>
       </div>
     </section>
   )
