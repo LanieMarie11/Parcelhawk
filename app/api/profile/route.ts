@@ -28,7 +28,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  let body: { fullName?: string; email?: string; phone?: string; location?: string }
+  let body: {
+    fullName?: string
+    email?: string
+    phone?: string
+    location?: string
+    preferenceBudget?: string
+    preferencePurpose?: string
+    preferenceTimeframe?: string
+  }
   try {
     body = await request.json()
   } catch {
@@ -43,6 +51,9 @@ export async function POST(request: Request) {
     lastName?: string
     phone?: string | null
     location?: string | null
+    preferenceBudget?: string | null
+    preferencePurpose?: string | null
+    preferenceTimeframe?: string | null
     updatedAt: Date
   } = { updatedAt: new Date() }
   if (fullName !== "") {
@@ -51,6 +62,15 @@ export async function POST(request: Request) {
   }
   if (body.phone !== undefined) updates.phone = body.phone === "" ? null : body.phone
   if (body.location !== undefined) updates.location = body.location === "" ? null : body.location
+  if (body.preferenceBudget !== undefined) {
+    updates.preferenceBudget = body.preferenceBudget === "" ? null : body.preferenceBudget
+  }
+  if (body.preferencePurpose !== undefined) {
+    updates.preferencePurpose = body.preferencePurpose === "" ? null : body.preferencePurpose
+  }
+  if (body.preferenceTimeframe !== undefined) {
+    updates.preferenceTimeframe = body.preferenceTimeframe === "" ? null : body.preferenceTimeframe
+  }
 
   try {
     const result = await db
@@ -68,6 +88,57 @@ export async function POST(request: Request) {
     console.error("Profile update error:", err)
     return NextResponse.json(
       { error: "Failed to update profile" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET() {
+  const session = await getServerSession(authOptions)
+  const userId = getUserId(session)
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    const result = await db
+      .select({
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        phone: users.phone,
+        location: users.location,
+        preferenceBudget: users.preferenceBudget,
+        preferencePurpose: users.preferencePurpose,
+        preferenceTimeframe: users.preferenceTimeframe,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+
+    const user = result[0]
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const fullName = [user.firstName, user.lastName]
+      .map((part) => (part ?? "").trim())
+      .filter(Boolean)
+      .join(" ")
+
+    return NextResponse.json({
+      fullName,
+      email: user.email,
+      phone: user.phone ?? "",
+      location: user.location ?? "",
+      preferenceBudget: user.preferenceBudget ?? "",
+      preferencePurpose: user.preferencePurpose ?? "",
+      preferenceTimeframe: user.preferenceTimeframe ?? "",
+    })
+  } catch (err) {
+    console.error("Profile fetch error:", err)
+    return NextResponse.json(
+      { error: "Failed to fetch profile" },
       { status: 500 }
     )
   }
