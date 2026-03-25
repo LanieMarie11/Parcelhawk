@@ -6,7 +6,7 @@ import Image from "next/image"
 
 export default function Footer({ className = "" }: { className?: string }) {
   return (
-    <footer className={`bg-[#1a1a1a] text-[#e5e5e5] px-6 py-10 md:px-16 lg:px-24 ${className}`.trim()}>
+    <footer className={`shrink-0 bg-[#1a1a1a] text-[#e5e5e5] px-6 py-10 md:px-16 lg:px-24 ${className}`.trim()}>
       {/* Top Section: JOIN US + Email */}
       <div className="flex flex-col font-ibm-plex-sans gap-8 lg:flex-row lg:items-start lg:justify-between">
         {/* Left */}

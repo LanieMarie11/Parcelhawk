@@ -3,5 +3,5 @@ export default function BuyerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <main className="min-h-[calc(100vh-73px)]">{children}</main>;
+  return <main>{children}</main>;
 }
