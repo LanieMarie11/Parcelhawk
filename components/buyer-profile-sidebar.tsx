@@ -7,7 +7,7 @@ import { signOut } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
 
 const menuItems = [
-  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
+  { label: "Dashboard", href: "/buyer-dashboard", icon: DashboardIcon },
   { label: "Saved Searches", href: "/saved-search", icon: SavedSearchesIcon },
   { label: "Favorite", href: "/favorite", icon: FavoriteIcon },
   { label: "Profile Settings", href: "/profile-settings", icon: ProfileSettingsIcon },
