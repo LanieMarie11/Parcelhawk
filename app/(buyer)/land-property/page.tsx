@@ -32,6 +32,8 @@ function LandPropertyPageContent() {
   const activitiesFromUrl = searchParams.getAll("activity").filter(Boolean)
   const locationFromUrl = searchParams.get("location") ?? ""
   const minAcresFromUrl = searchParams.get("minAcres")
+  const maxAcresFromUrl = searchParams.get("maxAcres")
+  const minPriceFromUrl = searchParams.get("minPrice")
   const maxPriceFromUrl = searchParams.get("maxPrice")
   const [listingsData, setListingsData] = useState<any[]>([])
   const [priceRange, setPriceRange] = useState<{
@@ -47,11 +49,15 @@ function LandPropertyPageContent() {
   const [sortId, setSortId] = useState<SortId>("default")
 
   useEffect(() => {
+    const minFromUrl = minPriceFromUrl != null && minPriceFromUrl !== "" ? Number(minPriceFromUrl) : null
     const maxFromUrl = maxPriceFromUrl != null && maxPriceFromUrl !== "" ? Number(maxPriceFromUrl) : null
     const minAcresFromUrlNum = minAcresFromUrl != null && minAcresFromUrl !== "" ? Number(minAcresFromUrl) : null
+    const maxAcresFromUrlNum = maxAcresFromUrl != null && maxAcresFromUrl !== "" ? Number(maxAcresFromUrl) : null
+    if (minFromUrl != null && Number.isFinite(minFromUrl)) setPriceRange((p) => ({ ...p, min: minFromUrl }))
     if (maxFromUrl != null && Number.isFinite(maxFromUrl)) setPriceRange((p) => ({ ...p, max: maxFromUrl }))
     if (minAcresFromUrlNum != null && Number.isFinite(minAcresFromUrlNum)) setSizeRange((s) => ({ ...s, min: minAcresFromUrlNum }))
-  }, [minAcresFromUrl, maxPriceFromUrl])
+    if (maxAcresFromUrlNum != null && Number.isFinite(maxAcresFromUrlNum)) setSizeRange((s) => ({ ...s, max: maxAcresFromUrlNum }))
+  }, [minAcresFromUrl, maxAcresFromUrl, minPriceFromUrl, maxPriceFromUrl])
 
   useEffect(() => {
     let cancelled = false
@@ -72,8 +78,10 @@ function LandPropertyPageContent() {
         activities.forEach((a) => params.append("activity", a))
         if (sortId && sortId !== "default") params.set("sort", sortId)
         if (useLocationSearch) {
-          if (minAcresFromUrl != null && minAcresFromUrl !== "") params.set("minAcres", minAcresFromUrl)
+          if (minPriceFromUrl != null && minPriceFromUrl !== "") params.set("minPrice", minPriceFromUrl)
           if (maxPriceFromUrl != null && maxPriceFromUrl !== "") params.set("maxPrice", maxPriceFromUrl)
+          if (minAcresFromUrl != null && minAcresFromUrl !== "") params.set("minAcres", minAcresFromUrl)
+          if (maxAcresFromUrl != null && maxAcresFromUrl !== "") params.set("maxAcres", maxAcresFromUrl)
         }
         const qs = params.toString()
         const url = `${base}${qs ? `?${qs}` : ""}`
@@ -105,7 +113,7 @@ function LandPropertyPageContent() {
     }
     load()
     return () => { cancelled = true }
-  }, [typeFromUrl, activitiesFromUrl.join(","), locationFromUrl, minAcresFromUrl, maxPriceFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities, sortId])
+  }, [typeFromUrl, activitiesFromUrl.join(","), locationFromUrl, minAcresFromUrl, maxAcresFromUrl, minPriceFromUrl, maxPriceFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities, sortId])
 
   const handleEmbeddingSearch = async (prompt: string) => {
     const base = getBaseUrl()
