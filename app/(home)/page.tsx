@@ -5,18 +5,21 @@ import WhyParcel from "./components/why-parcel";
 import { FeaturedListings } from "@/components/featured-list";
 import { FindYourLandCta } from "./components/find-your-land";
 import ExploreActivityTypes from "@/components/explore-activity-types";
+import { LandingHome } from "./components/landing-home";
 
 export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   return (
     <>
-      <HeroSection />
+    {/* TODO : Updated Home Page and remove the old components */}
+      {/* <HeroSection />
       <ExploreLandTypes />
       <FeaturedListings />
       <WhyParcel />
       <ExploreActivityTypes />
-      <FindYourLandCta />
+      <FindYourLandCta /> */}
+      <LandingHome />
     </>
   )
 }
