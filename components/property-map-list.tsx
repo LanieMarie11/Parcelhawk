@@ -85,45 +85,31 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
 
   return (
     <div className="flex w-full">
-      {/* Fixed so map stays in place when scrolling the list */}
-      <div className="fixed left-0 top-[73px] z-10 h-[calc(100vh-73px)] w-1/2 min-w-0">
-        <div className="relative h-full w-full">
-          <MarketplaceMap
-            listings={listings}
-            selectedId={hoveredListingId}
-            className="h-full w-full rounded-r-lg"
-          />
-        </div>
-      </div>
-      {/* Spacer so list content starts at 50%; map is fixed over the left half */}
-      <div className="min-w-0 w-1/2 shrink-0" aria-hidden />
-      <div className="flex w-1/2 min-w-0 shrink-0 flex-col border-l border-border bg-background">
-        <div className="shrink-0 border-b border-border px-5 pb-4 pt-5">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-lg font-medium text-foreground">{title}</h1>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {listings.length} results in current map area
+      {/* List (left) */}
+      <div className="flex w-1/2 min-w-0 shrink-0 flex-col border-r border-border bg-background">
+        <div className="shrink-0 border-b border-border px-6 pb-4 pt-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{listings.length}</span> parcels match your search
               </p>
             </div>
-            <div className="relative" ref={sortRef}>
+            <div className="relative shrink-0" ref={sortRef}>
               <button
                 type="button"
                 onClick={() => setSortOpen((prev) => !prev)}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                 aria-expanded={sortOpen}
                 aria-haspopup="true"
               >
-                <span>
-                  {"Sort: "}
-                  <span className="font-semibold text-foreground">{currentSortLabel}</span>
+                <span className="whitespace-nowrap">
+                  {"Ranked by match score: "}
+                  <span className="font-medium text-foreground">{currentSortLabel}</span>
                 </span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 transition-transform ${sortOpen ? "rotate-180" : ""}`}
-                />
+                <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${sortOpen ? "rotate-180" : ""}`} />
               </button>
               {sortOpen && (
-                <div className="absolute right-0 top-full z-50 mt-1 min-w-[220px] rounded-lg border border-border bg-card py-1 shadow-lg">
+                <div className="absolute right-0 top-full z-50 mt-2 min-w-[240px] rounded-xl border border-border bg-card py-1 shadow-lg">
                   {SORT_OPTIONS.map((option) => (
                     <button
                       key={option.id}
@@ -133,9 +119,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
                         setSortOpen(false)
                       }}
                       className={`w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                        sortId === option.id
-                          ? "bg-[#04C0AF] font-medium text-white"
-                          : "text-foreground hover:bg-muted"
+                        sortId === option.id ? "bg-[#04C0AF] font-medium text-white" : "text-foreground hover:bg-muted"
                       }`}
                     >
                       {option.label}
@@ -147,8 +131,8 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
           </div>
         </div>
 
-        <div className="px-5 py-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="px-6 py-4">
+          <div className="flex flex-col gap-4">
             {paginatedListings.map((listing) => (
               <PropertyCard
                 id={listing.id}
@@ -163,6 +147,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
                 initialIsFavorite={listing.isFavorite}
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
+                variant="list"
                 onMouseEnter={() => setHoveredListingId(listing.id)}
                 onMouseLeave={() => setHoveredListingId(null)}
               />
@@ -170,7 +155,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-border px-5 py-4">
+        <div className="mt-auto shrink-0 border-t border-border px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
@@ -181,10 +166,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
               Previous
             </button>
             <p className="text-sm text-muted-foreground">
-              Page{" "}
-              <span className="font-medium text-[#04C0AF]">{currentPage}</span>
-              {" of "}
-              {totalPages}
+              Page <span className="font-medium text-foreground">{currentPage}</span> of {totalPages}
             </p>
             <button
               type="button"
@@ -197,6 +179,15 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
           </div>
         </div>
       </div>
+
+      {/* Fixed map (right) */}
+      <div className="fixed right-0 top-[73px] z-10 h-[calc(100vh-73px)] w-1/2 min-w-0">
+        <div className="relative h-full w-full bg-background">
+          <MarketplaceMap listings={listings} selectedId={hoveredListingId} className="h-full w-full" />
+        </div>
+      </div>
+      {/* Spacer so content doesn't sit under the fixed map */}
+      <div className="min-w-0 w-1/2 shrink-0" aria-hidden />
     </div>
   )
 }

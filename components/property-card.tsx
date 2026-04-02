@@ -12,6 +12,8 @@ interface PropertyCardProps {
   image?: string
   /** Multiple images for carousel (used by marketplace) */
   images?: string[]
+  /** Display style */
+  variant?: "grid" | "list"
   category: string
   categoryColor: string
   name: string
@@ -48,6 +50,7 @@ export function PropertyCard({
   id,
   image,
   images,
+  variant = "grid",
   category,
   categoryColor,
   name,
@@ -89,6 +92,94 @@ export function PropertyCard({
       body: JSON.stringify({ landListingIds: [listingId] }),
     })
     if (res.ok) setIsFavorited((prev) => !prev)
+  }
+
+  const numericPrice = Number(String(price).replace(/[^0-9.]/g, ""))
+  const numericAcres = Number(String(acreage).replace(/[^0-9.]/g, ""))
+  const showPricePerAcre = Number.isFinite(numericPrice) && Number.isFinite(numericAcres) && numericAcres > 0
+  const pricePerAcre = showPricePerAcre ? numericPrice / numericAcres : null
+
+  if (variant === "list") {
+    return (
+      <div
+        className="group flex items-stretch gap-4 rounded-2xl border border-border bg-background p-4 font-ibm-plex-sans shadow-sm"
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <a
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl bg-muted"
+        >
+          <Image
+            src={getImageSrc(firstImage)}
+            alt={name}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="148px"
+          />
+        </a>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <p className="text-base font-semibold text-foreground">{formatPrice(price)}</p>
+                {showPricePerAcre ? (
+                  <p className="text-xs text-muted-foreground">${Math.round(pricePerAcre!).toLocaleString("en-US")} / acre</p>
+                ) : null}
+              </div>
+              <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground line-clamp-1">
+                <MapPin className="h-3.5 w-3.5" />
+                {location}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {acreage ? (
+                <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
+                  {String(acreage).trim()} ac
+                </span>
+              ) : null}
+              {category ? (
+                <span
+                  className="rounded-full px-2 py-1 text-xs font-medium text-white"
+                  style={{ backgroundColor: categoryColor || "#6b7b6b" }}
+                >
+                  {category}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (!session) {
+                    openSignInModal()
+                    return
+                  }
+                  saveFavorite(id)
+                }}
+                className="ml-1 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-accent"
+                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Heart
+                  className={`h-4 w-4 transition-colors ${
+                    isFavorited ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {descriptionText ? (
+            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{descriptionText}</p>
+          ) : null}
+        </div>
+      </div>
+    )
   }
 
   return (

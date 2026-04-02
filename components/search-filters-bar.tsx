@@ -93,55 +93,68 @@ export function SearchFiltersBar({
   }
 
   return (
-    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-4 py-3">
-      <div className="flex min-w-0 max-w-1/2 flex-1 items-center gap-3">
+    <div className="w-full shrink-0 border-b border-border bg-background px-4 py-3">
+      {/* Top row: search bar */}
+      <div className="flex items-center gap-3">
         <div className="relative flex min-w-0 flex-1 items-center">
-          <Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <LocationSearchInput
             value={locationDraft}
             onChange={setLocationDraft}
             onSelect={handleLocationSelect}
-            placeholder="Search by location"
-            className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="e.g. 20 acres with road access in Colorado under $80k..."
+            className="h-11 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-        <PriceRange
-          value={{ min: priceMin, max: priceMax }}
-          onApply={handlePriceApply}
-        />
-        <SizeRange
-          value={{ min: sizeMin, max: sizeMax }}
-          onApply={handleSizeApply}
-        />
-        <FilterOption
-          priceMin={priceMin}
-          priceMax={priceMax}
-          onPriceChange={handlePriceApply}
-          sizeMin={sizeMin}
-          sizeMax={sizeMax}
-          onSizeChange={handleSizeApply}
-          onApply={(payload) => {
-            onPriceRangeApply?.(payload.priceMin, payload.priceMax)
-            onSizeRangeApply?.(payload.acreageMin, payload.acreageMax)
-            onFilterApply?.(payload)
-          }}
-          onGenerateFiltersClick={onEmbeddingSearch}
-        />
+        <button
+          type="button"
+          onClick={() => handleLocationSelect(locationDraft)}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2F5B3A] text-white transition-colors hover:bg-[#264A30]"
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          if (!session) {
-            openSignInModal()
-            return
-          }
-          setSaveModalOpen(true)
-        }}
-        className="shrink-0 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors bg-[#04C0AF] text-white hover:bg-[#3dbdb5] disabled:opacity-50"
-      >
-        <Heart className="h-4 w-4 fill-white" />
-        Save Search
-      </button>
+
+      {/* Second row: quick filters */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <PriceRange value={{ min: priceMin, max: priceMax }} onApply={handlePriceApply} />
+          <SizeRange value={{ min: sizeMin, max: sizeMax }} onApply={handleSizeApply} />
+          <FilterOption
+            priceMin={priceMin}
+            priceMax={priceMax}
+            onPriceChange={handlePriceApply}
+            sizeMin={sizeMin}
+            sizeMax={sizeMax}
+            onSizeChange={handleSizeApply}
+            onApply={(payload) => {
+              onPriceRangeApply?.(payload.priceMin, payload.priceMax)
+              onSizeRangeApply?.(payload.acreageMin, payload.acreageMax)
+              onFilterApply?.(payload)
+            }}
+            onGenerateFiltersClick={onEmbeddingSearch}
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (!session) {
+                openSignInModal()
+                return
+              }
+              setSaveModalOpen(true)
+            }}
+            className="flex items-center gap-2 rounded-xl bg-[#04C0AF] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:opacity-50"
+          >
+            <Heart className="h-4 w-4 fill-white" />
+            Save Search
+          </button>
+        </div>
+      </div>
+
       <SavePropertySearchModal
         isOpen={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
