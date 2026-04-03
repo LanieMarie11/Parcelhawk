@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Heart, Sparkles } from "lucide-react"
+import { Search, Heart } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
@@ -124,6 +124,56 @@ export function SearchFiltersBar({
         </button>
       </div> */}
 
+
+{onEmbeddingSearch ? (
+        <div className="mt-3">
+          <div
+            className="flex h-10 items-center gap-2.5 rounded-full border border-[#E5E7EB] bg-[#F8F9FA] pl-4 pr-1.5 shadow-sm outline-none"
+            role="search"
+          >
+            <Search
+              className="pointer-events-none h-4 w-4 shrink-0 text-muted-foreground"
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <input
+              type="text"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return
+                e.preventDefault()
+                const q = aiPrompt.trim()
+                if (!q || embeddingSearching) return
+                setEmbeddingSearching(true)
+                onEmbeddingSearch(q).finally(() => setEmbeddingSearching(false))
+              }}
+              placeholder="e.g. 10 acres in Montana with a creek and mountain views"
+              className="min-h-0 min-w-0 flex-1 border-0 bg-transparent py-0 text-sm leading-none text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-0"
+              aria-label="Describe what you’re looking for"
+            />
+            <button
+              type="button"
+              disabled={!aiPrompt.trim() || embeddingSearching}
+              onClick={async () => {
+                const q = aiPrompt.trim()
+                if (!q) return
+                setEmbeddingSearching(true)
+                try {
+                  await onEmbeddingSearch(q)
+                } finally {
+                  setEmbeddingSearching(false)
+                }
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2F5B3A] text-white transition-colors hover:bg-[#264A30] disabled:pointer-events-none disabled:opacity-45"
+              aria-label={embeddingSearching ? "Searching" : "Search"}
+            >
+              <Search className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Second row: quick filters — items-start + label row on each group aligns inputs with More Filters */}
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-start gap-6">
@@ -155,38 +205,7 @@ export function SearchFiltersBar({
         </div>
       </div>
 
-      {onEmbeddingSearch ? (
-        <div className="mt-3 rounded-xl border border-border/80 bg-muted/20 px-3 py-3">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">AI prompt search</p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input
-              type="text"
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="e.g. 10 acres near a lake in Texas under $200k"
-              className="min-h-10 w-full flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#6B9B7A] focus:outline-none focus:ring-2 focus:ring-[#6B9B7A]/20"
-            />
-            <button
-              type="button"
-              disabled={!aiPrompt.trim() || embeddingSearching}
-              onClick={async () => {
-                const q = aiPrompt.trim()
-                if (!q) return
-                setEmbeddingSearching(true)
-                try {
-                  await onEmbeddingSearch(q)
-                } finally {
-                  setEmbeddingSearching(false)
-                }
-              }}
-              className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#04C0AF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:pointer-events-none disabled:opacity-50"
-            >
-              <Sparkles className="h-4 w-4" />
-              {embeddingSearching ? "Searching…" : "Search"}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      
 
       <SavePropertySearchModal
         isOpen={saveModalOpen}
