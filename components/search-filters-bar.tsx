@@ -15,7 +15,8 @@ import FilterOption, {
 } from "@/components/filter-option"
 import { SavePropertySearchModal, type SavedSearchFilters } from "@/components/save-search-property-modal"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
-import StateFilter from "./state-filter";
+import CountyFilter, { type CountyFilterValue } from "./county-filter"
+import StateFilter, { type StateFilterValue } from "./state-filter"
 
 interface SearchFiltersBarProps {
   /** Listing IDs for "Save Search" (saves these to favorites). Button disabled when empty. */
@@ -60,6 +61,8 @@ export function SearchFiltersBar({
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [aiPrompt, setAiPrompt] = useState("")
   const [embeddingSearching, setEmbeddingSearching] = useState(false)
+  const [filterState, setFilterState] = useState<StateFilterValue>(null)
+  const [filterCounty, setFilterCounty] = useState<CountyFilterValue>(null)
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -178,7 +181,21 @@ export function SearchFiltersBar({
       {/* Second row: quick filters — items-start + label row on each group aligns inputs with More Filters */}
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-start gap-6">
-          <StateFilter value={null} onApply={() => {}} />
+          <StateFilter
+            value={filterState}
+            onApply={(s) => {
+              setFilterState(s)
+              setFilterCounty((c) => {
+                if (!c || !s) return c
+                return c.stateCode === s.code ? c : null
+              })
+            }}
+          />
+          <CountyFilter
+            stateCode={filterState?.code ?? null}
+            value={filterCounty}
+            onApply={setFilterCounty}
+          />
           <PriceRange value={{ min: priceMin, max: priceMax }} onApply={handlePriceApply} />
           <SizeRange value={{ min: sizeMin, max: sizeMax }} onApply={handleSizeApply} />
           <FilterOption
