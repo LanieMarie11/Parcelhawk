@@ -3,6 +3,10 @@
 
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
+import {
+  DEFAULT_LAND_FEATURE_FILTERS,
+  type LandFeatureFilters,
+} from "@/components/filter-option"
 import { PropertyMapList } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 
@@ -39,8 +43,8 @@ function LandActivityPageContent() {
     min: number | null
     max: number | null
   }>({ min: null, max: null })
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([])
-  const [activities, setActivities] = useState<string[]>([])
+  const [landFeatureFilters, setLandFeatureFilters] =
+    useState<LandFeatureFilters>(DEFAULT_LAND_FEATURE_FILTERS)
 
   useEffect(() => {
     let cancelled = false
@@ -52,8 +56,6 @@ function LandActivityPageContent() {
         if (priceRange.max != null) params.set("maxPrice", String(priceRange.max))
         if (sizeRange.min != null) params.set("minAcres", String(sizeRange.min))
         if (sizeRange.max != null) params.set("maxAcres", String(sizeRange.max))
-        propertyTypes.forEach((t) => params.append("propertyType", t))
-        activities.forEach((a) => params.append("activity", a))
         const qs = params.toString()
         const url = `${getBaseUrl()}/api/land-activity${qs ? `?${qs}` : ""}`
         const res = await fetch(url)
@@ -84,7 +86,7 @@ function LandActivityPageContent() {
     }
     load()
     return () => { cancelled = true }
-  }, [typeFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities])
+  }, [typeFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max])
 
   return (
     <div className="flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
@@ -95,13 +97,11 @@ function LandActivityPageContent() {
           priceMax={priceRange.max}
           sizeMin={sizeRange.min}
           sizeMax={sizeRange.max}
+          featureFilters={landFeatureFilters}
           onPriceRangeApply={(min, max) => setPriceRange({ min, max })}
           onSizeRangeApply={(min, max) => setSizeRange({ min, max })}
           onFilterApply={(payload) => {
-            setPriceRange({ min: payload.priceMin, max: payload.priceMax })
-            setSizeRange({ min: payload.acreageMin, max: payload.acreageMax })
-            setPropertyTypes(payload.propertyTypes)
-            setActivities(payload.activities)
+            setLandFeatureFilters(payload.features)
           }}
         />
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Heart } from "lucide-react"
+import { Search, Heart, Sparkles } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
@@ -9,7 +9,10 @@ import PriceRange from "@/components/price-range"
 import type { PriceRangeOnApply } from "@/components/price-range"
 import SizeRange from "@/components/size-range"
 import type { SizeRangeOnApply } from "@/components/size-range"
-import FilterOption, { type FilterApplyPayload } from "@/components/filter-option"
+import FilterOption, {
+  type FilterApplyPayload,
+  type LandFeatureFilters,
+} from "@/components/filter-option"
 import { SavePropertySearchModal, type SavedSearchFilters } from "@/components/save-search-property-modal"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
 
@@ -34,6 +37,8 @@ interface SearchFiltersBarProps {
   onEmbeddingSearch?: (prompt: string) => Promise<void>
   /** Current filters to save when user saves search (from parent state / URL). */
   currentFilters?: SavedSearchFilters | null
+  /** Land feature toggles from More filters (keeps panel in sync with parent). */
+  featureFilters?: LandFeatureFilters | null
 }
 
 export function SearchFiltersBar({
@@ -47,10 +52,13 @@ export function SearchFiltersBar({
   onFilterApply,
   onEmbeddingSearch,
   currentFilters,
+  featureFilters,
 }: SearchFiltersBarProps) {
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
   const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState("")
+  const [embeddingSearching, setEmbeddingSearching] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -95,7 +103,7 @@ export function SearchFiltersBar({
   return (
     <div className="w-full shrink-0 border-b border-border bg-background px-4 py-3">
       {/* Top row: search bar */}
-      <div className="flex items-center gap-3">
+      {/* <div className="flex items-center gap-3">
         <div className="relative flex min-w-0 flex-1 items-center">
           <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <LocationSearchInput
@@ -114,30 +122,22 @@ export function SearchFiltersBar({
         >
           <Search className="h-4 w-4" />
         </button>
-      </div>
+      </div> */}
 
-      {/* Second row: quick filters */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Second row: quick filters — items-start + label row on each group aligns inputs with More Filters */}
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start gap-6">
           <PriceRange value={{ min: priceMin, max: priceMax }} onApply={handlePriceApply} />
           <SizeRange value={{ min: sizeMin, max: sizeMax }} onApply={handleSizeApply} />
           <FilterOption
-            priceMin={priceMin}
-            priceMax={priceMax}
-            onPriceChange={handlePriceApply}
-            sizeMin={sizeMin}
-            sizeMax={sizeMax}
-            onSizeChange={handleSizeApply}
+            initialFeatures={featureFilters ?? undefined}
             onApply={(payload) => {
-              onPriceRangeApply?.(payload.priceMin, payload.priceMax)
-              onSizeRangeApply?.(payload.acreageMin, payload.acreageMax)
               onFilterApply?.(payload)
             }}
-            onGenerateFiltersClick={onEmbeddingSearch}
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3 self-end">
           <button
             type="button"
             onClick={() => {
@@ -147,13 +147,46 @@ export function SearchFiltersBar({
               }
               setSaveModalOpen(true)
             }}
-            className="flex items-center gap-2 rounded-xl bg-[#04C0AF] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:opacity-50"
+            className="flex h-[34px] items-center gap-2 rounded-xl bg-[#04C0AF] px-4 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:opacity-50"
           >
             <Heart className="h-4 w-4 fill-white" />
             Save Search
           </button>
         </div>
       </div>
+
+      {onEmbeddingSearch ? (
+        <div className="mt-3 rounded-xl border border-border/80 bg-muted/20 px-3 py-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">AI prompt search</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="e.g. 10 acres near a lake in Texas under $200k"
+              className="min-h-10 w-full flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#6B9B7A] focus:outline-none focus:ring-2 focus:ring-[#6B9B7A]/20"
+            />
+            <button
+              type="button"
+              disabled={!aiPrompt.trim() || embeddingSearching}
+              onClick={async () => {
+                const q = aiPrompt.trim()
+                if (!q) return
+                setEmbeddingSearching(true)
+                try {
+                  await onEmbeddingSearch(q)
+                } finally {
+                  setEmbeddingSearching(false)
+                }
+              }}
+              className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#04C0AF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:pointer-events-none disabled:opacity-50"
+            >
+              <Sparkles className="h-4 w-4" />
+              {embeddingSearching ? "Searching…" : "Search"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <SavePropertySearchModal
         isOpen={saveModalOpen}

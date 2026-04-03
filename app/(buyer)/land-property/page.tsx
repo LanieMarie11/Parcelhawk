@@ -2,6 +2,10 @@
 
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
+import {
+  DEFAULT_LAND_FEATURE_FILTERS,
+  type LandFeatureFilters,
+} from "@/components/filter-option"
 import { PropertyMapList, type SortId } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 
@@ -44,8 +48,8 @@ function LandPropertyPageContent() {
     min: number | null
     max: number | null
   }>({ min: null, max: null })
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([])
-  const [activities, setActivities] = useState<string[]>([])
+  const [landFeatureFilters, setLandFeatureFilters] =
+    useState<LandFeatureFilters>(DEFAULT_LAND_FEATURE_FILTERS)
   const [sortId, setSortId] = useState<SortId>("default")
 
   useEffect(() => {
@@ -74,8 +78,6 @@ function LandPropertyPageContent() {
         if (priceRange.max != null) params.set("maxPrice", String(priceRange.max))
         if (sizeRange.min != null) params.set("minAcres", String(sizeRange.min))
         if (sizeRange.max != null) params.set("maxAcres", String(sizeRange.max))
-        propertyTypes.forEach((t) => params.append("propertyType", t))
-        activities.forEach((a) => params.append("activity", a))
         if (sortId && sortId !== "default") params.set("sort", sortId)
         if (useLocationSearch) {
           if (minPriceFromUrl != null && minPriceFromUrl !== "") params.set("minPrice", minPriceFromUrl)
@@ -113,7 +115,20 @@ function LandPropertyPageContent() {
     }
     load()
     return () => { cancelled = true }
-  }, [typeFromUrl, activitiesFromUrl.join(","), locationFromUrl, minAcresFromUrl, maxAcresFromUrl, minPriceFromUrl, maxPriceFromUrl, priceRange.min, priceRange.max, sizeRange.min, sizeRange.max, propertyTypes, activities, sortId])
+  }, [
+    typeFromUrl,
+    activitiesFromUrl.join(","),
+    locationFromUrl,
+    minAcresFromUrl,
+    maxAcresFromUrl,
+    minPriceFromUrl,
+    maxPriceFromUrl,
+    priceRange.min,
+    priceRange.max,
+    sizeRange.min,
+    sizeRange.max,
+    sortId,
+  ])
 
   const handleEmbeddingSearch = async (prompt: string) => {
     const base = getBaseUrl()
@@ -154,13 +169,11 @@ function LandPropertyPageContent() {
           priceMax={priceRange.max}
           sizeMin={sizeRange.min}
           sizeMax={sizeRange.max}
+          featureFilters={landFeatureFilters}
           onPriceRangeApply={(min, max) => setPriceRange({ min, max })}
           onSizeRangeApply={(min, max) => setSizeRange({ min, max })}
           onFilterApply={(payload) => {
-            setPriceRange({ min: payload.priceMin, max: payload.priceMax })
-            setSizeRange({ min: payload.acreageMin, max: payload.acreageMax })
-            setPropertyTypes(payload.propertyTypes)
-            setActivities(payload.activities)
+            setLandFeatureFilters(payload.features)
           }}
           onEmbeddingSearch={handleEmbeddingSearch}
           currentFilters={{
@@ -169,9 +182,10 @@ function LandPropertyPageContent() {
             minAcres: sizeRange.min,
             maxAcres: sizeRange.max,
             location: locationFromUrl || null,
-            propertyType: typeFromUrl || propertyTypes[0] || null,
-            landType: typeFromUrl || propertyTypes[0] || null,
-            activities: activities.length > 0 ? activities : activitiesFromUrl.length > 0 ? activitiesFromUrl : null,
+            propertyType: typeFromUrl || null,
+            landType: typeFromUrl || null,
+            activities:
+              activitiesFromUrl.length > 0 ? activitiesFromUrl : null,
           }}
         />
       </div>
