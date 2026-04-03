@@ -3,7 +3,6 @@
 import { ChevronDown } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
-// Min: 0–40K | Max: 45K–75K
 const MIN_PRESETS = [
   { label: "No Min", value: 0 },
   { label: "$50,000", value: 50000 },
@@ -28,24 +27,14 @@ const MAX_PRESETS = [
   { label: "No MAX", value: 1000000000 },
 ] as const
 
-function formatPriceShort(value: string): string {
-  const num = Number(String(value).replace(/[^0-9.]/g, ""))
-  if (!Number.isFinite(num) || num <= 0) return ""
-  if (num >= 1_000_000) {
-    const m = num / 1_000_000
-    return m % 1 === 0 ? `${m}M` : `${m.toFixed(1)}M`
-  }
-  if (num >= 1_000) {
-    const k = num / 1_000
-    return k % 1 === 0 ? `${k}K` : `${k.toFixed(1)}K`
-  }
-  return String(num)
-}
-
-function parsePriceToNumber(value: string): number | null {
-  const num = Number(String(value).replace(/[^0-9.]/g, ""))
+function parsePriceToNumber(raw: string): number | null {
+  const num = Number(String(raw).replace(/[^0-9.]/g, ""))
   if (!Number.isFinite(num) || num < 0) return null
   return num
+}
+
+function digitsOnly(raw: string): string {
+  return String(raw).replace(/[^0-9]/g, "")
 }
 
 export type PriceRangeOnApply = (min: number | null, max: number | null) => void
@@ -53,156 +42,216 @@ export type PriceRangeOnApply = (min: number | null, max: number | null) => void
 export type PriceRangeValue = { min: number | null; max: number | null }
 
 interface PriceRangeProps {
-  /** Controlled min/max (null = no limit). When provided, internal state syncs from this. */
   value?: PriceRangeValue
-  /** Called when user clicks Apply with current min/max (null = no limit). */
   onApply?: PriceRangeOnApply
 }
 
-function valueToDisplay(value: number | null, presets: readonly { label: string; value: number }[]): string {
-  if (value === null || value === 0) return ""
-  const found = presets.find((p) => p.value === value)
-  return found ? found.label.replace(/[$,]/g, "") : value.toLocaleString()
+function toApplyValues(minDigits: string, maxDigits: string): {
+  min: number | null
+  max: number | null
+} {
+  const minNum =
+    minDigits === "" ? 0 : parsePriceToNumber(minDigits) ?? 0
+  const maxNum =
+    maxDigits === "" ? null : parsePriceToNumber(maxDigits)
+  const min = minNum === 0 ? null : minNum
+  const max =
+    maxNum === null || maxNum >= 1_000_000_000 ? null : maxNum
+  return { min, max }
 }
 
 export default function PriceRange({ value, onApply }: PriceRangeProps) {
-  const [open, setOpen] = useState(false)
-  const [minPrice, setMinPrice] = useState("")
-  const [maxPrice, setMaxPrice] = useState("")
+  const [presetsOpen, setPresetsOpen] = useState(false)
+  /** Digits-only string; empty means $0 / no min */
+  const [minDigits, setMinDigits] = useState("")
+  /** Digits-only string; empty means no max */
+  const [maxDigits, setMaxDigits] = useState("")
+  const [minFocused, setMinFocused] = useState(false)
+  const [maxFocused, setMaxFocused] = useState(false)
   const [activeInput, setActiveInput] = useState<"min" | "max" | null>(null)
   const [activeMinPreset, setActiveMinPreset] = useState<number | null>(null)
   const [activeMaxPreset, setActiveMaxPreset] = useState<number | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const lastActiveInputRef = useRef<"min" | "max">("min")
 
-  // Sync from parent value so FilterOption and PriceRange stay in sync
   useEffect(() => {
     if (value === undefined) return
-    const minStr = value.min === null || value.min === 0 ? "" : valueToDisplay(value.min, MIN_PRESETS)
-    const maxStr = value.max === null || value.max >= 1_000_000_000 ? "" : valueToDisplay(value.max, MAX_PRESETS)
-    setMinPrice(minStr === "" ? "" : (Number(minStr.replace(/[^0-9.]/g, ""))).toLocaleString())
-    setMaxPrice(maxStr === "" ? "" : (Number(maxStr.replace(/[^0-9.]/g, ""))).toLocaleString())
-    const minIdx = value.min === null || value.min === 0 ? null : MIN_PRESETS.findIndex((p) => p.value === value.min)
-    const maxIdx = value.max === null || value.max >= 1_000_000_000 ? null : MAX_PRESETS.findIndex((p) => p.value === value.max)
+    if (value.min === null || value.min === 0) setMinDigits("")
+    else setMinDigits(String(Math.round(value.min)))
+    if (value.max === null || value.max >= 1_000_000_000) setMaxDigits("")
+    else setMaxDigits(String(Math.round(value.max)))
+    const minIdx =
+      value.min === null || value.min === 0
+        ? null
+        : MIN_PRESETS.findIndex((p) => p.value === value.min)
+    const maxIdx =
+      value.max === null || value.max >= 1_000_000_000
+        ? null
+        : MAX_PRESETS.findIndex((p) => p.value === value.max)
     setActiveMinPreset(minIdx === -1 ? null : minIdx)
     setActiveMaxPreset(maxIdx === -1 ? null : maxIdx)
   }, [value?.min, value?.max])
 
   useEffect(() => {
-    if (!open) return
+    if (!presetsOpen) return
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
+        setPresetsOpen(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [open])
+  }, [presetsOpen])
 
-  function handlePresetClick(value: number, index: number) {
-    // Use last-focused input: clicking preset blurs the input so activeInput is already null
+  function commit() {
+    const { min, max } = toApplyValues(minDigits, maxDigits)
+    onApply?.(min, max)
+  }
+
+  function handlePresetClick(presetValue: number, index: number) {
     const target = activeInput ?? lastActiveInputRef.current
-    const formatted = value.toLocaleString()
+    const nextMin =
+      target === "min"
+        ? presetValue === 0
+          ? ""
+          : String(presetValue)
+        : minDigits
+    const nextMax =
+      target === "max"
+        ? presetValue >= 1_000_000_000
+          ? ""
+          : String(presetValue)
+        : maxDigits
+
     if (target === "min") {
-      setMinPrice(formatted)
+      setMinDigits(nextMin)
       setActiveMinPreset(index)
     } else {
-      setMaxPrice(formatted)
+      setMaxDigits(nextMax)
       setActiveMaxPreset(index)
     }
+
+    const { min, max } = toApplyValues(nextMin, nextMax)
+    onApply?.(min, max)
   }
 
   function isPresetActive(target: "min" | "max", i: number) {
     return target === "min" ? activeMinPreset === i : activeMaxPreset === i
   }
 
-  const minShort = minPrice ? formatPriceShort(minPrice) : ""
-  const maxShort = maxPrice ? formatPriceShort(maxPrice) : ""
-  const priceLabel =
-    minShort || maxShort
-      ? `${minShort ? `$${minShort}` : ""}-${maxShort ? `$${maxShort}` : ""}`.replace(/^-|-$/g, "") || "Price"
-      : "Price"
-  const hasActiveValue = Boolean(minShort || maxShort)
+  const minInputValue = minFocused
+    ? minDigits
+    : minDigits === ""
+      ? "$0"
+      : `$${Number(minDigits).toLocaleString("en-US")}`
+
+  const maxInputValue = maxFocused
+    ? maxDigits
+    : maxDigits === ""
+      ? ""
+      : `$${Number(maxDigits).toLocaleString("en-US")}`
+
+  /** Compact fields: 93×34px, soft rounded rect (matches filter row mock). */
+  const inputCompactClass =
+    "box-border h-[34px] w-[93px] shrink-0 rounded-[10px] border border-[#E5E7EB] bg-[#F8F9FA] px-3 text-left text-sm text-[#374151] shadow-none transition-colors placeholder:text-muted-foreground/70 focus:border-[#6B9B7A]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6B9B7A]/15"
 
   return (
-    <div className="relative inline-block font-ibm-plex-sans" ref={containerRef}>
-      {/* Price dropdown trigger */}
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className={`flex w-full max-w-32 items-center justify-between gap-2 rounded-lg border ${
-          hasActiveValue ? "border-[#04C0AF]" : "border-border"
-        } bg-card px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-[#4ECDC4]/50 hover:text-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]`}
-        aria-expanded={open}
-        aria-haspopup="true"
-      >
-        <span>{priceLabel}</span>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
-          aria-hidden
+    <div className="relative inline-flex flex-col font-ibm-plex-sans" ref={containerRef}>
+      <span className="text-xs font-normal text-muted-foreground">Price Range</span>
+
+      <div className="mt-1.5 flex items-center gap-2">
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          aria-label="Minimum price"
+          value={minInputValue}
+          onChange={(e) => {
+            const d = digitsOnly(e.target.value)
+            setMinDigits(d)
+            setActiveMinPreset(null)
+          }}
+          onFocus={() => {
+            setMinFocused(true)
+            setActiveInput("min")
+            lastActiveInputRef.current = "min"
+          }}
+          onBlur={() => {
+            setMinFocused(false)
+            setActiveInput(null)
+            commit()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur()
+            }
+          }}
+          className={inputCompactClass}
         />
-      </button>
 
-      {/* Dropdown panel */}
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[500px] rounded-2xl bg-card p-6 shadow-lg">
-          <h2 className="text-lg font-medium text-foreground">
-            Price Range
-          </h2>
+        <span className="shrink-0 text-sm font-normal text-muted-foreground" aria-hidden>
+          -
+        </span>
 
-          <div className="mt-4 flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Min Price"
-              value={minPrice}
-              onChange={(e) => {
-                setMinPrice(e.target.value)
-                setActiveMinPreset(null)
-              }}
-              onFocus={() => {
-                setActiveInput("min")
-                lastActiveInputRef.current = "min"
-              }}
-              onBlur={() => setActiveInput(null)}
-              className={`w-full rounded-lg border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 ${
-                activeInput === "min"
-                  ? "border-[#4ECDC4] ring-2 ring-[#4ECDC4]/30"
-                  : "border-border focus:border-[#4ECDC4] focus:ring-[#4ECDC4]"
-              }`}
-            />
-            <span className="text-muted-foreground">&mdash;</span>
-            <input
-              type="text"
-              placeholder="Max Price"
-              value={maxPrice}
-              onChange={(e) => {
-                setMaxPrice(e.target.value)
-                setActiveMaxPreset(null)
-              }}
-              onFocus={() => {
-                setActiveInput("max")
-                lastActiveInputRef.current = "max"
-              }}
-              onBlur={() => setActiveInput(null)}
-              className={`w-full rounded-lg border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 ${
-                activeInput === "max"
-                  ? "border-[#4ECDC4] ring-2 ring-[#4ECDC4]/30"
-                  : "border-border focus:border-[#4ECDC4] focus:ring-[#4ECDC4]"
-              }`}
-            />
-          </div>
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          aria-label="Maximum price"
+          placeholder="Max"
+          value={maxInputValue}
+          onChange={(e) => {
+            const d = digitsOnly(e.target.value)
+            setMaxDigits(d)
+            setActiveMaxPreset(null)
+          }}
+          onFocus={() => {
+            setMaxFocused(true)
+            setActiveInput("max")
+            lastActiveInputRef.current = "max"
+          }}
+          onBlur={() => {
+            setMaxFocused(false)
+            setActiveInput(null)
+            commit()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur()
+            }
+          }}
+          className={inputCompactClass}
+        />
+{/* TODO: Remove this button */}
+        {/* <button
+          type="button"
+          onClick={() => setPresetsOpen((prev) => !prev)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/50 bg-muted/40 text-muted-foreground transition-colors hover:border-border hover:bg-muted/60 hover:text-foreground"
+          aria-expanded={presetsOpen}
+          aria-label="Price presets"
+        >
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${presetsOpen ? "rotate-180" : ""}`}
+            aria-hidden
+          />
+        </button> */}
+      </div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
+      {presetsOpen && (
+        <div className="absolute left-0 top-full z-50 mt-2 w-full min-w-[min(100vw-2rem,520px)] max-w-[90vw] rounded-2xl border border-border bg-card p-5 shadow-lg">
+          <p className="text-sm font-medium text-foreground">Quick amounts</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {(activeInput ?? lastActiveInputRef.current) === "min"
               ? MIN_PRESETS.map((preset, i) => (
                   <button
                     key={preset.value}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handlePresetClick(preset.value, i)}
-                    className={`rounded-lg border px-10 py-2.5 text-sm font-medium transition-colors ${
+                    className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
                       isPresetActive("min", i)
-                        ? "border-[#4ECDC4] bg-[#4ECDC4]/10 text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-[#4ECDC4]/50 hover:text-foreground"
+                        ? "border-[#6B9B7A] bg-[#6B9B7A]/15 text-foreground"
+                        : "border-border/60 bg-muted/30 text-muted-foreground hover:border-[#6B9B7A]/50 hover:text-foreground"
                     }`}
                   >
                     {preset.label}
@@ -212,11 +261,12 @@ export default function PriceRange({ value, onApply }: PriceRangeProps) {
                   <button
                     key={preset.value}
                     type="button"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => handlePresetClick(preset.value, i)}
-                    className={`rounded-lg border px-10 py-2.5 text-sm font-medium transition-colors ${
+                    className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
                       isPresetActive("max", i)
-                        ? "border-[#4ECDC4] bg-[#4ECDC4]/10 text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:border-[#4ECDC4]/50 hover:text-foreground"
+                        ? "border-[#6B9B7A] bg-[#6B9B7A]/15 text-foreground"
+                        : "border-border/60 bg-muted/30 text-muted-foreground hover:border-[#6B9B7A]/50 hover:text-foreground"
                     }`}
                   >
                     {preset.label}
@@ -224,33 +274,31 @@ export default function PriceRange({ value, onApply }: PriceRangeProps) {
                 ))}
           </div>
 
-          <div className="mt-5 flex gap-3">
+          <div className="mt-4 flex gap-3">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                setMinPrice("")
-                setMaxPrice("")
+                setMinDigits("")
+                setMaxDigits("")
                 setActiveMinPreset(null)
                 setActiveMaxPreset(null)
+                onApply?.(null, null)
               }}
-              className="flex-1 rounded-xl border border-border bg-card py-3.5 text-base font-medium text-foreground transition-colors hover:bg-muted"
+              className="flex-1 rounded-full border border-border/70 bg-muted/30 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
             >
               Clear
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                const minNum = parsePriceToNumber(minPrice)
-                const maxNum = parsePriceToNumber(maxPrice)
-                const min = minNum === null || minNum === 0 ? null : minNum
-                const max =
-                  maxNum === null || maxNum >= 1_000_000_000 ? null : maxNum
-                onApply?.(min, max)
-                setOpen(false)
+                commit()
+                setPresetsOpen(false)
               }}
-              className="flex-1 rounded-xl bg-[#04C0AF] py-3.5 text-base font-medium text-white shadow-md transition-colors hover:bg-[#3dbdb5] active:bg-[#35aba3]"
+              className="flex-1 rounded-full bg-[#2F5B3A] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#264A30]"
             >
-              Apply
+              Done
             </button>
           </div>
         </div>
