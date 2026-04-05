@@ -14,9 +14,9 @@ import { useSignInModal } from "@/lib/sign-in-modal-context";
 const nav = [
   { href: "/", label: "Search" },
   { href: "/favorite", label: "Saved Properties" },
-  { href: "/land-property", label: "Compare" },
-  { href: "#", label: "Resources" },
-  { href: "/buyer-dashboard", label: "Profile" },
+  { href: "/compare", label: "Compare" },
+  { href: "/resources", label: "Resources" },
+  { href: "/profile-settings", label: "Profile" },
 ] as const;
 
 export function LandingHeader() {

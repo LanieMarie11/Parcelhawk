@@ -152,13 +152,14 @@ export function SearchFiltersBar({
                 setEmbeddingSearching(true)
                 onEmbeddingSearch(q).finally(() => setEmbeddingSearching(false))
               }}
-              placeholder="e.g. 10 acres in Montana with a creek and mountain views"
+              placeholder="e.g. 100 acres in Montana with a creek and mountain views"
               className="min-h-0 min-w-0 flex-1 border-0 bg-transparent py-0 text-sm leading-none text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-0"
               aria-label={"Describe what you're looking for"}
             />
             <button
               type="button"
-              disabled={!aiPrompt.trim() || embeddingSearching}
+              // TODO: Re-enable this when the embedding search is working
+              // disabled={!aiPrompt.trim() || embeddingSearching}
               onClick={async () => {
                 const q = aiPrompt.trim()
                 if (!q) return
@@ -169,7 +170,7 @@ export function SearchFiltersBar({
                   setEmbeddingSearching(false)
                 }
               }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2F5B3A] text-white transition-colors hover:bg-[#264A30] disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-8 shrink-0 z-100 items-center justify-center cursor-pointer rounded-full bg-[#2F5B3A] text-white shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[#264A30] hover:shadow-md active:scale-[0.92] active:bg-[#1a3324] active:shadow-inner disabled:pointer-events-none disabled:opacity-45"
               aria-label={embeddingSearching ? "Searching" : "Search"}
             >
               <Search className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
