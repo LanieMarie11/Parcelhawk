@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { SlidersHorizontal } from "lucide-react"
 
+/** Panel toggles: ON/OFF defaults per product spec. */
 const FEATURE_ROWS = [
   { key: "roadAccessConfirmed", label: "Road access confirmed" },
   { key: "noFloodZone", label: "No flood zone" },
-  { key: "roadAccessConfirmedAlt", label: "Road access confirmed" },
   { key: "utilitiesNearby", label: "Utilities nearby" },
   { key: "hideUnknownData", label: "Hide unknown data" },
 ] as const
@@ -14,7 +14,6 @@ const FEATURE_ROWS = [
 export type LandFeatureFilters = {
   roadAccessConfirmed: boolean
   noFloodZone: boolean
-  roadAccessConfirmedAlt: boolean
   utilitiesNearby: boolean
   hideUnknownData: boolean
 }
@@ -22,7 +21,6 @@ export type LandFeatureFilters = {
 export const DEFAULT_LAND_FEATURE_FILTERS: LandFeatureFilters = {
   roadAccessConfirmed: true,
   noFloodZone: true,
-  roadAccessConfirmedAlt: true,
   utilitiesNearby: false,
   hideUnknownData: false,
 }
@@ -71,20 +69,14 @@ function FeatureToggleRow({
 
 export default function FilterOption({
   onApply,
-  onReset,
   initialFeatures,
 }: {
   onApply?: (payload: FilterApplyPayload) => void
-  onReset?: () => void
   /** Optional controlled initial state (e.g. from parent). */
   initialFeatures?: LandFeatureFilters | null
 }) {
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<LandFeatureFilters>(() => ({
-    ...DEFAULT_LAND_FEATURE_FILTERS,
-    ...initialFeatures,
-  }))
-  const [applied, setApplied] = useState<LandFeatureFilters>(() => ({
+  const [features, setFeatures] = useState<LandFeatureFilters>(() => ({
     ...DEFAULT_LAND_FEATURE_FILTERS,
     ...initialFeatures,
   }))
@@ -92,14 +84,13 @@ export default function FilterOption({
 
   useEffect(() => {
     if (initialFeatures) {
-      setDraft({ ...DEFAULT_LAND_FEATURE_FILTERS, ...initialFeatures })
-      setApplied({ ...DEFAULT_LAND_FEATURE_FILTERS, ...initialFeatures })
+      setFeatures({ ...DEFAULT_LAND_FEATURE_FILTERS, ...initialFeatures })
     }
   }, [initialFeatures])
 
   const activeFiltersCount = useMemo(
-    () => countDeviationsFromDefault(applied),
-    [applied]
+    () => countDeviationsFromDefault(features),
+    [features]
   )
 
   useEffect(() => {
@@ -114,21 +105,11 @@ export default function FilterOption({
   }, [open])
 
   function setFeature(key: keyof LandFeatureFilters, value: boolean) {
-    setDraft((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function handleClear() {
-    const next = { ...DEFAULT_LAND_FEATURE_FILTERS }
-    setDraft(next)
-    setApplied(next)
-    onReset?.()
-    onApply?.({ features: next })
-  }
-
-  function handleApply() {
-    setApplied(draft)
-    setOpen(false)
-    onApply?.({ features: draft })
+    setFeatures((prev) => {
+      const next = { ...prev, [key]: value }
+      onApply?.({ features: next })
+      return next
+    })
   }
 
   return (
@@ -165,34 +146,17 @@ export default function FilterOption({
             <h2 className="text-base font-medium text-foreground">More Filters</h2>
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto px-5 py-2">
+          <div className="max-h-[70vh] overflow-y-auto px-5 py-2 pb-4">
             {(FEATURE_ROWS as readonly { key: keyof LandFeatureFilters; label: string }[]).map(
               ({ key, label }) => (
                 <FeatureToggleRow
                   key={key}
                   label={label}
-                  checked={draft[key]}
+                  checked={features[key]}
                   onCheckedChange={(v) => setFeature(key, v)}
                 />
               )
             )}
-          </div>
-
-          <div className="flex gap-3 border-t border-border px-5 py-4">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="flex-1 rounded-xl border border-border bg-card py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              Clear
-            </button>
-            <button
-              type="button"
-              onClick={handleApply}
-              className="flex-1 rounded-xl bg-[#2F5B3A] py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#264A30]"
-            >
-              Apply
-            </button>
           </div>
         </div>
       )}

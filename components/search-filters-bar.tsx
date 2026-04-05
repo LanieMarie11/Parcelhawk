@@ -15,6 +15,8 @@ import FilterOption, {
 } from "@/components/filter-option"
 import { SavePropertySearchModal, type SavedSearchFilters } from "@/components/save-search-property-modal"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
+import CountyFilter, { type CountyFilterValue } from "./county-filter"
+import StateFilter, { type StateFilterValue } from "./state-filter"
 
 interface SearchFiltersBarProps {
   /** Listing IDs for "Save Search" (saves these to favorites). Button disabled when empty. */
@@ -59,6 +61,8 @@ export function SearchFiltersBar({
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [aiPrompt, setAiPrompt] = useState("")
   const [embeddingSearching, setEmbeddingSearching] = useState(false)
+  const [filterState, setFilterState] = useState<StateFilterValue>(null)
+  const [filterCounty, setFilterCounty] = useState<CountyFilterValue>(null)
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -125,7 +129,7 @@ export function SearchFiltersBar({
       </div> */}
 
 
-{onEmbeddingSearch ? (
+      {onEmbeddingSearch ? (
         <div className="mt-3">
           <div
             className="flex h-10 items-center gap-2.5 rounded-full border border-[#E5E7EB] bg-[#F8F9FA] pl-4 pr-1.5 shadow-sm outline-none"
@@ -148,13 +152,14 @@ export function SearchFiltersBar({
                 setEmbeddingSearching(true)
                 onEmbeddingSearch(q).finally(() => setEmbeddingSearching(false))
               }}
-              placeholder="e.g. 10 acres in Montana with a creek and mountain views"
+              placeholder="e.g. 100 acres in Montana with a creek and mountain views"
               className="min-h-0 min-w-0 flex-1 border-0 bg-transparent py-0 text-sm leading-none text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-0"
-              aria-label="Describe what you’re looking for"
+              aria-label={"Describe what you're looking for"}
             />
             <button
               type="button"
-              disabled={!aiPrompt.trim() || embeddingSearching}
+              // TODO: Re-enable this when the embedding search is working
+              // disabled={!aiPrompt.trim() || embeddingSearching}
               onClick={async () => {
                 const q = aiPrompt.trim()
                 if (!q) return
@@ -165,7 +170,7 @@ export function SearchFiltersBar({
                   setEmbeddingSearching(false)
                 }
               }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#2F5B3A] text-white transition-colors hover:bg-[#264A30] disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-8 shrink-0 z-100 items-center justify-center cursor-pointer rounded-full bg-[#2F5B3A] text-white shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[#264A30] hover:shadow-md active:scale-[0.92] active:bg-[#1a3324] active:shadow-inner disabled:pointer-events-none disabled:opacity-45"
               aria-label={embeddingSearching ? "Searching" : "Search"}
             >
               <Search className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
@@ -177,6 +182,21 @@ export function SearchFiltersBar({
       {/* Second row: quick filters — items-start + label row on each group aligns inputs with More Filters */}
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-start gap-6">
+          <StateFilter
+            value={filterState}
+            onApply={(s) => {
+              setFilterState(s)
+              setFilterCounty((c) => {
+                if (!c || !s) return c
+                return c.stateCode === s.code ? c : null
+              })
+            }}
+          />
+          <CountyFilter
+            stateCode={filterState?.code ?? null}
+            value={filterCounty}
+            onApply={setFilterCounty}
+          />
           <PriceRange value={{ min: priceMin, max: priceMax }} onApply={handlePriceApply} />
           <SizeRange value={{ min: sizeMin, max: sizeMax }} onApply={handleSizeApply} />
           <FilterOption

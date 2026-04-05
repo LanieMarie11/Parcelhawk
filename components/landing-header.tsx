@@ -14,9 +14,9 @@ import { useSignInModal } from "@/lib/sign-in-modal-context";
 const nav = [
   { href: "/", label: "Search" },
   { href: "/favorite", label: "Saved Properties" },
-  { href: "/land-property", label: "Compare" },
-  { href: "#", label: "Resources" },
-  { href: "/buyer-dashboard", label: "Profile" },
+  { href: "/compare", label: "Compare" },
+  { href: "/resources", label: "Resources" },
+  { href: "/profile-settings", label: "Profile" },
 ] as const;
 
 export function LandingHeader() {
@@ -57,7 +57,8 @@ export function LandingHeader() {
 
         <div className="flex flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-center">
           {nav.map(({ href, label }) => {
-            const active = href !== "#" && (pathname === href || (href !== "/" && pathname.startsWith(href)));
+            const active =
+              pathname === href || (href !== "/" && pathname.startsWith(href));
             return (
               <Link
                 key={label}
