@@ -1,7 +1,7 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useState } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import type { CountyFilterValue } from "@/components/county-filter"
 import {
   DEFAULT_LAND_FEATURE_FILTERS,
@@ -33,10 +33,13 @@ function getBaseUrl() {
 }
 
 function LandPropertyPageContent() {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const typeFromUrl = searchParams.get("type") ?? ""
   const activitiesFromUrl = searchParams.getAll("activity").filter(Boolean)
   const locationFromUrl = searchParams.get("location") ?? ""
+  const promptFromUrl = searchParams.get("prompt")?.trim() ?? ""
   const minAcresFromUrl = searchParams.get("minAcres")
   const maxAcresFromUrl = searchParams.get("maxAcres")
   const minPriceFromUrl = searchParams.get("minPrice")
@@ -55,6 +58,8 @@ function LandPropertyPageContent() {
   const [sortId, setSortId] = useState<SortId>("default")
   const [stateFilter, setStateFilter] = useState<StateFilterValue>(null)
   const [countyFilter, setCountyFilter] = useState<CountyFilterValue>(null)
+  const autoEmbeddedPromptRef = useRef<string | null>(null)
+  const postEmbeddingSkipRef = useRef(false)
 
   useEffect(() => {
     const minFromUrl = minPriceFromUrl != null && minPriceFromUrl !== "" ? Number(minPriceFromUrl) : null
@@ -71,6 +76,11 @@ function LandPropertyPageContent() {
     let cancelled = false
     async function load() {
       try {
+        if (postEmbeddingSkipRef.current) {
+          postEmbeddingSkipRef.current = false
+          return
+        }
+        if (promptFromUrl) return
         const useLocationSearch = locationFromUrl.length > 0 || typeFromUrl.length > 0 || activitiesFromUrl.length > 0
         // const base = useLocationSearch ? `${getBaseUrl()}/api/land-location-search` : `${getBaseUrl()}/api/land-property`
         const base = `${getBaseUrl()}/api/land-location-search` 
@@ -137,20 +147,21 @@ function LandPropertyPageContent() {
     stateFilter?.code,
     countyFilter?.stateCode,
     countyFilter?.name,
+    promptFromUrl,
   ])
 
-  const handleEmbeddingSearch = async (prompt: string) => {
+  const handleEmbeddingSearch = useCallback(async (prompt: string): Promise<boolean> => {
     const base = getBaseUrl()
     const res = await fetch(`${base}/api/embedding-search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt }),
     })
-    if (!res.ok) return
+    if (!res.ok) return false
     const contentType = res.headers.get("content-type") ?? ""
-    if (!contentType.includes("application/json")) return
+    if (!contentType.includes("application/json")) return false
     const listing = await res.json()
-    if (!Array.isArray(listing)) return
+    if (!Array.isArray(listing)) return false
     const mapped = listing.map((item: any) => ({
       id: item.id,
       images: item.photos,
@@ -167,7 +178,30 @@ function LandPropertyPageContent() {
       description: item.description,
     }))
     setListingsData(mapped)
-  }
+    return true
+  }, [])
+
+  useEffect(() => {
+    if (!promptFromUrl) {
+      autoEmbeddedPromptRef.current = null
+      return
+    }
+    if (autoEmbeddedPromptRef.current === promptFromUrl) return
+    autoEmbeddedPromptRef.current = promptFromUrl
+    let cancelled = false
+    ;(async () => {
+      const ok = await handleEmbeddingSearch(promptFromUrl)
+      if (cancelled) return
+      const params = new URLSearchParams(searchParams.toString())
+      params.delete("prompt")
+      const q = params.toString()
+      if (ok) postEmbeddingSkipRef.current = true
+      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [promptFromUrl, handleEmbeddingSearch, searchParams, router, pathname])
 
   return (
     <div className="flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
@@ -195,6 +229,7 @@ function LandPropertyPageContent() {
             setLandFeatureFilters(payload.features)
           }}
           onEmbeddingSearch={handleEmbeddingSearch}
+          syncedEmbeddingPrompt={promptFromUrl || null}
           currentFilters={{
             minPrice: priceRange.min,
             maxPrice: priceRange.max,

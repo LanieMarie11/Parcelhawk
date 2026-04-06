@@ -36,7 +36,9 @@ interface SearchFiltersBarProps {
   /** Called when user applies the full filter panel (price, size, property types, activities). */
   onFilterApply?: (payload: FilterApplyPayload) => void
   /** Called when user clicks Generate Filters with a prompt; parent POSTs to embedding search and sets results. */
-  onEmbeddingSearch?: (prompt: string) => Promise<void>
+  onEmbeddingSearch?: (prompt: string) => void | Promise<unknown>
+  /** When set (e.g. from `?prompt=` on /land-property), keeps the AI search input in sync. */
+  syncedEmbeddingPrompt?: string | null
   /** Current filters to save when user saves search (from parent state / URL). */
   currentFilters?: SavedSearchFilters | null
   /** Land feature toggles from More filters (keeps panel in sync with parent). */
@@ -61,6 +63,7 @@ export function SearchFiltersBar({
   onSizeRangeApply,
   onFilterApply,
   onEmbeddingSearch,
+  syncedEmbeddingPrompt,
   currentFilters,
   featureFilters,
   stateFilter: stateFilterProp,
@@ -127,6 +130,12 @@ export function SearchFiltersBar({
     setLocationDraft(locationFromUrl)
   }, [locationFromUrl])
 
+  useEffect(() => {
+    const t = syncedEmbeddingPrompt?.trim()
+    if (!t) return
+    setAiPrompt(t)
+  }, [syncedEmbeddingPrompt])
+
   const handleLocationSelect = (selected: string) => {
     const next = new URLSearchParams(searchParams.toString())
     if (selected.trim()) next.set("location", selected.trim())
@@ -180,7 +189,7 @@ export function SearchFiltersBar({
                 const q = aiPrompt.trim()
                 if (!q || embeddingSearching) return
                 setEmbeddingSearching(true)
-                onEmbeddingSearch(q).finally(() => setEmbeddingSearching(false))
+                void Promise.resolve(onEmbeddingSearch(q)).finally(() => setEmbeddingSearching(false))
               }}
               placeholder="e.g. 100 acres in Montana with a creek and mountain views"
               className="min-h-0 min-w-0 flex-1 border-0 bg-transparent py-0 text-sm leading-none text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-0"
