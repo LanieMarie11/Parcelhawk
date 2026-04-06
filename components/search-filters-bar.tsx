@@ -41,6 +41,14 @@ interface SearchFiltersBarProps {
   currentFilters?: SavedSearchFilters | null
   /** Land feature toggles from More filters (keeps panel in sync with parent). */
   featureFilters?: LandFeatureFilters | null
+  /** When set (including `null`), state filter is controlled by parent so list fetch can use it. */
+  stateFilter?: StateFilterValue | null
+  /** When set (including `null`), county filter is controlled by parent. */
+  countyFilter?: CountyFilterValue | null
+  /** Notifies parent when state is chosen; parent should update `stateFilter` when controlled. */
+  onStateFilterApply?: (state: StateFilterValue) => void
+  /** Notifies parent when county is chosen; parent should update `countyFilter` when controlled. */
+  onCountyFilterApply?: (county: CountyFilterValue) => void
 }
 
 export function SearchFiltersBar({
@@ -55,14 +63,20 @@ export function SearchFiltersBar({
   onEmbeddingSearch,
   currentFilters,
   featureFilters,
+  stateFilter: stateFilterProp,
+  countyFilter: countyFilterProp,
+  onStateFilterApply,
+  onCountyFilterApply,
 }: SearchFiltersBarProps) {
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
   const [saveModalOpen, setSaveModalOpen] = useState(false)
   const [aiPrompt, setAiPrompt] = useState("")
   const [embeddingSearching, setEmbeddingSearching] = useState(false)
-  const [filterState, setFilterState] = useState<StateFilterValue>(null)
-  const [filterCounty, setFilterCounty] = useState<CountyFilterValue>(null)
+  const [localStateFilter, setLocalStateFilter] = useState<StateFilterValue>(null)
+  const [localCountyFilter, setLocalCountyFilter] = useState<CountyFilterValue>(null)
+  const filterState = stateFilterProp !== undefined ? stateFilterProp : localStateFilter
+  const filterCounty = countyFilterProp !== undefined ? countyFilterProp : localCountyFilter
   const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -91,6 +105,22 @@ export function SearchFiltersBar({
     if (sizeMinProp === undefined) setLocalSizeMin(min)
     if (sizeMaxProp === undefined) setLocalSizeMax(max)
     onSizeRangeApply?.(min, max)
+  }
+
+  const handleStateFilterApply = (s: StateFilterValue) => {
+    if (stateFilterProp === undefined) {
+      setLocalStateFilter(s)
+      setLocalCountyFilter((c) => {
+        if (!c || !s) return c
+        return c.stateCode === s.code ? c : null
+      })
+    }
+    onStateFilterApply?.(s)
+  }
+
+  const handleCountyFilterApply = (c: CountyFilterValue) => {
+    if (countyFilterProp === undefined) setLocalCountyFilter(c)
+    onCountyFilterApply?.(c)
   }
 
   useEffect(() => {
@@ -182,20 +212,11 @@ export function SearchFiltersBar({
       {/* Second row: quick filters — items-start + label row on each group aligns inputs with More Filters */}
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-start gap-6">
-          <StateFilter
-            value={filterState}
-            onApply={(s) => {
-              setFilterState(s)
-              setFilterCounty((c) => {
-                if (!c || !s) return c
-                return c.stateCode === s.code ? c : null
-              })
-            }}
-          />
+          <StateFilter value={filterState} onApply={handleStateFilterApply} />
           <CountyFilter
             stateCode={filterState?.code ?? null}
             value={filterCounty}
-            onApply={setFilterCounty}
+            onApply={handleCountyFilterApply}
           />
           <PriceRange value={{ min: priceMin, max: priceMax }} onApply={handlePriceApply} />
           <SizeRange value={{ min: sizeMin, max: sizeMax }} onApply={handleSizeApply} />

@@ -2,12 +2,14 @@
 
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
+import type { CountyFilterValue } from "@/components/county-filter"
 import {
   DEFAULT_LAND_FEATURE_FILTERS,
   type LandFeatureFilters,
 } from "@/components/filter-option"
 import { PropertyMapList, type SortId } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
+import type { StateFilterValue } from "@/components/state-filter"
 
 const CATEGORY_COLORS: Record<string, string> = {
   Recreational: "#3b8a6e",
@@ -51,6 +53,8 @@ function LandPropertyPageContent() {
   const [landFeatureFilters, setLandFeatureFilters] =
     useState<LandFeatureFilters>(DEFAULT_LAND_FEATURE_FILTERS)
   const [sortId, setSortId] = useState<SortId>("default")
+  const [stateFilter, setStateFilter] = useState<StateFilterValue>(null)
+  const [countyFilter, setCountyFilter] = useState<CountyFilterValue>(null)
 
   useEffect(() => {
     const minFromUrl = minPriceFromUrl != null && minPriceFromUrl !== "" ? Number(minPriceFromUrl) : null
@@ -78,6 +82,8 @@ function LandPropertyPageContent() {
         if (priceRange.max != null) params.set("maxPrice", String(priceRange.max))
         if (sizeRange.min != null) params.set("minAcres", String(sizeRange.min))
         if (sizeRange.max != null) params.set("maxAcres", String(sizeRange.max))
+        if (stateFilter) params.set("state", stateFilter.code)
+        if (countyFilter) params.set("county", countyFilter.name)
         if (sortId && sortId !== "default") params.set("sort", sortId)
         if (useLocationSearch) {
           if (minPriceFromUrl != null && minPriceFromUrl !== "") params.set("minPrice", minPriceFromUrl)
@@ -128,6 +134,9 @@ function LandPropertyPageContent() {
     sizeRange.min,
     sizeRange.max,
     sortId,
+    stateFilter?.code,
+    countyFilter?.stateCode,
+    countyFilter?.name,
   ])
 
   const handleEmbeddingSearch = async (prompt: string) => {
@@ -169,6 +178,16 @@ function LandPropertyPageContent() {
           priceMax={priceRange.max}
           sizeMin={sizeRange.min}
           sizeMax={sizeRange.max}
+          stateFilter={stateFilter}
+          countyFilter={countyFilter}
+          onStateFilterApply={(s) => {
+            setStateFilter(s)
+            setCountyFilter((c) => {
+              if (!c || !s) return c
+              return c.stateCode === s.code ? c : null
+            })
+          }}
+          onCountyFilterApply={setCountyFilter}
           featureFilters={landFeatureFilters}
           onPriceRangeApply={(min, max) => setPriceRange({ min, max })}
           onSizeRangeApply={(min, max) => setSizeRange({ min, max })}
