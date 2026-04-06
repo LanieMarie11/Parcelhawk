@@ -22,6 +22,8 @@ export async function GET(request: NextRequest) {
     const maxPrice = parseNumParam(searchParams.get("maxPrice"));
     const minAcres = parseNumParam(searchParams.get("minAcres"));
     const maxAcres = parseNumParam(searchParams.get("maxAcres"));
+    const stateAbbrev = searchParams.get("state")?.trim().toUpperCase() ?? null;
+    const county = searchParams.get("county")?.trim() ?? null;
     const sort = (searchParams.get("sort") ?? "default").trim().toLowerCase();
 
     const conditions = [];
@@ -49,6 +51,12 @@ export async function GET(request: NextRequest) {
     }
     if (maxAcres != null) {
       conditions.push(lte(landListings.acres, String(maxAcres)));
+    }
+    if (stateAbbrev && stateAbbrev.length >= 2) {
+      conditions.push(eq(landListings.stateAbbreviation, stateAbbrev));
+    }
+    if (county && county.length > 0) {
+      conditions.push(ilike(landListings.county, county));
     }
 
     // Location search: match "Dallas, TX" style (autocomplete) and single-field matches.

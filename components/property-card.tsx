@@ -124,13 +124,15 @@ export function PropertyCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <p className="text-base font-semibold text-foreground">{formatPrice(price)}</p>
+              <div className="flex flex-col items-start gap-0.5">
+                <p className="text-2xl font-bold tracking-tight text-foreground">{formatPrice(price)}</p>
                 {showPricePerAcre ? (
-                  <p className="text-xs text-muted-foreground">${Math.round(pricePerAcre!).toLocaleString("en-US")} / acre</p>
+                  <p className="text-sm font-normal text-muted-foreground">
+                    ${Math.round(pricePerAcre!).toLocaleString("en-US")} / acre
+                  </p>
                 ) : null}
               </div>
-              <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p>
+              {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
               <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground line-clamp-1">
                 <MapPin className="h-3.5 w-3.5" />
                 {location}
@@ -143,14 +145,14 @@ export function PropertyCard({
                   {String(acreage).trim()} ac
                 </span>
               ) : null}
-              {category ? (
+              {/* {category ? (
                 <span
                   className="rounded-full px-2 py-1 text-xs font-medium text-white"
                   style={{ backgroundColor: categoryColor || "#6b7b6b" }}
                 >
                   {category}
                 </span>
-              ) : null}
+              ) : null} */}
               <button
                 type="button"
                 onClick={(e) => {
