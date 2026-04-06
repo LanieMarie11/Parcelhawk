@@ -9,6 +9,7 @@ import {
 } from "@/components/filter-option"
 import { PropertyMapList } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
+import { mapLandListingRow } from "@/lib/map-land-listing"
 
 const CATEGORY_COLORS: Record<string, string> = {
   Recreational: "#3b8a6e",
@@ -64,21 +65,7 @@ function LandActivityPageContent() {
         if (!contentType.includes("application/json")) return
         const listing = await res.json()
         if (cancelled || !Array.isArray(listing)) return
-        const mapped = listing.map((item: any) => ({
-          id: item.id,
-          images: item.photos,
-          category: item.propertyType?.[0],
-          categoryColor: "#3b8a6e",
-          name: item.title,
-          price: item.price,
-          location: item.city,
-          acreage: item.acres,
-          latitude: item.latitude != null ? Number(item.latitude) : null,
-          longitude: item.longitude != null ? Number(item.longitude) : null,
-          isFavorite: !!item.isFavorite,
-          url: item.url,
-          description: item.description,
-        }))
+        const mapped = listing.map(mapLandListingRow)
         setListingsData(mapped)
       } catch {
         setListingsData(properties)

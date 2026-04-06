@@ -27,7 +27,13 @@ export interface ListingItem {
   categoryColor?: string
   name: string
   price: string
-  location: string
+  /** Fallback when structured address fields are empty */
+  location?: string
+  address1?: string | null
+  city?: string | null
+  stateAbbreviation?: string | null
+  stateName?: string | null
+  zip?: string | null
   acreage: string
   latitude?: number | null
   longitude?: number | null
@@ -142,7 +148,12 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
                 categoryColor={listing.categoryColor ?? "#6b7b6b"}
                 name={listing.name}
                 price={listing.price}
-                location={listing.location}
+                location={listing.location ?? ""}
+                address1={listing.address1}
+                city={listing.city}
+                stateAbbreviation={listing.stateAbbreviation}
+                stateName={listing.stateName}
+                zip={listing.zip}
                 acreage={listing.acreage}
                 initialIsFavorite={listing.isFavorite}
                 detailUrl={listing.url ?? undefined}

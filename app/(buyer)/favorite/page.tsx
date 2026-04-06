@@ -83,17 +83,15 @@ function FavoritePageContent() {
   )
 }
 
-function FavoritePageFallback() {
-  return (
-    <div className="flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
-      <p className="text-sm text-muted-foreground">Loading…</p>
-    </div>
-  )
-}
-
 export default function FavoritePage() {
   return (
-    <Suspense fallback={<FavoritePageFallback />}>
+    <Suspense
+      fallback={
+        <div className="flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
+      }
+    >
       <FavoritePageContent />
     </Suspense>
   )

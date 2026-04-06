@@ -115,15 +115,18 @@ export async function POST(request: Request) {
           )
         );
     }
+    console.log("landListingIds", landListingIds);
+    console.log("userId", userId);
+    console.log("existing", existing);
+    console.log("existingIds", existingIds);
+    console.log("toRemove", toRemove);
+    console.log("toAdd", toAdd);
     if (toAdd.length > 0) {
       await db
         .insert(favorites)
         .values(
           toAdd.map((landListingId) => ({ userId, landListingId }))
         )
-        .onConflictDoNothing({
-          target: [favorites.userId, favorites.landListingId],
-        });
     }
 
     return NextResponse.json({ ok: true });
