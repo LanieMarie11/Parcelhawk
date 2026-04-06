@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { ArrowUpRight } from "lucide-react"
 import { PropertyCard } from "./property-card"
+import { mapLandListingRow } from "@/lib/map-land-listing"
 
 // TODO: Remove this once the API is implemented
 const listings = [
@@ -34,19 +35,9 @@ export function FeaturedListings() {
         const res = await fetch(`${getBaseUrl()}/api/land-property`);
         const raw = await parseJsonSafe<any[]>(res);
         if (cancelled || !Array.isArray(raw)) return;
-        const mapped = raw.map((listing: any) => ({
-          id: listing.id,
-          images: listing.photos ?? [],
-          category: listing.propertyType?.[0],
-          categoryColor: "#3b8a6e",
-          name: listing.title,
-          price: listing.price,
-          location: listing.city,
-          acreage: listing.acres,
-          isFavorite: !!listing.isFavorite,
-          url: listing.url,
-          description: listing.description,
-        }));
+        const mapped = raw.map((listing: any) =>
+          mapLandListingRow({ ...listing, photos: listing.photos ?? [] }),
+        );
         setListingsData(mapped);
       } catch {
         if (!cancelled) setListingsData(listings);
@@ -82,7 +73,12 @@ export function FeaturedListings() {
             categoryColor={listing.categoryColor ?? "#6b7b6b"}
             name={listing.name}
             price={listing.price}
-            location={listing.location}
+            location={listing.location ?? ""}
+            address1={listing.address1}
+            city={listing.city}
+            stateAbbreviation={listing.stateAbbreviation}
+            stateName={listing.stateName}
+            zip={listing.zip}
             acreage={listing.acreage}
             initialIsFavorite={listing.isFavorite}
             detailUrl={listing.url ?? undefined}

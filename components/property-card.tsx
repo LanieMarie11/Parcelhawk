@@ -6,6 +6,28 @@ import { useSession } from "next-auth/react"
 import { Heart, MapPin, Maximize2 } from "lucide-react"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
 
+export function formatPropertyLocation(p: {
+  address1?: string | null
+  city?: string | null
+  stateAbbreviation?: string | null
+  stateName?: string | null
+  zip?: string | null
+  /** Used when structured fields are all empty (legacy data) */
+  location?: string | null
+}): string {
+  const a1 = p.address1?.trim() ?? ""
+  const city = p.city?.trim() ?? ""
+  const abbr = (p.stateAbbreviation?.trim() ?? "").toUpperCase()
+  const stateNamePart = p.stateName?.trim() ?? ""
+  const st = abbr || stateNamePart
+  const zip = p.zip?.trim() ?? ""
+  const stateZip = [st, zip].filter(Boolean).join(" ").trim()
+  const cityPart = [city, stateZip].filter(Boolean).join(", ").trim()
+  const parts = [a1, cityPart].filter(Boolean)
+  if (parts.length > 0) return parts.join(", ")
+  return (p.location?.trim() ?? "")
+}
+
 interface PropertyCardProps {
   id: number
   /** Single image (used by featured-list); ignored if images is provided */
@@ -18,7 +40,13 @@ interface PropertyCardProps {
   categoryColor: string
   name: string
   price: string
-  location: string
+  /** Plain location line when structured address fields are missing */
+  location?: string
+  address1?: string | null
+  city?: string | null
+  stateAbbreviation?: string | null
+  stateName?: string | null
+  zip?: string | null
   acreage: string
   /** Description from landListings.description (array joined as paragraph); optional */
   description?: string | string[] | null
@@ -55,7 +83,12 @@ export function PropertyCard({
   categoryColor,
   name,
   price,
-  location,
+  location = "",
+  address1,
+  city,
+  stateAbbreviation,
+  stateName,
+  zip,
   acreage,
   description,
   initialIsFavorite = false,
@@ -84,6 +117,15 @@ export function PropertyCard({
       : Array.isArray(description)
         ? description.filter(Boolean).join(" ").trim()
         : String(description).trim()
+
+  const locationLine = formatPropertyLocation({
+    address1,
+    city,
+    stateAbbreviation,
+    stateName,
+    zip,
+    location,
+  })
 
   const saveFavorite = async (listingId: number) => {
     const res = await fetch("/api/favorites", {
@@ -133,9 +175,9 @@ export function PropertyCard({
                 ) : null}
               </div>
               {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground line-clamp-1">
-                <MapPin className="h-3.5 w-3.5" />
-                {location}
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground line-clamp-2">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0">{locationLine}</span>
               </p>
             </div>
 
@@ -245,9 +287,9 @@ export function PropertyCard({
       ) : null}
 
       <div className="flex items-center gap-3 pt-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <MapPin className="h-3 w-3" />
-          {location}
+        <span className="flex min-w-0 items-start gap-1">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="line-clamp-2">{locationLine}</span>
         </span>
         <span className="flex items-center gap-1">
           <Maximize2 className="h-3 w-3" />
