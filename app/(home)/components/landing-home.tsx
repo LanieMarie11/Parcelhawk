@@ -20,7 +20,7 @@ export function LandingHome() {
     const trimmed = q.trim();
     if (!trimmed) return;
     const params = new URLSearchParams();
-    params.set("location", trimmed);
+    params.set("prompt", trimmed);
     router.push(`/land-property?${params.toString()}`);
   };
 
