@@ -175,7 +175,7 @@ export function PropertyCard({
                 ) : null}
               </div>
               {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground line-clamp-2">
+              <p className="mt-0.5 flex items-center gap-1 text-sm line-clamp-2">
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0">{locationLine}</span>
               </p>
