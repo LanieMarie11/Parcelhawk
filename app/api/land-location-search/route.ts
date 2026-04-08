@@ -11,31 +11,6 @@ function parseNumParam(value: string | null): number | null {
   return Number.isFinite(num) && num >= 0 ? num : null;
 }
 
-function parseNonNegativeNumber(value: unknown): number | null {
-  if (typeof value === "number") return Number.isFinite(value) && value >= 0 ? value : null;
-  if (typeof value === "string") return parseNumParam(value);
-  return null;
-}
-
-function getTargetAcres(minAcres: number | null, maxAcres: number | null): number | null {
-  if (minAcres != null && maxAcres != null) {
-    const mid = (minAcres + maxAcres) / 2;
-    return mid > 0 ? mid : null;
-  }
-  const single = minAcres ?? maxAcres ?? null;
-  return single != null && single > 0 ? single : null;
-}
-
-function getAcreageMatchScore(listingAcres: number | null, targetAcres: number | null): number | null {
-  if (listingAcres == null || targetAcres == null) return null;
-  if (targetAcres <= 0) return null;
-  const ratio = Math.abs(listingAcres - targetAcres) / targetAcres;
-  if (ratio <= 0.1) return 100;
-  if (ratio <= 0.25) return 75;
-  if (ratio <= 0.5) return 50;
-  return 0;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
@@ -47,7 +22,6 @@ export async function GET(request: NextRequest) {
     const maxPrice = parseNumParam(searchParams.get("maxPrice"));
     const minAcres = parseNumParam(searchParams.get("minAcres"));
     const maxAcres = parseNumParam(searchParams.get("maxAcres"));
-    const targetAcres = getTargetAcres(minAcres, maxAcres);
     const stateAbbrev = searchParams.get("state")?.trim().toUpperCase() ?? null;
     const county = searchParams.get("county")?.trim() ?? null;
     const sort = (searchParams.get("sort") ?? "default").trim().toLowerCase();
@@ -141,10 +115,6 @@ export async function GET(request: NextRequest) {
     const list = rows.map((row) => ({
       ...row,
       isFavorite: favoriteIds.has(row.id),
-      acreageMatchScore: getAcreageMatchScore(
-        parseNonNegativeNumber((row as { acres?: unknown } | null | undefined)?.acres),
-        targetAcres
-      ),
     }));
     return NextResponse.json(list);
   } catch (error) {
