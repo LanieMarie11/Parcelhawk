@@ -75,6 +75,12 @@ function getImageSrc(url: string): string {
   return url
 }
 
+function getAcresMatchBadgeClass(score: number): string {
+  if (score >= 80) return "border-emerald-300 bg-emerald-50 text-emerald-700"
+  if (score >= 60) return "border-sky-300 bg-sky-50 text-sky-700"
+  return "border-slate-300 bg-slate-100 text-slate-700"
+}
+
 export function PropertyCard({
   id,
   image,
@@ -198,8 +204,10 @@ export function PropertyCard({
                 </span>
               ) : null} */}
               {acresMatchScore != null ? (
-                <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
-                  {acresMatchScore}%
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(acresMatchScore)}`}
+                >
+                  {acresMatchScore}% match
                 </span>
               ) : null}
               <button

@@ -110,7 +110,9 @@ function LandPropertyPageContent() {
         if (!contentType.includes("application/json")) return
         const listing = await res.json()
         if (cancelled || !Array.isArray(listing)) return
-        const mapped = listing.map(mapLandListingRow)
+        const mapped = listing
+          .map(mapLandListingRow)
+          .sort((a, b) => (b.acresMatchScore ?? -1) - (a.acresMatchScore ?? -1))
         setListingsData(mapped)
         console.log("mapped", mapped)
       } catch {
@@ -150,7 +152,9 @@ function LandPropertyPageContent() {
     if (!contentType.includes("application/json")) return false
     const listing = await res.json()
     if (!Array.isArray(listing)) return false
-    const mapped = listing.map(mapLandListingRow)
+    const mapped = listing
+      .map(mapLandListingRow)
+      .sort((a, b) => (b.acresMatchScore ?? -1) - (a.acresMatchScore ?? -1))
     setListingsData(mapped)
     return true
   }, [])
