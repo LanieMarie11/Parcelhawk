@@ -48,6 +48,7 @@ interface PropertyCardProps {
   stateName?: string | null
   zip?: string | null
   acreage: string
+  aiMatchingScore?: number | null
   /** Description from landListings.description (array joined as paragraph); optional */
   description?: string | string[] | null
   /** When true, heart shows as favorited (e.g. from API isFavorite) */
@@ -74,6 +75,12 @@ function getImageSrc(url: string): string {
   return url
 }
 
+function getAcresMatchBadgeClass(score: number): string {
+  if (score >= 56) return "border-emerald-300 bg-emerald-50 text-emerald-700"
+  if (score >= 35) return "border-sky-300 bg-sky-50 text-sky-700"
+  return "border-slate-300 bg-slate-100 text-slate-700"
+}
+
 export function PropertyCard({
   id,
   image,
@@ -90,6 +97,7 @@ export function PropertyCard({
   stateName,
   zip,
   acreage,
+  aiMatchingScore,
   description,
   initialIsFavorite = false,
   detailUrl,
@@ -195,6 +203,13 @@ export function PropertyCard({
                   {category}
                 </span>
               ) : null} */}
+              {aiMatchingScore != null ? (
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(aiMatchingScore)}`}
+                >
+                  AI {aiMatchingScore}/70
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={(e) => {

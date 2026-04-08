@@ -145,29 +145,6 @@ export function SearchFiltersBar({
 
   return (
     <div className="w-full shrink-0 border-b border-border bg-background px-4 py-3">
-      {/* Top row: search bar */}
-      {/* <div className="flex items-center gap-3">
-        <div className="relative flex min-w-0 flex-1 items-center">
-          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <LocationSearchInput
-            value={locationDraft}
-            onChange={setLocationDraft}
-            onSelect={handleLocationSelect}
-            placeholder="e.g. 20 acres with road access in Colorado under $80k..."
-            className="h-11 w-full rounded-xl border border-input bg-background pl-11 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => handleLocationSelect(locationDraft)}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-[#2F5B3A] text-white transition-colors hover:bg-[#264A30]"
-          aria-label="Search"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-      </div> */}
-
-
       {onEmbeddingSearch ? (
         <div className="mt-3">
           <div

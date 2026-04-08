@@ -22,6 +22,44 @@ function toTokenContainsPattern(raw: string): string {
   return `%${tokens.join("%")}%`;
 }
 
+function parseNonNegativeNumber(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) && value >= 0 ? value : null;
+  if (typeof value === "string") {
+    const parsed = Number(value.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+  return null;
+}
+
+function getTargetAcres(filters: SearchQueryFilters | undefined): number | null {
+  const minAcres = filters?.minAcres ?? null;
+  const maxAcres = filters?.maxAcres ?? null;
+  if (minAcres != null && maxAcres != null) {
+    const mid = (minAcres + maxAcres) / 2;
+    return mid > 0 ? mid : null;
+  }
+  const single = minAcres ?? maxAcres ?? null;
+  return single != null && single > 0 ? single : null;
+}
+
+function getAcreageMatchPoints(listingAcres: number | null, targetAcres: number | null): number | null {
+  if (listingAcres == null || targetAcres == null || targetAcres <= 0) return null;
+  const ratio = Math.abs(listingAcres - targetAcres) / targetAcres;
+  if (ratio <= 0.1) return 20;
+  if (ratio <= 0.25) return 15;
+  if (ratio <= 0.5) return 10;
+  return 0;
+}
+
+function getSemanticMatchPoints(distance: number, minDistance: number, maxDistance: number): number {
+  if (!Number.isFinite(distance)) return 0;
+  if (!Number.isFinite(minDistance) || !Number.isFinite(maxDistance)) return 0;
+  if (maxDistance <= minDistance) return 50;
+  const normalized = (distance - minDistance) / (maxDistance - minDistance);
+  const similarity = 1 - Math.min(Math.max(normalized, 0), 1);
+  return Math.round(similarity * 50);
+}
+
 function buildSqlFilterConditions(filters: SearchQueryFilters) {
   const conditions = [];
   if (filters.minPrice != null) {
@@ -130,11 +168,11 @@ export async function POST(request: NextRequest) {
     const rows =
       allowedListingIds != null && allowedListingIds.length > 0
         ? ((await db.execute(
-            sql`SELECT listing_id FROM land_listing_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
-          )) as { listing_id: number }[])
+            sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_listing_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
+          )) as { listing_id: number; distance: number }[])
         : ((await db.execute(
-            sql`SELECT listing_id FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
-          )) as { listing_id: number }[]);
+            sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
+          )) as { listing_id: number; distance: number }[]);
 
     const listingIds = rows.map((r) => r.listing_id);
     if (listingIds.length === 0) {
@@ -147,8 +185,15 @@ export async function POST(request: NextRequest) {
       .from(landListings)
       .where(inArray(landListings.id, listingIds));
 
-    const orderMap = new Map(listingIds.map((id, i) => [id, i]));
-    const sorted = [...listings].sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+    const distanceByListingId = new Map(
+      rows.map((r) => [r.listing_id, Number(r.distance)] as const)
+    );
+    const distances = rows
+      .map((r) => Number(r.distance))
+      .filter((d) => Number.isFinite(d));
+    const minDistance = distances.length > 0 ? Math.min(...distances) : 0;
+    const maxDistance = distances.length > 0 ? Math.max(...distances) : 0;
+    const targetAcres = getTargetAcres(extractedFilters);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
@@ -161,10 +206,25 @@ export async function POST(request: NextRequest) {
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
     }
 
-    const list = sorted.map((row) => ({
-      ...row,
-      isFavorite: favoriteIds.has(row.id),
-    }));
+    const list = listings
+      .map((row) => {
+        const distance = distanceByListingId.get(row.id) ?? Number.POSITIVE_INFINITY;
+        const semanticMatchScore = getSemanticMatchPoints(distance, minDistance, maxDistance);
+        const acreageMatchScore = getAcreageMatchPoints(
+          parseNonNegativeNumber((row as { acres?: unknown } | null | undefined)?.acres),
+          targetAcres
+        );
+        const aiMatchingScore = semanticMatchScore + (acreageMatchScore ?? 0);
+
+        return {
+          ...row,
+          isFavorite: favoriteIds.has(row.id),
+          semanticMatchScore,
+          acreageMatchScore,
+          aiMatchingScore,
+        };
+      })
+      .sort((a, b) => b.aiMatchingScore - a.aiMatchingScore);
 
     return NextResponse.json(list);
   } catch (error) {

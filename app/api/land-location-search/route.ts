@@ -116,7 +116,6 @@ export async function GET(request: NextRequest) {
       ...row,
       isFavorite: favoriteIds.has(row.id),
     }));
-
     return NextResponse.json(list);
   } catch (error) {
     console.error("Land location search API error:", error);
