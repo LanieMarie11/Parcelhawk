@@ -48,6 +48,7 @@ interface PropertyCardProps {
   stateName?: string | null
   zip?: string | null
   acreage: string
+  acresMatchScore?: number | null
   /** Description from landListings.description (array joined as paragraph); optional */
   description?: string | string[] | null
   /** When true, heart shows as favorited (e.g. from API isFavorite) */
@@ -90,6 +91,7 @@ export function PropertyCard({
   stateName,
   zip,
   acreage,
+  acresMatchScore,
   description,
   initialIsFavorite = false,
   detailUrl,
@@ -195,6 +197,11 @@ export function PropertyCard({
                   {category}
                 </span>
               ) : null} */}
+              {acresMatchScore != null ? (
+                <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
+                  {acresMatchScore}%
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={(e) => {

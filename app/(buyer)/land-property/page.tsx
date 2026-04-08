@@ -112,6 +112,7 @@ function LandPropertyPageContent() {
         if (cancelled || !Array.isArray(listing)) return
         const mapped = listing.map(mapLandListingRow)
         setListingsData(mapped)
+        console.log("mapped", mapped)
       } catch {
         setListingsData(properties)
       }

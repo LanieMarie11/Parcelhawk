@@ -40,6 +40,7 @@ export interface ListingItem {
   /** When true, card heart shows as favorited (from API when user is signed in) */
   isFavorite?: boolean
   /** Listing URL from landListings.url; used for "view listing" link (opens in new tab) */
+  acresMatchScore?: number | null
   url?: string | null
   /** Description from landListings.description (array of strings) */
   description?: string[] | string | null
@@ -156,6 +157,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
                 zip={listing.zip}
                 acreage={listing.acreage}
                 initialIsFavorite={listing.isFavorite}
+                acresMatchScore={listing.acresMatchScore}
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
                 variant="list"
