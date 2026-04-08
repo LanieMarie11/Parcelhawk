@@ -28,7 +28,7 @@ export function mapLandListingRow(item: any): ListingItem {
     latitude: item.latitude != null ? Number(item.latitude) : null,
     longitude: item.longitude != null ? Number(item.longitude) : null,
     isFavorite: !!item.isFavorite,
-    acresMatchScore: item.acresMatchScore ?? item.acreageMatchScore ?? null,
+    aiMatchingScore: item.aiMatchingScore ?? null,
     url: item.url,
     description: item.description,
   }

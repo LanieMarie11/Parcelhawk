@@ -112,7 +112,7 @@ function LandPropertyPageContent() {
         if (cancelled || !Array.isArray(listing)) return
         const mapped = listing
           .map(mapLandListingRow)
-          .sort((a, b) => (b.acresMatchScore ?? -1) - (a.acresMatchScore ?? -1))
+          .sort((a, b) => (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1))
         setListingsData(mapped)
         console.log("mapped", mapped)
       } catch {
@@ -154,7 +154,7 @@ function LandPropertyPageContent() {
     if (!Array.isArray(listing)) return false
     const mapped = listing
       .map(mapLandListingRow)
-      .sort((a, b) => (b.acresMatchScore ?? -1) - (a.acresMatchScore ?? -1))
+      .sort((a, b) => (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1))
     setListingsData(mapped)
     return true
   }, [])
