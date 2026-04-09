@@ -145,7 +145,10 @@ function LandPropertyPageContent() {
     const res = await fetch(`${base}/api/embedding-search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({
+        prompt,
+        features: landFeatureFilters,
+      }),
     })
     if (!res.ok) return false
     const contentType = res.headers.get("content-type") ?? ""
@@ -157,7 +160,7 @@ function LandPropertyPageContent() {
       .sort((a, b) => (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1))
     setListingsData(mapped)
     return true
-  }, [])
+  }, [landFeatureFilters])
 
   useEffect(() => {
     if (!promptFromUrl) {
@@ -180,6 +183,17 @@ function LandPropertyPageContent() {
       cancelled = true
     }
   }, [promptFromUrl, handleEmbeddingSearch, searchParams, router, pathname])
+
+  const searchBarCurrentFilters = {
+    minPrice: priceRange.min,
+    maxPrice: priceRange.max,
+    minAcres: sizeRange.min,
+    maxAcres: sizeRange.max,
+    location: locationFromUrl || null,
+    propertyType: typeFromUrl || null,
+    landType: typeFromUrl || null,
+    activities: activitiesFromUrl.length > 0 ? activitiesFromUrl : null,
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
@@ -208,17 +222,7 @@ function LandPropertyPageContent() {
           }}
           onEmbeddingSearch={handleEmbeddingSearch}
           syncedEmbeddingPrompt={promptFromUrl || null}
-          currentFilters={{
-            minPrice: priceRange.min,
-            maxPrice: priceRange.max,
-            minAcres: sizeRange.min,
-            maxAcres: sizeRange.max,
-            location: locationFromUrl || null,
-            propertyType: typeFromUrl || null,
-            landType: typeFromUrl || null,
-            activities:
-              activitiesFromUrl.length > 0 ? activitiesFromUrl : null,
-          }}
+          currentFilters={searchBarCurrentFilters}
         />
       </div>
       <PropertyMapList

@@ -133,6 +133,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+    const passedFeatureFilters = body?.features;
+    console.log("embedding-search passedFeatureFilters", passedFeatureFilters);
     if (!prompt) {
       return NextResponse.json({ error: "Missing or empty prompt" }, { status: 400 });
     }
