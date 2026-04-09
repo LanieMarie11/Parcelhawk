@@ -60,6 +60,113 @@ function getSemanticMatchPoints(distance: number, minDistance: number, maxDistan
   return Math.round(similarity * 50);
 }
 
+const FEATURE_SCORE_TOTAL = 30;
+
+const FEATURE_DESCRIPTION_PATTERNS = {
+  roadAccessConfirmed: {
+    positive: [
+      /road access/i,
+      /\baccess road\b/i,
+      /\bpaved road\b/i,
+      /\bgravel road\b/i,
+      /\bdriveway access\b/i,
+      /\blegal access\b/i,
+      /\bmaintained road\b/i,
+      /\bcounty road frontage\b/i,
+      /\bhighway frontage\b/i,
+      /\beasy access\b/i,
+      /\baccessible by road\b/i,
+    ],
+    negative: [
+      /no road access/i,
+      /without road access/i,
+      /\blandlocked\b/i,
+      /\bno legal access\b/i,
+      /\baccess unknown\b/i,
+      /\beasement required for access\b/i,
+      /\bprivate easement required\b/i,
+      /\blocked gate\b/i,
+    ],
+  },
+  noFloodZone: {
+    positive: [
+      /not in (a )?flood zone/i,
+      /outside (the )?flood zone/i,
+      /no flood zone/i,
+      /non[- ]flood zone/i,
+      /outside (the )?fema floodplain/i,
+      /not in (the )?floodplain/i,
+      /\bx zone\b/i,
+      /\bno flood risk\b/i,
+      /\bhigh and dry\b/i,
+    ],
+    negative: [
+      /in (a )?flood zone/i,
+      /\bflood zone\b/i,
+      /\bfema flood\b/i,
+      /\bin (the )?floodplain\b/i,
+      /\b100[- ]year floodplain\b/i,
+      /\bflood[- ]prone\b/i,
+      /\bsubject to flooding\b/i,
+      /\bwetland/i,
+    ],
+  },
+  utilitiesNearby: {
+    positive: [
+      /utilities (nearby|available)/i,
+      /power (nearby|at (the )?(road|street))/i,
+      /\belectric(ity)? at (the )?(road|street)\b/i,
+      /\bpower at (the )?property line\b/i,
+      /\butilities at (the )?street\b/i,
+      /\bwater (and )?sewer nearby\b/i,
+      /\bpublic utilities nearby\b/i,
+      /\belectric service available\b/i,
+    ],
+    negative: [
+      /\bno utilities\b/i,
+      /\butilities not available\b/i,
+      /\boff[- ]grid only\b/i,
+      /\bno electric(ity)?\b/i,
+      /\bno power nearby\b/i,
+      /\bno public utilities\b/i,
+      /\bwell and septic required\b/i,
+      /\bseptic required\b/i,
+    ],
+  },
+} as const;
+
+type FeatureKey = keyof typeof FEATURE_DESCRIPTION_PATTERNS;
+
+function parseTrueFeatureKeys(passedFeatureFilters: unknown): FeatureKey[] {
+  if (!passedFeatureFilters || typeof passedFeatureFilters !== "object") return [];
+  const filters = passedFeatureFilters as Record<string, unknown>;
+  return (Object.keys(FEATURE_DESCRIPTION_PATTERNS) as FeatureKey[]).filter(
+    (key) => filters[key] === true
+  );
+}
+
+function getFeatureEvidence(description: string, featureKey: FeatureKey): "positive" | "negative" | "unknown" {
+  const { positive, negative } = FEATURE_DESCRIPTION_PATTERNS[featureKey];
+  if (negative.some((re) => re.test(description))) return "negative";
+  if (positive.some((re) => re.test(description))) return "positive";
+  return "unknown";
+}
+
+function getFeatureMatchScore(descriptionRaw: unknown, requiredFeatures: FeatureKey[]): number {
+  if (requiredFeatures.length === 0) return 0;
+  const description = typeof descriptionRaw === "string" ? descriptionRaw : "";
+  const pointsPerFeature = FEATURE_SCORE_TOTAL / requiredFeatures.length;
+
+  let total = 0;
+  for (const featureKey of requiredFeatures) {
+    const evidence = getFeatureEvidence(description, featureKey);
+    if (evidence === "positive") total += pointsPerFeature;
+    else if (evidence === "unknown") total += pointsPerFeature * 0.5;
+  }
+
+  return Math.round(total);
+}
+
 function buildSqlFilterConditions(filters: SearchQueryFilters) {
   const conditions = [];
   if (filters.minPrice != null) {
@@ -196,6 +303,7 @@ export async function POST(request: NextRequest) {
     const minDistance = distances.length > 0 ? Math.min(...distances) : 0;
     const maxDistance = distances.length > 0 ? Math.max(...distances) : 0;
     const targetAcres = getTargetAcres(extractedFilters);
+    const requiredFeatureKeys = parseTrueFeatureKeys(passedFeatureFilters);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
@@ -216,13 +324,18 @@ export async function POST(request: NextRequest) {
           parseNonNegativeNumber((row as { acres?: unknown } | null | undefined)?.acres),
           targetAcres
         );
-        const aiMatchingScore = semanticMatchScore + (acreageMatchScore ?? 0);
+        const featureMatchScore = getFeatureMatchScore(
+          (row as { description?: unknown } | null | undefined)?.description,
+          requiredFeatureKeys
+        );
+        const aiMatchingScore = semanticMatchScore + (acreageMatchScore ?? 0) + featureMatchScore;
 
         return {
           ...row,
           isFavorite: favoriteIds.has(row.id),
           semanticMatchScore,
           acreageMatchScore,
+          featureMatchScore,
           aiMatchingScore,
         };
       })
