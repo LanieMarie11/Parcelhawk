@@ -7,10 +7,12 @@ import {
   DEFAULT_LAND_FEATURE_FILTERS,
   type LandFeatureFilters,
 } from "@/components/filter-option"
-import { PropertyMapList, type SortId } from "@/components/property-map-list"
+import { PropertyMapList, type ListingItem, type SortId } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 import type { StateFilterValue } from "@/components/state-filter"
 import { mapLandListingRow } from "@/lib/map-land-listing"
+import usStates from "@/data/us-states.json"
+import countiesByState from "@/data/us-counties-by-state.json"
 
 const CATEGORY_COLORS: Record<string, string> = {
   Recreational: "#3b8a6e",
@@ -31,6 +33,47 @@ const properties = [
 
 function getBaseUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
+
+function normalizeText(s: string) {
+  return s.trim().toLowerCase()
+}
+
+function resolveStateFilterFromPromptFilters(promptFilters: any): StateFilterValue {
+  const byCodeRaw = Array.isArray(promptFilters?.stateAbbreviations)
+    ? promptFilters.stateAbbreviations[0]
+    : null
+  const byNameRaw = Array.isArray(promptFilters?.stateNames) ? promptFilters.stateNames[0] : null
+
+  if (typeof byCodeRaw === "string") {
+    const code = byCodeRaw.trim().toUpperCase()
+    const hit = (usStates as { code: string; name: string }[]).find((s) => s.code === code)
+    if (hit) return hit
+  }
+
+  if (typeof byNameRaw === "string") {
+    const q = normalizeText(byNameRaw)
+    const hit = (usStates as { code: string; name: string }[]).find(
+      (s) => normalizeText(s.name) === q
+    )
+    if (hit) return hit
+  }
+
+  return null
+}
+
+function resolveCountyFilterFromPromptFilters(
+  promptFilters: any,
+  state: StateFilterValue
+): CountyFilterValue {
+  if (!state?.code) return null
+  const raw = Array.isArray(promptFilters?.counties) ? promptFilters.counties[0] : null
+  if (typeof raw !== "string") return null
+
+  const normalized = normalizeText(raw).replace(/\s+county$/, "")
+  const list = (countiesByState as Record<string, string[]>)[state.code] ?? []
+  const hit = list.find((name) => normalizeText(name).replace(/\s+county$/, "") === normalized)
+  return hit ? { stateCode: state.code, name: hit } : null
 }
 
 function LandPropertyPageContent() {
@@ -60,7 +103,15 @@ function LandPropertyPageContent() {
   const [stateFilter, setStateFilter] = useState<StateFilterValue>(null)
   const [countyFilter, setCountyFilter] = useState<CountyFilterValue>(null)
   const autoEmbeddedPromptRef = useRef<string | null>(null)
-  const postEmbeddingSkipRef = useRef(false)
+  /**
+   * Skips land-location fetches that would fight with AI results. Incremented when:
+   * - embedding hydrates manual filters from `promptFilters`, and/or
+   * - URL prompt flow finishes successfully (URL `prompt` is stripped right after).
+   * Consumed in one effect run (handles React batching multiple reasons into one commit).
+   */
+  const pendingLandLocationFetchSkipsRef = useRef(0)
+  /** True while `/land-property?prompt=…` embedding request is running; blocks competing location fetches only during that window. */
+  const urlPromptEmbeddingInProgressRef = useRef(false)
 
   useEffect(() => {
     const minFromUrl = minPriceFromUrl != null && minPriceFromUrl !== "" ? Number(minPriceFromUrl) : null
@@ -77,11 +128,11 @@ function LandPropertyPageContent() {
     let cancelled = false
     async function load() {
       try {
-        if (postEmbeddingSkipRef.current) {
-          postEmbeddingSkipRef.current = false
+        if (promptFromUrl && urlPromptEmbeddingInProgressRef.current) return
+        if (pendingLandLocationFetchSkipsRef.current > 0) {
+          pendingLandLocationFetchSkipsRef.current = 0
           return
         }
-        if (promptFromUrl) return
         const useLocationSearch = locationFromUrl.length > 0 || typeFromUrl.length > 0 || activitiesFromUrl.length > 0
         // const base = useLocationSearch ? `${getBaseUrl()}/api/land-location-search` : `${getBaseUrl()}/api/land-property`
         const base = `${getBaseUrl()}/api/land-location-search` 
@@ -153,11 +204,27 @@ function LandPropertyPageContent() {
     if (!res.ok) return false
     const contentType = res.headers.get("content-type") ?? ""
     if (!contentType.includes("application/json")) return false
-    const listing = await res.json()
-    if (!Array.isArray(listing)) return false
-    const mapped = listing
+    const data = await res.json()
+    const rows = Array.isArray(data?.listings) ? data.listings : Array.isArray(data) ? data : null
+    if (rows == null) return false
+    const promptFilters = data?.promptFilters ?? null
+    console.log("embedding-search promptFilters (from LLM / SQL pre-filter)", promptFilters)
+
+    if (promptFilters) {
+      pendingLandLocationFetchSkipsRef.current += 1
+      const nextState = resolveStateFilterFromPromptFilters(promptFilters)
+      setStateFilter(nextState)
+      setCountyFilter(resolveCountyFilterFromPromptFilters(promptFilters, nextState))
+      setPriceRange({ min: promptFilters.minPrice ?? null, max: promptFilters.maxPrice ?? null })
+      setSizeRange({ min: promptFilters.minAcres ?? null, max: promptFilters.maxAcres ?? null })
+    }
+
+    const mapped = rows
       .map(mapLandListingRow)
-      .sort((a, b) => (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1))
+      .sort(
+        (a: ListingItem, b: ListingItem) =>
+          (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1)
+      )
     setListingsData(mapped)
     return true
   }, [landFeatureFilters])
@@ -170,17 +237,23 @@ function LandPropertyPageContent() {
     if (autoEmbeddedPromptRef.current === promptFromUrl) return
     autoEmbeddedPromptRef.current = promptFromUrl
     let cancelled = false
+    urlPromptEmbeddingInProgressRef.current = true
     ;(async () => {
-      const ok = await handleEmbeddingSearch(promptFromUrl)
-      if (cancelled) return
-      const params = new URLSearchParams(searchParams.toString())
-      params.delete("prompt")
-      const q = params.toString()
-      if (ok) postEmbeddingSkipRef.current = true
-      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
+      try {
+        const ok = await handleEmbeddingSearch(promptFromUrl)
+        if (cancelled) return
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete("prompt")
+        const q = params.toString()
+        if (ok) pendingLandLocationFetchSkipsRef.current += 1
+        router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
+      } finally {
+        if (!cancelled) urlPromptEmbeddingInProgressRef.current = false
+      }
     })()
     return () => {
       cancelled = true
+      urlPromptEmbeddingInProgressRef.current = false
     }
   }, [promptFromUrl, handleEmbeddingSearch, searchParams, router, pathname])
 

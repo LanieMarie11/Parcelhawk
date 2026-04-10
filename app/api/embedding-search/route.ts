@@ -231,10 +231,35 @@ function buildSqlFilterConditions(filters: SearchQueryFilters) {
   return conditions;
 }
 
+/** Location/price/acreage fields extracted from the prompt and used for SQL pre-filtering. */
+export type EmbeddingSearchPromptFilters = {
+  stateNames: string[] | null;
+  stateAbbreviations: string[] | null;
+  counties: string[] | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  minAcres: number | null;
+  maxAcres: number | null;
+};
+
+function buildPromptFiltersPayload(
+  filters: SearchQueryFilters | undefined
+): EmbeddingSearchPromptFilters {
+  return {
+    stateNames: filters?.stateNames?.length ? filters.stateNames : null,
+    stateAbbreviations: filters?.stateAbbreviations?.length ? filters.stateAbbreviations : null,
+    counties: filters?.counties?.length ? filters.counties : null,
+    minPrice: filters?.minPrice ?? null,
+    maxPrice: filters?.maxPrice ?? null,
+    minAcres: filters?.minAcres ?? null,
+    maxAcres: filters?.maxAcres ?? null,
+  };
+}
+
 /**
- * POST: prompt-only embedding search. No other filters.
- * Body: { prompt: string }
- * Returns listings ordered by description similarity (same shape as land-location-search).
+ * POST: prompt + optional feature flags. LLM extracts SQL filters from the prompt.
+ * Body: { prompt: string, features?: object }
+ * Returns { listings, promptFilters } where promptFilters mirrors extracted state/county/price/acres.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -266,7 +291,10 @@ export async function POST(request: NextRequest) {
           .where(and(...conditions));
         allowedListingIds = filtered.map((r) => r.id);
         if (allowedListingIds.length === 0) {
-          return NextResponse.json([]);
+          return NextResponse.json({
+            listings: [],
+            promptFilters: buildPromptFiltersPayload(extractedFilters),
+          });
         }
       }
     }
@@ -285,7 +313,10 @@ export async function POST(request: NextRequest) {
 
     const listingIds = rows.map((r) => r.listing_id);
     if (listingIds.length === 0) {
-      return NextResponse.json([]);
+      return NextResponse.json({
+        listings: [],
+        promptFilters: buildPromptFiltersPayload(extractedFilters),
+      });
     }
 
     // Fetch full listings in the same order as vector search (by id order).
@@ -341,7 +372,10 @@ export async function POST(request: NextRequest) {
       })
       .sort((a, b) => b.aiMatchingScore - a.aiMatchingScore);
 
-    return NextResponse.json(list);
+    return NextResponse.json({
+      listings: list,
+      promptFilters: buildPromptFiltersPayload(extractedFilters),
+    });
   } catch (error) {
     console.error("Embedding search API error:", error);
     return NextResponse.json(
