@@ -207,7 +207,7 @@ export function PropertyCard({
                 <span
                   className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(aiMatchingScore)}`}
                 >
-                  AI {aiMatchingScore}/70
+                  AI {aiMatchingScore}/100
                 </span>
               ) : null}
               <button
