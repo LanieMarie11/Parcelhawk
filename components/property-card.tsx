@@ -51,6 +51,8 @@ interface PropertyCardProps {
   aiMatchingScore?: number | null
   /** Description from landListings.description (array joined as paragraph); optional */
   description?: string | string[] | null
+  /** Google Static Maps satellite + Regrid boundary (data URL); list variant only */
+  parcelSatelliteMapDataUrl?: string | null
   /** When true, heart shows as favorited (e.g. from API isFavorite) */
   initialIsFavorite?: boolean
   /** URL to open when image is clicked (new tab). Use landListings.url when available; defaults to /property?id={id} */
@@ -99,6 +101,7 @@ export function PropertyCard({
   acreage,
   aiMatchingScore,
   description,
+  parcelSatelliteMapDataUrl,
   initialIsFavorite = false,
   detailUrl,
   onMouseEnter,
@@ -107,6 +110,7 @@ export function PropertyCard({
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
   const [isFavorited, setIsFavorited] = useState(initialIsFavorite)
+  const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
 
   useEffect(() => {
     setIsFavorited(initialIsFavorite)
@@ -151,51 +155,76 @@ export function PropertyCard({
 
   if (variant === "list") {
     return (
-      <div
-        className="group flex items-stretch gap-4 rounded-2xl border border-border bg-background p-4 font-ibm-plex-sans shadow-sm"
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-      >
-        <a
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl bg-muted"
+      <>
+        <div
+          className="group flex items-stretch gap-4 rounded-2xl border border-border bg-background p-4 font-ibm-plex-sans shadow-sm"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
         >
-          <Image
-            src={getImageSrc(firstImage)}
-            alt={name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="148px"
-          />
-        </a>
+          <div className="flex shrink-0 gap-2">
+            <a
+              href={linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl bg-muted"
+            >
+              <Image
+                src={getImageSrc(firstImage)}
+                alt={name}
+                fill
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="148px"
+              />
+            </a>
+            {parcelSatelliteMapDataUrl ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsParcelPreviewOpen(true)
+                }}
+                className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted"
+                title="Open parcel boundary satellite preview"
+                aria-label="Open parcel boundary satellite preview"
+              >
+                <Image
+                  src={parcelSatelliteMapDataUrl}
+                  alt={`${name} — parcel on satellite map`}
+                  fill
+                  unoptimized
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="148px"
+                />
+              </button>
+            ) : null}
+          </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex flex-col items-start gap-0.5">
-                <p className="text-2xl font-bold tracking-tight text-foreground">{formatPrice(price)}</p>
-                {showPricePerAcre ? (
-                  <p className="text-sm font-normal text-muted-foreground">
-                    ${Math.round(pricePerAcre!).toLocaleString("en-US")} / acre
-                  </p>
-                ) : null}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-col items-start gap-0.5">
+                  <p className="text-2xl font-bold tracking-tight text-foreground">{formatPrice(price)}</p>
+                  {showPricePerAcre ? (
+                    <p className="text-sm font-normal text-muted-foreground">
+                      ${Math.round(pricePerAcre!).toLocaleString("en-US")} / acre
+                    </p>
+                  ) : null}
+                </div>
+                {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
+                <p className="mt-0.5 flex items-center gap-1 text-sm line-clamp-2">
+                  <MapPin className="h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0">{locationLine}</span>
+                </p>
               </div>
-              {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
-              <p className="mt-0.5 flex items-center gap-1 text-sm line-clamp-2">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                <span className="min-w-0">{locationLine}</span>
-              </p>
-            </div>
 
-            <div className="flex items-center gap-2">
-              {acreage ? (
-                <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
-                  {String(acreage).trim()} ac
-                </span>
-              ) : null}
-              {/* {category ? (
+              <div className="flex items-center gap-2">
+                {acreage ? (
+                  <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
+                    {String(acreage).trim()} ac
+                  </span>
+                ) : null}
+                {/* {category ? (
                 <span
                   className="rounded-full px-2 py-1 text-xs font-medium text-white"
                   style={{ backgroundColor: categoryColor || "#6b7b6b" }}
@@ -203,41 +232,72 @@ export function PropertyCard({
                   {category}
                 </span>
               ) : null} */}
-              {aiMatchingScore != null ? (
-                <span
-                  className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(aiMatchingScore)}`}
+                {aiMatchingScore != null ? (
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(aiMatchingScore)}`}
+                  >
+                    AI {aiMatchingScore}/100
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if (!session) {
+                      openSignInModal()
+                      return
+                    }
+                    saveFavorite(id)
+                  }}
+                  className="ml-1 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-accent"
+                  aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
                 >
-                  AI {aiMatchingScore}/100
-                </span>
-              ) : null}
+                  <Heart
+                    className={`h-4 w-4 transition-colors ${
+                      isFavorited ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {descriptionText ? (
+              <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{descriptionText}</p>
+            ) : null}
+          </div>
+        </div>
+
+        {isParcelPreviewOpen && parcelSatelliteMapDataUrl ? (
+          <div
+            className="fixed inset-0 z-120 flex items-center justify-center bg-black/75 p-4"
+            onClick={() => setIsParcelPreviewOpen(false)}
+          >
+            <div
+              className="relative w-full max-w-5xl rounded-xl bg-background p-2 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  if (!session) {
-                    openSignInModal()
-                    return
-                  }
-                  saveFavorite(id)
-                }}
-                className="ml-1 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background transition-colors hover:bg-accent"
-                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                onClick={() => setIsParcelPreviewOpen(false)}
+                className="absolute right-2 top-2 z-10 rounded-md bg-black/60 px-2 py-1 text-xs text-white"
               >
-                <Heart
-                  className={`h-4 w-4 transition-colors ${
-                    isFavorited ? "fill-red-500 text-red-500" : "text-muted-foreground"
-                  }`}
-                />
+                Close
               </button>
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                <Image
+                  src={parcelSatelliteMapDataUrl}
+                  alt={`${name} — parcel boundary detailed satellite preview`}
+                  fill
+                  unoptimized
+                  className="object-contain bg-black"
+                  sizes="100vw"
+                />
+              </div>
             </div>
           </div>
-
-          {descriptionText ? (
-            <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{descriptionText}</p>
-          ) : null}
-        </div>
-      </div>
+        ) : null}
+      </>
     )
   }
 

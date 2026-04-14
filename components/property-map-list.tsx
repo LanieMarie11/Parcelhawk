@@ -44,6 +44,8 @@ export interface ListingItem {
   url?: string | null
   /** Description from landListings.description (array of strings) */
   description?: string[] | string | null
+  /** Satellite Static Map PNG as data URL (parcel boundary on aerial), from land-location-search */
+  parcelSatelliteMapDataUrl?: string | null
 }
 
 interface PropertyMapListProps {
@@ -160,6 +162,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
                 aiMatchingScore={listing.aiMatchingScore}
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
+                parcelSatelliteMapDataUrl={listing.parcelSatelliteMapDataUrl ?? undefined}
                 variant="list"
                 onMouseEnter={() => setHoveredListingId(listing.id)}
                 onMouseLeave={() => setHoveredListingId(null)}
