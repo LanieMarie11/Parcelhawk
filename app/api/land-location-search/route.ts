@@ -4,11 +4,73 @@ import { and, arrayContains, asc, desc, eq, gt, gte, ilike, lte, or, sql } from 
 import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import { fetchParcelSatelliteMapDataUrl } from "@/lib/parcel-aerial-map";
+
+const REGRID_POINT_URL = "https://app.regrid.com/api/v2/parcels/point";
+/** Max concurrent Regrid calls per request (avoids rate limits and long hangs). */
+const REGRID_FETCH_CONCURRENCY = 6;
+const STATIC_MAP_FETCH_CONCURRENCY = 4;
 
 function parseNumParam(value: string | null): number | null {
   if (value == null || value.trim() === "") return null;
   const num = Number(value.replace(/[^0-9.]/g, ""));
   return Number.isFinite(num) && num >= 0 ? num : null;
+}
+
+function parseLatLon(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const n = Number(value.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/**
+ * Regrid Parcel API: reverse geocode a point to parcel GeoJSON (FeatureCollection).
+ * `listingLat` / `listingLon` must come from `land_listings.latitude` / `land_listings.longitude`
+ * on each row returned by the DB query — not from the browser request to this route.
+ * (Regrid’s own HTTP API requires lat/lon as query params; that is unrelated to our GET filters.)
+ * @see https://support.regrid.com/api/parcel-api-endpoints
+ */
+async function fetchRegridParcelsAtPoint(
+  listingLat: number,
+  listingLon: number,
+  token: string
+): Promise<Record<string, unknown> | null> {
+  const url = new URL(REGRID_POINT_URL);
+  url.searchParams.set("lat", String(listingLat));
+  url.searchParams.set("lon", String(listingLon));
+  url.searchParams.set("radius", "250");
+  url.searchParams.set("limit", "5");
+  url.searchParams.set("token", token);
+  url.searchParams.set("return_geometry", "true");
+
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) {
+    return null;
+  }
+  const data = (await res.json()) as { parcels?: Record<string, unknown> };
+  const parcels = data?.parcels;
+  if (parcels && typeof parcels === "object" && parcels.type === "FeatureCollection") {
+    return parcels;
+  }
+  return null;
+}
+
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!, i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return out;
 }
 
 export async function GET(request: NextRequest) {
@@ -98,8 +160,7 @@ export async function GET(request: NextRequest) {
       conditions.length > 0
         ? db.select().from(landListings).where(and(...conditions))
         : db.select().from(landListings);
-    const rows = await baseQuery.orderBy(orderBy).limit(100);
-    // console.log(rows);
+    const rows = await baseQuery.orderBy(orderBy).limit(5);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
@@ -112,10 +173,49 @@ export async function GET(request: NextRequest) {
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
     }
 
-    const list = rows.map((row) => ({
+    let list = rows.map((row) => ({
       ...row,
       isFavorite: favoriteIds.has(row.id),
     }));
+
+    // When REGRID_API_TOKEN is set, every listing with coordinates gets a Regrid parcels/point call (batched concurrency below).
+    const regridToken = process.env.REGRID_API_TOKEN?.trim();
+    if (regridToken) {
+      const base = list.map((row) => ({
+        ...row,
+        regridParcels: null as Record<string, unknown> | null,
+      }));
+      // Coordinates: only from land_listings rows (schema: latitude, longitude), never from searchParams.
+      const enrichedList = await mapPool(base, REGRID_FETCH_CONCURRENCY, async (row) => {
+        const lat = parseLatLon(row.latitude);
+        const lon = parseLatLon(row.longitude);
+        if (lat == null || lon == null) {
+          return { ...row, regridParcels: null };
+        }
+        const parcels = await fetchRegridParcelsAtPoint(lat, lon, regridToken);
+        return { ...row, regridParcels: parcels };
+      });
+      list = enrichedList;
+    }
+
+    /** Maps Static API uses a Maps Platform API key, not a service account JSON. */
+    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
+    if (mapsApiKey && regridToken) {
+      list = await mapPool(list, STATIC_MAP_FETCH_CONCURRENCY, async (row) => {
+        const r = row as (typeof row) & {
+          regridParcels?: Record<string, unknown> | null;
+          parcelSatelliteMapDataUrl?: string | null;
+        };
+        const lat = parseLatLon(r.latitude);
+        const lon = parseLatLon(r.longitude);
+        if (!r.regridParcels || lat == null || lon == null) {
+          return { ...r, parcelSatelliteMapDataUrl: null };
+        }
+        const dataUrl = await fetchParcelSatelliteMapDataUrl(r.regridParcels, lat, lon, mapsApiKey);
+        return { ...r, parcelSatelliteMapDataUrl: dataUrl };
+      });
+    }
+
     return NextResponse.json(list);
   } catch (error) {
     console.error("Land location search API error:", error);

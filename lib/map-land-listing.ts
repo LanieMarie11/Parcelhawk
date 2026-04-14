@@ -31,5 +31,6 @@ export function mapLandListingRow(item: any): ListingItem {
     aiMatchingScore: item.aiMatchingScore ?? null,
     url: item.url,
     description: item.description,
+    parcelSatelliteMapDataUrl: item.parcelSatelliteMapDataUrl ?? null,
   }
 }

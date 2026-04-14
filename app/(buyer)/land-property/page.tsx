@@ -298,6 +298,7 @@ function LandPropertyPageContent() {
           currentFilters={searchBarCurrentFilters}
         />
       </div>
+
       <PropertyMapList
         listings={listingsData}
         title="Acreage"
