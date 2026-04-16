@@ -59,7 +59,14 @@ export function LandingHome() {
           />
           <button
             type="button"
-            onClick={() => submitSearch(query)}
+            onClick={() => {
+              const trimmed = query.trim();
+              if (!trimmed) {
+                router.push("/land-property");
+                return;
+              }
+              submitSearch(trimmed);
+            }}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2D4A31] text-white shadow-md transition-transform hover:scale-105 active:scale-95"
             aria-label="Search"
           >
