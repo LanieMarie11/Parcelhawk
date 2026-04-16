@@ -24,7 +24,11 @@ export async function GET() {
         title: landListings.title,
         price: landListings.price,
         acres: landListings.acres,
+        address1: landListings.address1,
         city: landListings.city,
+        stateAbbreviation: landListings.stateAbbreviation,
+        stateName: landListings.stateName,
+        zip: landListings.zip,
         latitude: landListings.latitude,
         longitude: landListings.longitude,
         photos: landListings.photos,
@@ -45,6 +49,11 @@ export async function GET() {
       name: row.title ?? "",
       price: row.price != null ? String(row.price) : "",
       location: row.city ?? "",
+      address1: row.address1 ?? null,
+      city: row.city ?? null,
+      stateAbbreviation: row.stateAbbreviation ?? null,
+      stateName: row.stateName ?? null,
+      zip: row.zip ?? null,
       acreage: row.acres != null ? String(row.acres) : "",
       latitude: row.latitude != null ? Number(row.latitude) : null,
       longitude: row.longitude != null ? Number(row.longitude) : null,
@@ -115,12 +124,6 @@ export async function POST(request: Request) {
           )
         );
     }
-    console.log("landListingIds", landListingIds);
-    console.log("userId", userId);
-    console.log("existing", existing);
-    console.log("existingIds", existingIds);
-    console.log("toRemove", toRemove);
-    console.log("toAdd", toAdd);
     if (toAdd.length > 0) {
       await db
         .insert(favorites)

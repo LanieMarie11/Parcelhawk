@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export type SignUpCompletePreferences = {
   budget: string | null
@@ -28,6 +29,7 @@ export function SignUpCompleteStep({
   onExploreListings,
   onGoToDashboard,
 }: SignUpCompleteStepProps) {
+  const router = useRouter()
   const displayName = firstName.trim() || "there"
   const buyerTypeLabel = preferences.purpose
     ? PURPOSE_LABELS[preferences.purpose] ?? preferences.purpose
@@ -69,14 +71,17 @@ export function SignUpCompleteStep({
           {onExploreListings ? (
             <button
               type="button"
-              onClick={onExploreListings}
+              onClick={() => {
+                onExploreListings()
+                router.push("/land-property")
+              }}
               className="w-full rounded-xl border border-border bg-card px-6 py-3 text-base font-medium text-foreground transition-colors hover:bg-muted"
             >
               Explore listings
             </button>
           ) : (
             <Link
-              href="/"
+              href="/land-property"
               className="w-full rounded-xl border border-border bg-card px-6 py-3 text-center text-base font-medium text-foreground transition-colors hover:bg-muted"
             >
               Explore listings
