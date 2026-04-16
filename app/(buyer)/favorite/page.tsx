@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { MapPin, Plus, Search, Sparkles, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { formatPropertyLocation } from "@/components/property-card"
 import type { ListingItem } from "@/components/property-map-list"
@@ -124,12 +125,15 @@ function FavoritePropertyCard({
 }
 
 function FavoritePageContent() {
+  const router = useRouter()
   const { data: session, status } = useSession()
   const [listingsData, setListingsData] = useState<ListingItem[]>([])
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<(typeof SORT_OPTIONS)[number]>("Newest")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCompareIds, setSelectedCompareIds] = useState<number[]>([])
+  const [isComparing, setIsComparing] = useState(false)
+  const [compareError, setCompareError] = useState("")
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -187,6 +191,35 @@ function FavoritePageContent() {
       if (prev.length >= 3) return prev
       return [...prev, listingId]
     })
+  }
+
+  const handleCompareProperties = async () => {
+    if (selectedCompareListings.length < 2 || isComparing) return
+
+    setCompareError("")
+    setIsComparing(true)
+    try {
+      const res = await fetch("/api/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyIds: selectedCompareIds }),
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to compare properties")
+      }
+
+      const compareResult = await res.json()
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("compareResult", JSON.stringify(compareResult))
+      }
+      router.push("/compare")
+    } catch (error) {
+      console.error(error)
+      setCompareError("Unable to start comparison right now. Please try again.")
+    } finally {
+      setIsComparing(false)
+    }
   }
 
   if (status === "loading" || loading) {
@@ -310,11 +343,13 @@ function FavoritePageContent() {
 
               <button
                 type="button"
-                disabled={selectedCompareListings.length < 2}
+                onClick={handleCompareProperties}
+                disabled={selectedCompareListings.length < 2 || isComparing}
                 className="mt-4 w-full rounded-lg bg-[#2E5A33] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#274d2b] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Compare properties
+                {isComparing ? "Comparing..." : "Compare properties"}
               </button>
+              {compareError ? <p className="mt-2 text-xs text-[#B3261E]">{compareError}</p> : null}
             </div>
 
             <div className="mt-3 rounded-xl border border-[#BFD7EF] bg-[#F5FAFF] p-3">
