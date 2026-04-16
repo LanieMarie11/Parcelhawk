@@ -249,8 +249,15 @@ function FavoritePageContent() {
             </p>
 
             {visibleListings.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border bg-white p-8 text-center text-sm text-muted-foreground">
-                No saved favorites match your current search.
+              <div className="flex min-h-[420px] rounded-xl border border-border bg-white items-center justify-center">
+                <div className="text-center font-ibm-plex-sans">
+                  <h2 className="text-2xl font-medium font-phudu uppercase tracking-tight text-[#1D1D1F]">
+                    No Saved Parcels Yet
+                  </h2>
+                  <p className="mt-2 text-sm font-ibm-plex-sans text-[#7B7F8A]">
+                    Start exploring and save parcels you like to find them here anytime.
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
@@ -271,9 +278,11 @@ function FavoritePageContent() {
               <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#4f5160]">
                 <Sparkles className="h-4 w-4" />
               </div>
-              <h2 className="mt-3 text-xl font-semibold text-[#2E3037]">AI COMPARISON</h2>
+              <h2 className="mt-3 text-xl font-semibold font-phudu text-[#2E3037]">AI COMPARISON</h2>
               <p className="mx-auto mt-2 max-w-[260px] text-sm text-[#6A6D79]">
-                Select up to 3 properties using the Compare button on each card to see an AI-powered side-by-side analysis.
+                Select up to 2-5 properties using the{" "}
+                <span className="font-semibold text-[#2D5A36]">Compare</span>{" "}
+                button on each card to see an AI-powered side-by-side analysis.
               </p>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
@@ -309,7 +318,7 @@ function FavoritePageContent() {
             </div>
 
             <div className="mt-3 rounded-xl border border-[#BFD7EF] bg-[#F5FAFF] p-3">
-              <p className="text-sm font-semibold text-[#2F4E72]">How AI Comparison Works</p>
+              <p className="text-sm font-semibold text-[#002C58]">How AI Comparison Works</p>
               <p className="mt-1 text-xs text-[#58708C]">
                 Click Compare on any 2 of your saved properties. ParcelHawk AI compares location fit, pricing, acreage, and investment potential side-by-side.
               </p>

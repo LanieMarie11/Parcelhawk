@@ -12,7 +12,7 @@ import BuyerProfileSidebar from "./buyer-profile-sidebar";
 import { useSignInModal } from "@/lib/sign-in-modal-context";
 
 const nav = [
-  { href: "/", label: "Search" },
+  { href: "/land-property", label: "Search" },
   { href: "/favorite", label: "Saved Properties" },
   { href: "/compare", label: "Compare" },
   { href: "/resources", label: "Resources" },
@@ -24,7 +24,6 @@ export function LandingHeader() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { registerOpenSignInModal } = useSignInModal();
-  const [mounted, setMounted] = useState(false);
   const [showSignInModal, setShowSignInModal] = useState(false);
   const isSignedIn = status === "authenticated" && !!session;
 
@@ -37,8 +36,6 @@ export function LandingHeader() {
   useEffect(() => {
     registerOpenSignInModal(() => setShowSignInModal(true));
   }, [registerOpenSignInModal]);
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
@@ -57,8 +54,7 @@ export function LandingHeader() {
 
         <div className="flex flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-center">
           {nav.map(({ href, label }) => {
-            const active =
-              pathname === href || (href !== "/" && pathname.startsWith(href));
+            const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
                 key={label}
@@ -105,8 +101,7 @@ export function LandingHeader() {
         </div>
       </nav>
 
-      {mounted &&
-        showSignInModal &&
+      {showSignInModal &&
         typeof document !== "undefined" &&
         createPortal(
           <div className="fixed inset-0 z-100 flex h-full w-full items-center justify-center">
