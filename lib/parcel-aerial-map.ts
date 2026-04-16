@@ -139,8 +139,8 @@ export async function fetchParcelSatelliteMapDataUrl(
       centerLat,
       centerLng,
       pathLatLngPipe: pathSeg,
-      width: 400,
-      height: 240,
+      width: 600,
+      height: 384,
       apiKey,
     });
     if (url.length <= MAX_PATH_CHARS) break;
