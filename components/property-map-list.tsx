@@ -200,7 +200,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
       </div>
 
       {/* Fixed map (right): same half-pane shell as list; fixed + explicit height for viewport fill */}
-      <div className={`${HALF_PANE_SHELL} fixed right-0 top-[73px] z-10 h-[calc(100vh-73px)]`}>
+      <div className={`${HALF_PANE_SHELL} fixed right-0 top-[173px] z-10 h-[calc(100vh-173px)]`}>
         <div className="relative min-h-0 flex-1">
           <MarketplaceMap listings={listings} selectedId={hoveredListingId} className="h-full w-full" />
         </div>
