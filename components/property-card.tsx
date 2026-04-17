@@ -220,10 +220,15 @@ export function PropertyCard({
                   ) : null}
                 </div>
                 {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
-                <p className="mt-0.5 flex items-center gap-1 text-sm line-clamp-2">
+                <a
+                  href={linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-0.5 flex min-w-0 cursor-pointer items-center gap-1 text-sm text-foreground line-clamp-2 transition-colors hover:text-primary hover:underline"
+                >
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
                   <span className="min-w-0">{locationLine}</span>
-                </p>
+                </a>
               </div>
 
               <div className="flex items-center gap-2">

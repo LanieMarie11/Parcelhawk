@@ -5,9 +5,36 @@ import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { authOptions } from "@/lib/auth";
+import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map";
+
+const STATIC_MAP_FETCH_CONCURRENCY = 4;
 
 function getUserId(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null;
+}
+
+function parseLatLon(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const n = Number(value.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!, i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return out;
 }
 
 export async function GET() {
@@ -41,7 +68,7 @@ export async function GET() {
       .where(eq(favorites.userId, userId))
       .orderBy(desc(landListings.listingDate));
 
-    const listings = rows.map((row) => ({
+    let listings = rows.map((row) => ({
       id: row.id,
       images: row.photos ?? undefined,
       category: row.propertyType?.[0],
@@ -61,6 +88,19 @@ export async function GET() {
       url: row.url ?? undefined,
       description: row.description ?? undefined,
     }));
+
+    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
+    if (mapsApiKey) {
+      listings = await mapPool(listings, STATIC_MAP_FETCH_CONCURRENCY, async (item) => {
+        const lat = parseLatLon(item.latitude);
+        const lon = parseLatLon(item.longitude);
+        if (lat == null || lon == null) {
+          return { ...item, parcelSatelliteMapDataUrl: null as string | null };
+        }
+        const dataUrl = await fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey);
+        return { ...item, parcelSatelliteMapDataUrl: dataUrl };
+      });
+    }
 
     return NextResponse.json(listings);
   } catch (err) {

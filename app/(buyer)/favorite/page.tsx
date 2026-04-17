@@ -24,6 +24,12 @@ function getImageSrc(url?: string): string {
   return url
 }
 
+function getFavoriteCardImageSrc(listing: ListingItem): string {
+  if (listing.parcelSatelliteMapDataUrl) return listing.parcelSatelliteMapDataUrl
+  const first = Array.isArray(listing.images) && listing.images.length > 0 ? listing.images[0] : undefined
+  return getImageSrc(first)
+}
+
 function FavoritePropertyCard({
   listing,
   selectedForCompare,
@@ -33,7 +39,9 @@ function FavoritePropertyCard({
   selectedForCompare: boolean
   onToggleCompare: () => void
 }) {
-  const firstImage = Array.isArray(listing.images) && listing.images.length > 0 ? listing.images[0] : undefined
+  const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
+  const satelliteUrl = listing.parcelSatelliteMapDataUrl ?? null
+  const cardImageSrc = getFavoriteCardImageSrc(listing)
   const priceText = formatPrice(listing.price)
   const acresValue = Number(String(listing.acreage).replace(/[^0-9.]/g, ""))
   const pricePerAcre = Number.isFinite(acresValue) && acresValue > 0 ? Number(String(listing.price).replace(/[^0-9.]/g, "")) / acresValue : null
@@ -47,7 +55,10 @@ function FavoritePropertyCard({
     location: listing.location,
   })
 
+  const linkUrl = listing.url?.trim() ? listing.url : `/property?id=${listing.id}`
+
   return (
+    <>
     <article className="rounded-2xl border border-border bg-card p-3 shadow-sm">
       <div className="relative overflow-hidden rounded-xl">
         <div className="absolute left-2 top-2 z-10">
@@ -68,14 +79,45 @@ function FavoritePropertyCard({
         <div className="absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-1 text-xs font-medium text-white">
           Saved 2d ago
         </div>
-        <div className="relative h-[156px] w-full bg-muted">
-          <Image
-            src={getImageSrc(firstImage)}
-            alt={listing.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 1280px) 33vw, 300px"
-          />
+        <div className="group relative h-[156px] w-full bg-muted">
+          {satelliteUrl ? (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsParcelPreviewOpen(true)
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return
+                e.preventDefault()
+                e.stopPropagation()
+                setIsParcelPreviewOpen(true)
+              }}
+              className="relative h-full w-full cursor-pointer overflow-hidden"
+              title="Open parcel boundary satellite preview"
+              aria-label="Open parcel boundary satellite preview"
+            >
+              <Image
+                src={cardImageSrc}
+                alt={`${listing.name} — parcel on satellite map`}
+                fill
+                unoptimized={cardImageSrc.startsWith("data:")}
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                sizes="(max-width: 1280px) 33vw, 300px"
+              />
+            </div>
+          ) : (
+            <Image
+              src={cardImageSrc}
+              alt={listing.name}
+              fill
+              unoptimized={cardImageSrc.startsWith("data:")}
+              className="object-cover"
+              sizes="(max-width: 1280px) 33vw, 300px"
+            />
+          )}
         </div>
       </div>
 
@@ -91,10 +133,15 @@ function FavoritePropertyCard({
             ${Math.round(pricePerAcre).toLocaleString("en-US")} / acre
           </p>
         ) : null}
-        <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <a
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 flex min-w-0 cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
+        >
           <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="line-clamp-1">{locationLine || listing.name}</span>
-        </p>
+          <span className="min-w-0 truncate">{locationLine || listing.name}</span>
+        </a>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
           {["Road access", listing.category ?? "Agricultural", "Water rights", "+1"].map((tag) => (
@@ -121,6 +168,37 @@ function FavoritePropertyCard({
         </div>
       </div>
     </article>
+
+    {isParcelPreviewOpen && satelliteUrl ? (
+      <div
+        className="fixed inset-0 z-120 flex items-center justify-center bg-black/75 p-4"
+        onClick={() => setIsParcelPreviewOpen(false)}
+      >
+        <div
+          className="relative w-full max-w-5xl rounded-xl bg-background p-2 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => setIsParcelPreviewOpen(false)}
+            className="absolute right-2 top-2 z-10 rounded-md bg-black/60 px-2 py-1 text-xs text-white"
+          >
+            Close
+          </button>
+          <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+            <Image
+              src={satelliteUrl}
+              alt={`${listing.name} — parcel boundary detailed satellite preview`}
+              fill
+              unoptimized
+              className="object-contain bg-black"
+              sizes="100vw"
+            />
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   )
 }
 
