@@ -162,7 +162,8 @@ export function PropertyCard({
           onMouseLeave={onMouseLeave}
         >
           <div className="flex shrink-0 gap-2">
-            <a
+            {/* TODO : Update this to show the image */}
+            {/* <a
               href={linkUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -175,16 +176,23 @@ export function PropertyCard({
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 sizes="148px"
               />
-            </a>
+            </a> */}
             {parcelSatelliteMapDataUrl ? (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
                   setIsParcelPreviewOpen(true)
                 }}
-                className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsParcelPreviewOpen(true)
+                }}
+                className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted cursor-pointer"
                 title="Open parcel boundary satellite preview"
                 aria-label="Open parcel boundary satellite preview"
               >
@@ -196,7 +204,7 @@ export function PropertyCard({
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   sizes="148px"
                 />
-              </button>
+              </div>
             ) : null}
           </div>
 
