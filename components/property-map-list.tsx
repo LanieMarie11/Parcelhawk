@@ -7,6 +7,9 @@ import { MarketplaceMap } from "@/components/marketplace-map"
 
 const PAGE_SIZE = 50
 
+/** Shared by list column and fixed map: width, flex stack, shrink, background */
+const HALF_PANE_SHELL = "flex w-1/2 min-w-0 shrink-0 flex-col bg-background"
+
 const SORT_OPTIONS = [
   { id: "default", label: "Default" },
   { id: "newest", label: "Newest" },
@@ -93,9 +96,9 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
   const currentSortLabel = SORT_OPTIONS.find((o) => o.id === sortId)?.label ?? "Default"
 
   return (
-    <div className="flex w-full">
+    <div className="flex min-w-0 w-full max-w-full overflow-x-hidden">
       {/* List (left) */}
-      <div className="flex w-1/2 min-w-0 shrink-0 flex-col border-r border-border bg-background">
+      <div className={`${HALF_PANE_SHELL} min-h-[calc(100vh-73px)] border-r border-border`}>
         <div className="shrink-0 border-b border-border px-6 pb-4 pt-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -196,13 +199,13 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
         </div>
       </div>
 
-      {/* Fixed map (right) */}
-      <div className="fixed right-0 top-[73px] z-10 h-[calc(100vh-73px)] w-1/2 min-w-0">
-        <div className="relative h-full w-full bg-background">
+      {/* Fixed map (right): same half-pane shell as list; fixed + explicit height for viewport fill */}
+      <div className={`${HALF_PANE_SHELL} fixed right-0 top-[73px] z-10 h-[calc(100vh-73px)]`}>
+        <div className="relative min-h-0 flex-1">
           <MarketplaceMap listings={listings} selectedId={hoveredListingId} className="h-full w-full" />
         </div>
       </div>
-      {/* Spacer so content doesn't sit under the fixed map */}
+      {/* Spacer so flex row reserves the same width as the fixed map (single 50% — avoids horizontal scroll) */}
       <div className="min-w-0 w-1/2 shrink-0" aria-hidden />
     </div>
   )

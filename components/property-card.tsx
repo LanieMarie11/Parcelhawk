@@ -162,7 +162,8 @@ export function PropertyCard({
           onMouseLeave={onMouseLeave}
         >
           <div className="flex shrink-0 gap-2">
-            <a
+            {/* TODO : Update this to show the image */}
+            {/* <a
               href={linkUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -175,16 +176,23 @@ export function PropertyCard({
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 sizes="148px"
               />
-            </a>
+            </a> */}
             {parcelSatelliteMapDataUrl ? (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={(e) => {
                   e.preventDefault()
                   e.stopPropagation()
                   setIsParcelPreviewOpen(true)
                 }}
-                className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsParcelPreviewOpen(true)
+                }}
+                className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted cursor-pointer"
                 title="Open parcel boundary satellite preview"
                 aria-label="Open parcel boundary satellite preview"
               >
@@ -196,7 +204,7 @@ export function PropertyCard({
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   sizes="148px"
                 />
-              </button>
+              </div>
             ) : null}
           </div>
 
@@ -212,10 +220,15 @@ export function PropertyCard({
                   ) : null}
                 </div>
                 {/* <p className="mt-0.5 text-sm text-muted-foreground line-clamp-1">{name}</p> */}
-                <p className="mt-0.5 flex items-center gap-1 text-sm line-clamp-2">
+                <a
+                  href={linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-0.5 flex min-w-0 cursor-pointer items-center gap-1 text-sm text-foreground line-clamp-2 transition-colors hover:text-primary hover:underline"
+                >
                   <MapPin className="h-3.5 w-3.5 shrink-0" />
                   <span className="min-w-0">{locationLine}</span>
-                </p>
+                </a>
               </div>
 
               <div className="flex items-center gap-2">
