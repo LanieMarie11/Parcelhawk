@@ -1,7 +1,7 @@
 "use client"
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import type { CountyFilterValue } from "@/components/county-filter"
 import {
   DEFAULT_LAND_FEATURE_FILTERS,
@@ -11,6 +11,10 @@ import { PropertyMapList, type ListingItem, type SortId } from "@/components/pro
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 import type { StateFilterValue } from "@/components/state-filter"
 import { mapLandListingRow } from "@/lib/map-land-listing"
+import {
+  clearLandPropertySearchPrompt,
+  peekLandPropertySearchPrompt,
+} from "@/lib/land-property-search-handoff"
 import usStates from "@/data/us-states.json"
 import countiesByState from "@/data/us-counties-by-state.json"
 
@@ -77,13 +81,11 @@ function resolveCountyFilterFromPromptFilters(
 }
 
 function LandPropertyPageContent() {
-  const router = useRouter()
-  const pathname = usePathname()
   const searchParams = useSearchParams()
   const typeFromUrl = searchParams.get("type") ?? ""
   const activitiesFromUrl = searchParams.getAll("activity").filter(Boolean)
   const locationFromUrl = searchParams.get("location") ?? ""
-  const promptFromUrl = searchParams.get("prompt")?.trim() ?? ""
+  const [pendingSearchPrompt, setPendingSearchPrompt] = useState("")
   const minAcresFromUrl = searchParams.get("minAcres")
   const maxAcresFromUrl = searchParams.get("maxAcres")
   const minPriceFromUrl = searchParams.get("minPrice")
@@ -106,12 +108,17 @@ function LandPropertyPageContent() {
   /**
    * Skips land-location fetches that would fight with AI results. Incremented when:
    * - embedding hydrates manual filters from `promptFilters`, and/or
-   * - URL prompt flow finishes successfully (URL `prompt` is stripped right after).
+   * - session handoff embedding finishes successfully (storage cleared right after).
    * Consumed in one effect run (handles React batching multiple reasons into one commit).
    */
   const pendingLandLocationFetchSkipsRef = useRef(0)
-  /** True while `/land-property?prompt=…` embedding request is running; blocks competing location fetches only during that window. */
-  const urlPromptEmbeddingInProgressRef = useRef(false)
+  /** True while handoff embedding request is running; blocks competing location fetches only during that window. */
+  const handoffEmbeddingInProgressRef = useRef(false)
+
+  useLayoutEffect(() => {
+    const p = peekLandPropertySearchPrompt()
+    if (p) setPendingSearchPrompt(p)
+  }, [])
 
   useEffect(() => {
     const minFromUrl = minPriceFromUrl != null && minPriceFromUrl !== "" ? Number(minPriceFromUrl) : null
@@ -128,7 +135,7 @@ function LandPropertyPageContent() {
     let cancelled = false
     async function load() {
       try {
-        if (promptFromUrl && urlPromptEmbeddingInProgressRef.current) return
+        if (pendingSearchPrompt && handoffEmbeddingInProgressRef.current) return
         if (pendingLandLocationFetchSkipsRef.current > 0) {
           pendingLandLocationFetchSkipsRef.current = 0
           return
@@ -188,7 +195,7 @@ function LandPropertyPageContent() {
     stateFilter?.code,
     countyFilter?.stateCode,
     countyFilter?.name,
-    promptFromUrl,
+    pendingSearchPrompt,
   ])
 
   const handleEmbeddingSearch = useCallback(async (prompt: string): Promise<boolean> => {
@@ -230,32 +237,31 @@ function LandPropertyPageContent() {
   }, [landFeatureFilters])
 
   useEffect(() => {
-    if (!promptFromUrl) {
+    if (!pendingSearchPrompt) {
       autoEmbeddedPromptRef.current = null
       return
     }
-    if (autoEmbeddedPromptRef.current === promptFromUrl) return
-    autoEmbeddedPromptRef.current = promptFromUrl
+    if (autoEmbeddedPromptRef.current === pendingSearchPrompt) return
+    autoEmbeddedPromptRef.current = pendingSearchPrompt
     let cancelled = false
-    urlPromptEmbeddingInProgressRef.current = true
+    handoffEmbeddingInProgressRef.current = true
     ;(async () => {
       try {
-        const ok = await handleEmbeddingSearch(promptFromUrl)
+        const ok = await handleEmbeddingSearch(pendingSearchPrompt)
         if (cancelled) return
-        const params = new URLSearchParams(searchParams.toString())
-        params.delete("prompt")
-        const q = params.toString()
-        if (ok) pendingLandLocationFetchSkipsRef.current += 1
-        router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false })
+        if (ok) {
+          pendingLandLocationFetchSkipsRef.current += 1
+          clearLandPropertySearchPrompt()
+        }
       } finally {
-        if (!cancelled) urlPromptEmbeddingInProgressRef.current = false
+        if (!cancelled) handoffEmbeddingInProgressRef.current = false
       }
     })()
     return () => {
       cancelled = true
-      urlPromptEmbeddingInProgressRef.current = false
+      handoffEmbeddingInProgressRef.current = false
     }
-  }, [promptFromUrl, handleEmbeddingSearch, searchParams, router, pathname])
+  }, [pendingSearchPrompt, handleEmbeddingSearch])
 
   const searchBarCurrentFilters = {
     minPrice: priceRange.min,
@@ -294,7 +300,7 @@ function LandPropertyPageContent() {
             setLandFeatureFilters(payload.features)
           }}
           onEmbeddingSearch={handleEmbeddingSearch}
-          syncedEmbeddingPrompt={promptFromUrl || null}
+          syncedEmbeddingPrompt={pendingSearchPrompt || null}
           currentFilters={searchBarCurrentFilters}
         />
       </div>
