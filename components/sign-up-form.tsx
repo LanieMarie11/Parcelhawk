@@ -312,7 +312,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
           firstName={firstName}
           preferences={completedPreferences}
           onExploreListings={() => router.push("/")}
-          onGoToDashboard={() => router.push("/dashboard")}
+          onGoToDashboard={() => router.push("/land-property")}
         />
       )}
 

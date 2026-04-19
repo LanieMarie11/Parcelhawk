@@ -87,3 +87,25 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true })
 }
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions)
+  const userId = getUserId(session)
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const [user] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 })
+  }
+
+  await db.delete(users).where(eq(users.id, userId))
+
+  return NextResponse.json({ ok: true })
+}
