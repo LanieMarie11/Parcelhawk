@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
 import { compare, hash } from "bcryptjs"
 import { db } from "@/db"
-import { users } from "@/db/schema"
+import { favorites, savedSearches, users } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 
@@ -105,7 +105,11 @@ export async function DELETE() {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
-  await db.delete(users).where(eq(users.id, userId))
+  await db.transaction(async (tx) => {
+    await tx.delete(favorites).where(eq(favorites.userId, userId))
+    await tx.delete(savedSearches).where(eq(savedSearches.userId, userId))
+    await tx.delete(users).where(eq(users.id, userId))
+  })
 
   return NextResponse.json({ ok: true })
 }
