@@ -231,7 +231,8 @@ export function extractFiltersFromPrompt(prompt: string): SearchQueryFilters {
  *   "cities": string[] | null,
  *   "stateNames": string[] | null,
  *   "stateAbbreviations": string[] | null,
- *   "counties": string[] | null
+ *   "counties": string[] | null,
+ *   "embeddingQueryText": string | null
  * }
  */
 export function buildSearchExtractionPrompt(userPrompt: string): string {
@@ -270,7 +271,13 @@ export function buildSearchExtractionPrompt(userPrompt: string): string {
     "- Phrases like 'at least 20 acres' mean minAcres = 20 only.",
     "- Only use information in the query; do not infer budget or size.",
     "",
-    "Return ONLY a single JSON object, with these exact keys, no comments and no extra text.",
+    "Also set embeddingQueryText (string or null):",
+    "- This is the part of the user query used for semantic vector search against listing descriptions.",
+    "- Remove phrases that are fully captured by the structured fields above (budget/price, acreage, explicit city/state/county names, and wording that only expresses activities or propertyTypes you already listed in JSON).",
+    "- Keep other descriptive intent (terrain, views, access, privacy, trees, water, buildings, use cases beyond the list fields, etc.).",
+    "- Use natural language only; do not repeat the JSON. If nothing remains after removing structured parts, set embeddingQueryText to null.",
+    "",
+    "Return ONLY a single JSON object with these exact keys (use null where not applicable): minPrice, maxPrice, minAcres, maxAcres, activities, propertyTypes, cities, stateNames, stateAbbreviations, counties, embeddingQueryText. No comments and no extra text.",
     "",
     `User query: "${userPrompt.trim()}"`,
   ].join("\n");
@@ -287,6 +294,13 @@ type LlmExtractionJson = {
   stateNames: string[] | null;
   stateAbbreviations: string[] | null;
   counties: string[] | null;
+  embeddingQueryText?: string | null;
+};
+
+export type ExtractFiltersWithLlmResult = {
+  filters: SearchQueryFilters;
+  /** Text for embedding models; excludes content represented in `filters` when the LLM provides it. */
+  embeddingQueryText: string;
 };
 
 type ServiceAccount = {
@@ -328,7 +342,7 @@ async function callVertexLlm(prompt: string): Promise<string> {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0,
-      maxOutputTokens: 256,
+      maxOutputTokens: 384,
     },
   };
 
@@ -374,8 +388,9 @@ function stripJsonFromMarkdown(text: string): string {
   return s.trim();
 }
 
-export async function extractFiltersWithLlm(userPrompt: string): Promise<SearchQueryFilters> {
-  const extractionPrompt = buildSearchExtractionPrompt(userPrompt);
+export async function extractFiltersWithLlm(userPrompt: string): Promise<ExtractFiltersWithLlmResult> {
+  const trimmedPrompt = userPrompt.trim();
+  const extractionPrompt = buildSearchExtractionPrompt(trimmedPrompt);
   const raw = await callVertexLlm(extractionPrompt);
   const jsonStr = stripJsonFromMarkdown(raw);
 
@@ -464,6 +479,10 @@ export async function extractFiltersWithLlm(userPrompt: string): Promise<SearchQ
     );
   }
 
-  return filters;
+  const fromModel =
+    typeof parsed.embeddingQueryText === "string" ? parsed.embeddingQueryText.trim() : "";
+  const embeddingQueryText = fromModel.length > 0 ? fromModel : trimmedPrompt;
+
+  return { filters, embeddingQueryText };
 }
 

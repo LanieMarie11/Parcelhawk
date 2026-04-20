@@ -286,6 +286,7 @@ function buildPromptFiltersPayload(
  * POST: prompt + optional feature flags. LLM extracts SQL filters from the prompt.
  * Body: { prompt: string, features?: object }
  * Returns { listings, promptFilters } where promptFilters mirrors extracted state/county/price/acres.
+ * Vector search uses embedding text from the same LLM call (semantic remainder), not the raw prompt.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -297,11 +298,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing or empty prompt" }, { status: 400 });
     }
 
-    // Use Vertex LLM (Gemini) to extract structured SQL filters from the prompt.
+    // Use Vertex LLM (Gemini) to extract structured SQL filters and a semantic-only string for embeddings.
     let extractedFilters: SearchQueryFilters | undefined;
+    let embeddingQueryText = prompt;
     try {
-      extractedFilters = await extractFiltersWithLlm(prompt);
-      console.log("embedding-search llmExtractedFilters", extractedFilters);
+      const extraction = await extractFiltersWithLlm(prompt);
+      extractedFilters = extraction.filters;
+      embeddingQueryText = extraction.embeddingQueryText;
+      console.log("embedding-search llmExtractedFilters", extractedFilters, "embeddingQueryText", embeddingQueryText);
     } catch (llmError) {
       console.error("LLM filter extraction failed, continuing with embedding-only search:", llmError);
     }
@@ -325,8 +329,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const embedding = await getEmbedding(prompt);
+    const embedding = await getEmbedding(embeddingQueryText);
     const vectorStr = "[" + embedding.join(",") + "]";
+    console.log("embedding-search vectorStr", embeddingQueryText);
 
     const rows =
       allowedListingIds != null && allowedListingIds.length > 0
