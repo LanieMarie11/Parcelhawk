@@ -300,7 +300,7 @@ type LlmExtractionJson = {
 export type ExtractFiltersWithLlmResult = {
   filters: SearchQueryFilters;
   /** Text for embedding models; excludes content represented in `filters` when the LLM provides it. */
-  embeddingQueryText: string;
+  embeddingQueryText: string | null;
 };
 
 type ServiceAccount = {
@@ -479,9 +479,10 @@ export async function extractFiltersWithLlm(userPrompt: string): Promise<Extract
     );
   }
 
-  const fromModel =
-    typeof parsed.embeddingQueryText === "string" ? parsed.embeddingQueryText.trim() : "";
-  const embeddingQueryText = fromModel.length > 0 ? fromModel : trimmedPrompt;
+  const embeddingQueryText =
+    typeof parsed.embeddingQueryText === "string"
+      ? parsed.embeddingQueryText.trim()
+      : null;
 
   return { filters, embeddingQueryText };
 }

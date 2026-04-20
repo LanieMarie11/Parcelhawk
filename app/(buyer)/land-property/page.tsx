@@ -1,7 +1,7 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
-import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import type { CountyFilterValue } from "@/components/county-filter"
 import {
   DEFAULT_LAND_FEATURE_FILTERS,
@@ -10,11 +10,8 @@ import {
 import { PropertyMapList, type ListingItem, type SortId } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 import type { StateFilterValue } from "@/components/state-filter"
+import { useLandPropertySearchHandoff } from "@/lib/land-property-search-context"
 import { mapLandListingRow } from "@/lib/map-land-listing"
-import {
-  clearLandPropertySearchPrompt,
-  peekLandPropertySearchPrompt,
-} from "@/lib/land-property-search-handoff"
 import usStates from "@/data/us-states.json"
 import countiesByState from "@/data/us-counties-by-state.json"
 
@@ -85,7 +82,8 @@ function LandPropertyPageContent() {
   const typeFromUrl = searchParams.get("type") ?? ""
   const activitiesFromUrl = searchParams.getAll("activity").filter(Boolean)
   const locationFromUrl = searchParams.get("location") ?? ""
-  const [pendingSearchPrompt, setPendingSearchPrompt] = useState("")
+  const { pendingPrompt: pendingSearchPrompt, setPendingPrompt: setPendingSearchPrompt } =
+    useLandPropertySearchHandoff()
   const minAcresFromUrl = searchParams.get("minAcres")
   const maxAcresFromUrl = searchParams.get("maxAcres")
   const minPriceFromUrl = searchParams.get("minPrice")
@@ -115,11 +113,6 @@ function LandPropertyPageContent() {
   /** True while handoff embedding request is running; blocks competing location fetches only during that window. */
   const handoffEmbeddingInProgressRef = useRef(false)
 
-  useLayoutEffect(() => {
-    const p = peekLandPropertySearchPrompt()
-    if (p) setPendingSearchPrompt(p)
-  }, [])
-
   useEffect(() => {
     const minFromUrl = minPriceFromUrl != null && minPriceFromUrl !== "" ? Number(minPriceFromUrl) : null
     const maxFromUrl = maxPriceFromUrl != null && maxPriceFromUrl !== "" ? Number(maxPriceFromUrl) : null
@@ -135,6 +128,8 @@ function LandPropertyPageContent() {
     let cancelled = false
     async function load() {
       try {
+        // When a prompt is handed off from home, results should come only from embedding-search.
+        if (pendingSearchPrompt) return
         if (pendingSearchPrompt && handoffEmbeddingInProgressRef.current) return
         if (pendingLandLocationFetchSkipsRef.current > 0) {
           pendingLandLocationFetchSkipsRef.current = 0
@@ -248,20 +243,31 @@ function LandPropertyPageContent() {
     ;(async () => {
       try {
         const ok = await handleEmbeddingSearch(pendingSearchPrompt)
-        if (cancelled) return
-        if (ok) {
+        if (!cancelled && ok) {
           pendingLandLocationFetchSkipsRef.current += 1
-          clearLandPropertySearchPrompt()
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Handoff embedding search failed:", err)
         }
       } finally {
-        if (!cancelled) handoffEmbeddingInProgressRef.current = false
+        // Always clear the prompt we just handled, even if this effect run was cancelled
+        // (covers React Strict Mode double-invocation in dev, where the cleanup runs
+        // before the fetch resolves). Functional update guards against wiping a newer
+        // prompt the user might have set while this request was in flight.
+        setPendingSearchPrompt((current) =>
+          current === pendingSearchPrompt ? "" : current
+        )
+        if (!cancelled) {
+          handoffEmbeddingInProgressRef.current = false
+        }
       }
     })()
     return () => {
       cancelled = true
       handoffEmbeddingInProgressRef.current = false
     }
-  }, [pendingSearchPrompt, handleEmbeddingSearch])
+  }, [pendingSearchPrompt, setPendingSearchPrompt, handleEmbeddingSearch])
 
   const searchBarCurrentFilters = {
     minPrice: priceRange.min,

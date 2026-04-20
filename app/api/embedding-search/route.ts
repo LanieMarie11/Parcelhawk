@@ -11,7 +11,8 @@ import {
   type SearchQueryFilters,
 } from "@/lib/searchQueryExtraction";
 
-const EMBEDDING_SEARCH_LIMIT = 5;
+const SEMANTIC_PRESELECT_LIMIT = 100;
+const FINAL_RETURN_LIMIT = 20;
 const STATIC_MAP_FETCH_CONCURRENCY = 4;
 
 function parseLatLon(value: unknown): number | null {
@@ -87,6 +88,37 @@ function getSemanticMatchPoints(distance: number, minDistance: number, maxDistan
 }
 
 const FEATURE_SCORE_TOTAL = 30;
+const SEMANTIC_SCORE_TOTAL = 50;
+const ACREAGE_SCORE_TOTAL = 20;
+const BASE_SIGNAL_WEIGHTS = {
+  semantic: SEMANTIC_SCORE_TOTAL,
+  acreage: ACREAGE_SCORE_TOTAL,
+  feature: FEATURE_SCORE_TOTAL,
+} as const;
+
+function getRedistributedSignalWeights(active: { acreage: boolean; feature: boolean }) {
+  const enabledWeightSum =
+    BASE_SIGNAL_WEIGHTS.semantic +
+    (active.acreage ? BASE_SIGNAL_WEIGHTS.acreage : 0) +
+    (active.feature ? BASE_SIGNAL_WEIGHTS.feature : 0);
+
+  // Semantic is always considered active.
+  // Semantic is always considered active.
+  if (enabledWeightSum <= 0) {
+    return {
+      semantic: BASE_SIGNAL_WEIGHTS.semantic,
+      acreage: 0,
+      feature: 0,
+    };
+  }
+
+  const scale = 100 / enabledWeightSum;
+  return {
+    semantic: BASE_SIGNAL_WEIGHTS.semantic * scale,
+    acreage: active.acreage ? BASE_SIGNAL_WEIGHTS.acreage * scale : 0,
+    feature: active.feature ? BASE_SIGNAL_WEIGHTS.feature * scale : 0,
+  };
+}
 
 const FEATURE_DESCRIPTION_PATTERNS = {
   roadAccessConfirmed: {
@@ -300,7 +332,7 @@ export async function POST(request: NextRequest) {
 
     // Use Vertex LLM (Gemini) to extract structured SQL filters and a semantic-only string for embeddings.
     let extractedFilters: SearchQueryFilters | undefined;
-    let embeddingQueryText = prompt;
+    let embeddingQueryText: string | null = prompt;
     try {
       const extraction = await extractFiltersWithLlm(prompt);
       extractedFilters = extraction.filters;
@@ -319,6 +351,7 @@ export async function POST(request: NextRequest) {
           .select({ id: landListings.id })
           .from(landListings)
           .where(and(...conditions));
+        console.log("embedding-search sqlFilteredRowCount", filtered.length);
         allowedListingIds = filtered.map((r) => r.id);
         if (allowedListingIds.length === 0) {
           return NextResponse.json({
@@ -329,20 +362,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const embedding = await getEmbedding(embeddingQueryText);
-    const vectorStr = "[" + embedding.join(",") + "]";
-    console.log("embedding-search vectorStr", embeddingQueryText);
+    const embeddingInput =
+      typeof embeddingQueryText === "string" ? embeddingQueryText : null;
+    const hasEmbeddingInput = embeddingInput != null && embeddingInput.trim().length > 0;
+    let rows: { listing_id: number; distance: number }[] = [];
 
-    const rows =
-      allowedListingIds != null && allowedListingIds.length > 0
-        ? ((await db.execute(
-            sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_listing_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
-          )) as { listing_id: number; distance: number }[])
-        : ((await db.execute(
-            sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${EMBEDDING_SEARCH_LIMIT}`
-          )) as { listing_id: number; distance: number }[]);
+    if (hasEmbeddingInput) {
+      const embedding = await getEmbedding(embeddingInput);
+      const vectorStr = "[" + embedding.join(",") + "]";
+      console.log("embedding-search vectorStr", embeddingInput);
 
-    const listingIds = rows.map((r) => r.listing_id);
+      rows =
+        allowedListingIds != null && allowedListingIds.length > 0
+          ? ((await db.execute(
+              sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_listing_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${SEMANTIC_PRESELECT_LIMIT}`
+            )) as { listing_id: number; distance: number }[])
+          : ((await db.execute(
+              sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_listing_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${SEMANTIC_PRESELECT_LIMIT}`
+            )) as { listing_id: number; distance: number }[]);
+    }
+
+    const listingIds = hasEmbeddingInput
+      ? rows.map((r) => r.listing_id)
+      : allowedListingIds != null && allowedListingIds.length > 0
+        ? allowedListingIds.slice(0, SEMANTIC_PRESELECT_LIMIT)
+        : [];
     if (listingIds.length === 0) {
       return NextResponse.json({
         listings: [],
@@ -378,19 +422,42 @@ export async function POST(request: NextRequest) {
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
     }
 
+    const hasTargetAcres = targetAcres != null && targetAcres > 0;
+    const hasRequiredFeatureKeys = requiredFeatureKeys.length > 0;
+    const redistributedWeights = getRedistributedSignalWeights({
+      acreage: hasTargetAcres,
+      feature: hasRequiredFeatureKeys,
+    });
+
     let list = listings
       .map((row) => {
         const distance = distanceByListingId.get(row.id) ?? Number.POSITIVE_INFINITY;
-        const semanticMatchScore = getSemanticMatchPoints(distance, minDistance, maxDistance);
-        const acreageMatchScore = getAcreageMatchPoints(
-          parseNonNegativeNumber((row as { acres?: unknown } | null | undefined)?.acres),
-          targetAcres
+        const semanticMatchScore = hasEmbeddingInput
+          ? getSemanticMatchPoints(distance, minDistance, maxDistance)
+          : SEMANTIC_SCORE_TOTAL;
+        const acreageMatchScore =
+          !hasTargetAcres
+            ? 0
+            : (getAcreageMatchPoints(
+                parseNonNegativeNumber((row as { acres?: unknown } | null | undefined)?.acres),
+                targetAcres
+              ) ?? 0);
+        const featureMatchScore =
+          !hasRequiredFeatureKeys
+            ? 0
+            : getFeatureMatchScore(
+                (row as { description?: unknown } | null | undefined)?.description,
+                requiredFeatureKeys
+              );
+        const semanticNormalized = semanticMatchScore / SEMANTIC_SCORE_TOTAL;
+        const acreageNormalized = acreageMatchScore / ACREAGE_SCORE_TOTAL;
+        const featureNormalized = featureMatchScore / FEATURE_SCORE_TOTAL;
+        const aiMatchingScore = Math.round(
+          semanticNormalized * redistributedWeights.semantic +
+            acreageNormalized * redistributedWeights.acreage +
+            featureNormalized * redistributedWeights.feature
         );
-        const featureMatchScore = getFeatureMatchScore(
-          (row as { description?: unknown } | null | undefined)?.description,
-          requiredFeatureKeys
-        );
-        const aiMatchingScore = semanticMatchScore + (acreageMatchScore ?? 0) + featureMatchScore;
+        console.log("👍semanticMatchScore", semanticMatchScore, "acreageMatchScore", acreageMatchScore, "featureMatchScore", featureMatchScore, "aiMatchingScore", aiMatchingScore);
 
         return {
           ...row,
@@ -401,7 +468,8 @@ export async function POST(request: NextRequest) {
           aiMatchingScore,
         };
       })
-      .sort((a, b) => b.aiMatchingScore - a.aiMatchingScore);
+      .sort((a, b) => b.aiMatchingScore - a.aiMatchingScore)
+      .slice(0, FINAL_RETURN_LIMIT);
 
     const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
     if (mapsApiKey) {
