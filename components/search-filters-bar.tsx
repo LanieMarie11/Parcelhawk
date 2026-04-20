@@ -37,7 +37,7 @@ interface SearchFiltersBarProps {
   onFilterApply?: (payload: FilterApplyPayload) => void
   /** Called when user clicks Generate Filters with a prompt; parent POSTs to embedding search and sets results. */
   onEmbeddingSearch?: (prompt: string) => void | Promise<unknown>
-  /** When set (e.g. from `?prompt=` on /land-property), keeps the AI search input in sync. */
+  /** When set (e.g. after home → land-property handoff), keeps the AI search input in sync. */
   syncedEmbeddingPrompt?: string | null
   /** Current filters to save when user saves search (from parent state / URL). */
   currentFilters?: SavedSearchFilters | null

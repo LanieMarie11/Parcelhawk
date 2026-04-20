@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowUpRight, Search, Sparkles } from "lucide-react";
 import ParcelLogo from "@/public/images/logo.png";
+import { stashLandPropertySearchPrompt } from "@/lib/land-property-search-handoff";
 
 const SUGGESTIONS = [
   "Flat land with electric hookup in Texas, at least 10 acres",
@@ -19,9 +20,8 @@ export function LandingHome() {
   const submitSearch = (q: string) => {
     const trimmed = q.trim();
     if (!trimmed) return;
-    const params = new URLSearchParams();
-    params.set("prompt", trimmed);
-    router.push(`/land-property?${params.toString()}`);
+    stashLandPropertySearchPrompt(trimmed);
+    router.push("/land-property");
   };
 
   return (

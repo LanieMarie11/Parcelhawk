@@ -5,12 +5,38 @@ import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { getEmbedding } from "@/lib/embedding";
+import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map";
 import {
   extractFiltersWithLlm,
   type SearchQueryFilters,
 } from "@/lib/searchQueryExtraction";
 
-const EMBEDDING_SEARCH_LIMIT = 100;
+const EMBEDDING_SEARCH_LIMIT = 5;
+const STATIC_MAP_FETCH_CONCURRENCY = 4;
+
+function parseLatLon(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const n = Number(value.replace(/[^0-9.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!, i);
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return out;
+}
 
 function toTokenContainsPattern(raw: string): string {
   // Turn "St. Louis" into "%st%louis%" so it matches across punctuation differences.
@@ -260,6 +286,7 @@ function buildPromptFiltersPayload(
  * POST: prompt + optional feature flags. LLM extracts SQL filters from the prompt.
  * Body: { prompt: string, features?: object }
  * Returns { listings, promptFilters } where promptFilters mirrors extracted state/county/price/acres.
+ * Vector search uses embedding text from the same LLM call (semantic remainder), not the raw prompt.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -271,11 +298,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing or empty prompt" }, { status: 400 });
     }
 
-    // Use Vertex LLM (Gemini) to extract structured SQL filters from the prompt.
+    // Use Vertex LLM (Gemini) to extract structured SQL filters and a semantic-only string for embeddings.
     let extractedFilters: SearchQueryFilters | undefined;
+    let embeddingQueryText = prompt;
     try {
-      extractedFilters = await extractFiltersWithLlm(prompt);
-      console.log("embedding-search llmExtractedFilters", extractedFilters);
+      const extraction = await extractFiltersWithLlm(prompt);
+      extractedFilters = extraction.filters;
+      embeddingQueryText = extraction.embeddingQueryText;
+      console.log("embedding-search llmExtractedFilters", extractedFilters, "embeddingQueryText", embeddingQueryText);
     } catch (llmError) {
       console.error("LLM filter extraction failed, continuing with embedding-only search:", llmError);
     }
@@ -299,8 +329,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const embedding = await getEmbedding(prompt);
+    const embedding = await getEmbedding(embeddingQueryText);
     const vectorStr = "[" + embedding.join(",") + "]";
+    console.log("embedding-search vectorStr", embeddingQueryText);
 
     const rows =
       allowedListingIds != null && allowedListingIds.length > 0
@@ -347,7 +378,7 @@ export async function POST(request: NextRequest) {
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
     }
 
-    const list = listings
+    let list = listings
       .map((row) => {
         const distance = distanceByListingId.get(row.id) ?? Number.POSITIVE_INFINITY;
         const semanticMatchScore = getSemanticMatchPoints(distance, minDistance, maxDistance);
@@ -371,6 +402,19 @@ export async function POST(request: NextRequest) {
         };
       })
       .sort((a, b) => b.aiMatchingScore - a.aiMatchingScore);
+
+    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
+    if (mapsApiKey) {
+      list = await mapPool(list, STATIC_MAP_FETCH_CONCURRENCY, async (row) => {
+        const lat = parseLatLon(row.latitude);
+        const lon = parseLatLon(row.longitude);
+        if (lat == null || lon == null) {
+          return { ...row, parcelSatelliteMapDataUrl: null as string | null };
+        }
+        const dataUrl = await fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey);
+        return { ...row, parcelSatelliteMapDataUrl: dataUrl };
+      });
+    }
 
     return NextResponse.json({
       listings: list,
