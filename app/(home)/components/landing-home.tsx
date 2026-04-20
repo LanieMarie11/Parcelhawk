@@ -4,8 +4,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowUpRight, Search, Sparkles } from "lucide-react";
+import { useLandPropertySearchHandoff } from "@/lib/land-property-search-context";
 import ParcelLogo from "@/public/images/logo.png";
-import { stashLandPropertySearchPrompt } from "@/lib/land-property-search-handoff";
 
 const SUGGESTIONS = [
   "Flat land with electric hookup in Texas, at least 10 acres",
@@ -15,12 +15,13 @@ const SUGGESTIONS = [
 
 export function LandingHome() {
   const router = useRouter();
+  const { setPendingPrompt } = useLandPropertySearchHandoff();
   const [query, setQuery] = useState("");
 
   const submitSearch = (q: string) => {
     const trimmed = q.trim();
     if (!trimmed) return;
-    stashLandPropertySearchPrompt(trimmed);
+    setPendingPrompt(trimmed);
     router.push("/land-property");
   };
 
