@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       conditions.length > 0
         ? db.select().from(landListings).where(and(...conditions))
         : db.select().from(landListings);
-    const rows = await baseQuery.orderBy(orderBy).limit(5);
+    const rows = await baseQuery.orderBy(orderBy).limit(20);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
