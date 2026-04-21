@@ -6,6 +6,7 @@ import { db } from "@/db"
 import { favorites, landListings } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
+import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map"
 
 function getUserId(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null
@@ -21,10 +22,14 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(num) ? num : null
 }
 
-type InferredListingFeatures = {
-  roadAccess: string
-  floodZone: string
-  utilities: string
+function parseLatLon(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  if (typeof value === "string") {
+    const n = Number(value.replace(/[^0-9.-]/g, ""))
+    return Number.isFinite(n) ? n : null
+  }
+  return null
 }
 
 export async function POST(request: Request) {
@@ -58,11 +63,14 @@ export async function POST(request: Request) {
       county: landListings.county,
       stateAbbreviation: landListings.stateAbbreviation,
       listingDate: landListings.listingDate,
+      latitude: landListings.latitude,
+      longitude: landListings.longitude,
       photos: landListings.photos,
       propertyType: landListings.propertyType,
       propertyAmenities: landListings.propertyAmenities,
       brokerCompanyName: landListings.brokerCompanyName,
       description: landListings.description,
+      url: landListings.url,
     })
     .from(favorites)
     .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
@@ -72,6 +80,8 @@ export async function POST(request: Request) {
         inArray(favorites.landListingId, propertyIds)
       )
     )
+
+  const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim()
 
   const comparedProperties = await Promise.all(
     rows.map(async (row, index) => {
@@ -95,14 +105,25 @@ export async function POST(request: Request) {
             )
           : null
 
-      const inferredFeatures = await inferFeaturesFromDescriptionWithLlm(
-        descriptionToText(row.description)
-      )
+      const lat = parseLatLon(row.latitude)
+      const lon = parseLatLon(row.longitude)
+      const satellitePromise =
+        mapsApiKey && lat != null && lon != null
+          ? fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey)
+          : Promise.resolve(null as string | null)
+
+      const [inferredFeatures, satelliteImage] = await Promise.all([
+        inferFeaturesFromDescriptionWithLlm(descriptionToText(row.description)),
+        satellitePromise,
+      ])
+
+      const photoFallback = row.photos?.[0] ?? "/placeholder.svg"
 
       return {
         id: row.id,
         name: row.title ?? `Property ${index + 1}`,
-        image: row.photos?.[0] ?? "/placeholder.svg",
+        url: row.url ?? null,
+        image: satelliteImage ?? photoFallback,
         price: price != null ? formatCurrency(price) : "N/A",
         pricePerAcre: pricePerAcre != null ? `${formatCurrency(pricePerAcre)}/ac` : "N/A",
         acreage: acres != null ? `${acres} acres` : "N/A",
