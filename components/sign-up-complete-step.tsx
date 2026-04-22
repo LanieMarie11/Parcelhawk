@@ -36,7 +36,7 @@ export function SignUpCompleteStep({
     ? PURPOSE_LABELS[preferences.purpose] ?? preferences.purpose
     : "—"
   const budgetLabel = preferences.budget ?? "—"
-  const acreageLabel = preferences.acreage ?? "—"
+  const acresLabel = preferences.acreage ?? "—"
   const timeframeLabel = preferences.timeframe ?? "—"
 
   return (
@@ -59,8 +59,8 @@ export function SignUpCompleteStep({
               <p className="mt-0.5 font-medium text-foreground">{budgetLabel}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Acreage</p>
-              <p className="mt-0.5 font-medium text-foreground">{acreageLabel}</p>
+              <p className="text-sm text-muted-foreground">Acres</p>
+              <p className="mt-0.5 font-medium text-foreground">{acresLabel}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Buyer type</p>
