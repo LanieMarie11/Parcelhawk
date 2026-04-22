@@ -14,6 +14,16 @@ const BUDGET_OPTIONS = [
   "Above $300K",
 ] as const
 
+const ACREAGE_OPTIONS = [
+  "Under 1 acre",
+  "1-5 acres",
+  "5-10 acres",
+  "10-20 acres",
+  "20-50 acres",
+  "50-100 acres",
+  "100+ acres",
+] as const
+
 const PURPOSE_OPTIONS = [
   {
     id: "myself" as const,
@@ -51,6 +61,7 @@ const TIMEFRAME_OPTIONS = [
 
 export type SignUpPreferencesData = {
   budget: string | null
+  acreage: string | null
   purpose: string | null
   timeframe: string | null
 }
@@ -72,6 +83,7 @@ export function SignUpPreferencesStep({
   onSkip,
 }: SignUpPreferencesStepProps) {
   const [budget, setBudget] = useState<string | null>("$10K-$30K")
+  const [acreage, setAcreage] = useState<string | null>(ACREAGE_OPTIONS[0])
   const [purpose, setPurpose] = useState<string | null>(null)
   const [timeframe, setTimeframe] = useState<string | null>("ASAP")
 
@@ -97,6 +109,25 @@ export function SignUpPreferencesStep({
                 type="button"
                 onClick={() => setBudget(opt)}
                 className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${optionButtonClass(budget === opt)}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Acreage */}
+        <div className="mt-6">
+          <p className="text-base font-medium text-foreground">
+            What&apos;s your acreage?
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ACREAGE_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setAcreage(opt)}
+                className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${optionButtonClass(acreage === opt)}`}
               >
                 {opt}
               </button>
@@ -157,7 +188,7 @@ export function SignUpPreferencesStep({
           </button>
           <button
             type="button"
-            onClick={() => onContinue({ budget, purpose, timeframe })}
+            onClick={() => onContinue({ budget, acreage, purpose, timeframe })}
             className="w-full rounded-xl bg-[#04C0AF] py-3 text-base font-medium text-white transition-colors hover:bg-[#3dbdb5]/80 active:bg-[#35aba3]"
           >
             Continue

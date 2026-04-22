@@ -2,12 +2,14 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronLeft, ChevronDown, ShieldCheck, Sparkles } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { ChevronLeft, ShieldCheck, Sparkles } from "lucide-react"
+import { useEffect, useState } from "react"
 
 type PropertyOption = {
   id: number
   name: string
+  /** Listing detail URL when present; otherwise compare UI falls back to `/property?id=`. */
+  url?: string | null
   image: string
   aiMatchScore: number
   isVerifiedBest?: boolean
@@ -25,7 +27,14 @@ type PropertyOption = {
 
 type CompareApiPayload = {
   message?: string
+  /** Single cross-listing summary from `/api/compare` (all selected descriptions). */
+  aiSummary?: string
   comparedProperties?: PropertyOption[]
+}
+
+function listingLinkUrl(url: string | undefined | null, id: number): string {
+  const trimmed = typeof url === "string" ? url.trim() : ""
+  return trimmed ? trimmed : `/property?id=${id}`
 }
 
 const COMPARISON_ROWS: Array<{ label: string; key: keyof PropertyOption }> = [
@@ -44,9 +53,10 @@ const COMPARISON_ROWS: Array<{ label: string; key: keyof PropertyOption }> = [
 
 export default function ComparePage() {
   const [backendMessage, setBackendMessage] = useState("")
+  const [aiSummary, setAiSummary] = useState("")
   const [propertyOptions, setPropertyOptions] = useState<PropertyOption[]>([])
-  const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<{ src: string; name: string } | null>(null)
 
   useEffect(() => {
     const rawPayload = window.sessionStorage.getItem("compareResult")
@@ -60,10 +70,12 @@ export default function ComparePage() {
       if (parsedPayload.message) {
         setBackendMessage(parsedPayload.message)
       }
+      if (typeof parsedPayload.aiSummary === "string" && parsedPayload.aiSummary) {
+        setAiSummary(parsedPayload.aiSummary)
+      }
       if (Array.isArray(parsedPayload.comparedProperties) && parsedPayload.comparedProperties.length >= 2) {
         const list = parsedPayload.comparedProperties.slice(0, 3)
         setPropertyOptions(list)
-        setSelectedIds(list.map((item) => item.id))
       }
     } catch {
       // Malformed payload: show empty state.
@@ -72,26 +84,10 @@ export default function ComparePage() {
     }
   }, [])
 
-  const selectedProperties = useMemo(
-    () =>
-      selectedIds
-        .map((id) => propertyOptions.find((option) => option.id === id))
-        .filter((item): item is PropertyOption => item !== undefined),
-    [propertyOptions, selectedIds]
-  )
-
-  const hasComparison = selectedProperties.length >= 2
+  const hasComparison = propertyOptions.length >= 2
 
   const tableGridStyle = {
-    gridTemplateColumns: `220px repeat(${Math.max(2, selectedProperties.length)}, minmax(0, 1fr))`,
-  }
-
-  const handleSelectProperty = (index: number, id: number) => {
-    setSelectedIds((prev) => {
-      const next = [...prev]
-      next[index] = id
-      return next
-    })
+    gridTemplateColumns: `220px repeat(${Math.max(2, propertyOptions.length)}, minmax(0, 1fr))`,
   }
 
   return (
@@ -138,8 +134,9 @@ export default function ComparePage() {
                 <div>
                   <p className="text-lg font-semibold font-phudu text-[#1F232B]">AI COMPARISON</p>
                   <p className="mt-1 max-w-[1180px] text-sm text-[#5E6470]">
-                    The comparison table below is now using payload values returned from the backend
-                    compare API.
+                    {aiSummary
+                      ? aiSummary
+                      : "The comparison table below uses values returned from the compare API."}
                   </p>
                   {backendMessage ? (
                     <p className="mt-2 text-sm font-semibold text-[#2D5A36]">{backendMessage}</p>
@@ -153,41 +150,52 @@ export default function ComparePage() {
                 <div className="border-b border-r border-[#EAECEF] bg-[#F8FAF8] p-4">
                   <p className="text-sm font-semibold text-[#3E454F]">Field Name</p>
                 </div>
-                {selectedProperties.map((property, index) => {
+                {propertyOptions.map((property, index) => {
                   const isBest = Boolean(property.isVerifiedBest)
                   return (
                     <div
                       key={`${property.id}-${index}`}
                       className={`border-b border-[#EAECEF] p-3 ${
-                        index < selectedProperties.length - 1 ? "border-r" : ""
+                        index < propertyOptions.length - 1 ? "border-r" : ""
                       } ${isBest ? "bg-[#EDF7EE]" : "bg-white"}`}
                     >
-                      <label className="block">
-                        <span className="sr-only">Select property for column {index + 1}</span>
-                        <div className="relative">
-                          <select
-                            value={property.id}
-                            onChange={(event) => handleSelectProperty(index, Number(event.target.value))}
-                            className="h-10 w-full appearance-none rounded-lg border border-transparent bg-transparent pl-12 pr-9 text-sm font-semibold text-[#1F232B] outline-none ring-[#04C0AF] focus:border-[#DCE3E8] focus:ring-2"
-                          >
-                            {propertyOptions.map((option) => (
-                              <option key={option.id} value={option.id}>
-                                {option.name}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="pointer-events-none absolute left-2 top-1/2 h-8 w-8 -translate-y-1/2 overflow-hidden rounded-full">
-                            <Image
-                              src={property.image}
-                              alt={property.name}
-                              width={32}
-                              height={32}
-                              className="h-8 w-8 object-cover"
-                            />
-                          </div>
-                          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#717887]" />
+                      <div className="flex min-h-10 items-center gap-2">
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setImagePreview({ src: property.image, name: property.name })
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key !== "Enter" && e.key !== " ") return
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setImagePreview({ src: property.image, name: property.name })
+                          }}
+                          className="relative h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-full outline-none ring-[#04C0AF] focus-visible:ring-2"
+                          title="Open detailed image preview"
+                          aria-label="Open detailed image preview"
+                        >
+                          <Image
+                            src={property.image}
+                            alt={property.name}
+                            width={32}
+                            height={32}
+                            unoptimized={property.image.startsWith("data:")}
+                            className="h-8 w-8 object-cover transition-opacity hover:opacity-90"
+                          />
                         </div>
-                      </label>
+                        <a
+                          href={listingLinkUrl(property.url, property.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="min-w-0 text-sm font-semibold leading-tight text-[#1F232B] transition-colors hover:text-[#04C0AF] hover:underline"
+                        >
+                          {property.name}
+                        </a>
+                      </div>
                       <p className="mt-1 text-xs font-medium text-[#44A160]">
                         {isBest ? (
                           <span className="inline-flex items-center gap-1">
@@ -208,11 +216,11 @@ export default function ComparePage() {
                   <div className="border-r border-t border-[#EAECEF] bg-[#FBFCFD] px-4 py-3 text-sm font-medium text-[#4D5563]">
                     {row.label}
                   </div>
-                  {selectedProperties.map((property, index) => (
+                  {propertyOptions.map((property, index) => (
                     <div
                       key={`${property.id}-${row.key}-${index}`}
                       className={`border-t border-[#EAECEF] px-4 py-3 text-sm text-[#2F3640] ${
-                        index < selectedProperties.length - 1 ? "border-r" : ""
+                        index < propertyOptions.length - 1 ? "border-r" : ""
                       }`}
                     >
                       {property[row.key]}
@@ -221,6 +229,36 @@ export default function ComparePage() {
                 </div>
               ))}
             </section>
+
+            {imagePreview ? (
+              <div
+                className="fixed inset-0 z-120 flex items-center justify-center bg-black/75 p-4"
+                onClick={() => setImagePreview(null)}
+              >
+                <div
+                  className="relative w-full max-w-5xl rounded-xl bg-white p-2 shadow-2xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setImagePreview(null)}
+                    className="absolute right-2 top-2 z-10 rounded-md bg-black/60 px-2 py-1 text-xs text-white"
+                  >
+                    Close
+                  </button>
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg">
+                    <Image
+                      src={imagePreview.src}
+                      alt={`${imagePreview.name} — detailed preview`}
+                      fill
+                      unoptimized={imagePreview.src.startsWith("data:")}
+                      className="object-contain bg-black"
+                      sizes="100vw"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>

@@ -1,4 +1,5 @@
 import { GoogleAuth } from "google-auth-library"
+import { buildCompareListingFeaturesPrompt } from "@/lib/prompt"
 
 export type InferredListingFeatures = {
   roadAccess: string
@@ -64,19 +65,7 @@ export async function inferFeaturesFromDescriptionWithLlm(
   const token = await client.getAccessToken()
   if (!token.token) return DEFAULT_INFERRED_FEATURES
 
-  const prompt = [
-    "You extract listing feature details from land listing description text.",
-    "Return ONLY JSON with this exact shape:",
-    '{"roadAccess":"string","floodZone":"string","utilities":"string"}',
-    "",
-    "Rules:",
-    '- Keep values concise (2-8 words) like "Paved road access" or "Zone X (minimal risk)".',
-    '- If not mentioned, return "Not provided".',
-    "- Do not hallucinate or add extra keys.",
-    "",
-    "Listing description:",
-    descriptionText,
-  ].join("\n")
+  const prompt = buildCompareListingFeaturesPrompt(descriptionText)
 
   const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/${location}/publishers/google/models/${modelId}:generateContent`
   const res = await fetch(url, {

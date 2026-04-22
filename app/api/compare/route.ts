@@ -1,11 +1,34 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, type InferSelectModel } from "drizzle-orm"
 import { db } from "@/db"
 import { favorites, landListings } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
+import { summarizeComparedListingsWithLlm } from "@/lib/ai-description-summary"
+import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map"
+
+type LandListing = InferSelectModel<typeof landListings>
+type CompareListingRow = Pick<
+  LandListing,
+  | "id"
+  | "title"
+  | "price"
+  | "acres"
+  | "city"
+  | "county"
+  | "stateAbbreviation"
+  | "listingDate"
+  | "latitude"
+  | "longitude"
+  | "photos"
+  | "propertyType"
+  | "propertyAmenities"
+  | "brokerCompanyName"
+  | "description"
+  | "url"
+>
 
 function getUserId(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null
@@ -21,10 +44,14 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(num) ? num : null
 }
 
-type InferredListingFeatures = {
-  roadAccess: string
-  floodZone: string
-  utilities: string
+function parseLatLon(value: unknown): number | null {
+  if (value == null) return null
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  if (typeof value === "string") {
+    const n = Number(value.replace(/[^0-9.-]/g, ""))
+    return Number.isFinite(n) ? n : null
+  }
+  return null
 }
 
 export async function POST(request: Request) {
@@ -35,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}))
-  const propertyIds = Array.isArray(body?.propertyIds)
+  const propertyIds: number[] = Array.isArray(body?.propertyIds)
     ? body.propertyIds.filter(
         (id: unknown): id is number => typeof id === "number" && Number.isInteger(id) && id > 0
       )
@@ -48,7 +75,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const rows = await db
+  const rows: CompareListingRow[] = await db
     .select({
       id: landListings.id,
       title: landListings.title,
@@ -58,11 +85,14 @@ export async function POST(request: Request) {
       county: landListings.county,
       stateAbbreviation: landListings.stateAbbreviation,
       listingDate: landListings.listingDate,
+      latitude: landListings.latitude,
+      longitude: landListings.longitude,
       photos: landListings.photos,
       propertyType: landListings.propertyType,
       propertyAmenities: landListings.propertyAmenities,
       brokerCompanyName: landListings.brokerCompanyName,
       description: landListings.description,
+      url: landListings.url,
     })
     .from(favorites)
     .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
@@ -73,8 +103,15 @@ export async function POST(request: Request) {
       )
     )
 
+  const rowById = new Map<number, CompareListingRow>(rows.map((r) => [r.id, r]))
+  const orderedRows: CompareListingRow[] = propertyIds
+    .map((id) => rowById.get(id))
+    .filter((r): r is CompareListingRow => r != null)
+
+  const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim()
+
   const comparedProperties = await Promise.all(
-    rows.map(async (row, index) => {
+    orderedRows.map(async (row, index) => {
       const price = toNumber(row.price)
       const acres = toNumber(row.acres)
       const pricePerAcre = price != null && acres != null && acres > 0 ? price / acres : null
@@ -95,14 +132,26 @@ export async function POST(request: Request) {
             )
           : null
 
-      const inferredFeatures = await inferFeaturesFromDescriptionWithLlm(
-        descriptionToText(row.description)
-      )
+      const lat = parseLatLon(row.latitude)
+      const lon = parseLatLon(row.longitude)
+      const satellitePromise =
+        mapsApiKey && lat != null && lon != null
+          ? fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey)
+          : Promise.resolve(null as string | null)
+      const descriptionText = descriptionToText(row.description)
+
+      const [inferredFeatures, satelliteImage] = await Promise.all([
+        inferFeaturesFromDescriptionWithLlm(descriptionText),
+        satellitePromise,
+      ])
+
+      const photoFallback = row.photos?.[0] ?? "/placeholder.svg"
 
       return {
         id: row.id,
         name: row.title ?? `Property ${index + 1}`,
-        image: row.photos?.[0] ?? "/placeholder.svg",
+        url: row.url ?? null,
+        image: satelliteImage ?? photoFallback,
         price: price != null ? formatCurrency(price) : "N/A",
         pricePerAcre: pricePerAcre != null ? `${formatCurrency(pricePerAcre)}/ac` : "N/A",
         acreage: acres != null ? `${acres} acres` : "N/A",
@@ -120,9 +169,18 @@ export async function POST(request: Request) {
     })
   )
 
+  const summaryItems = orderedRows.map((row, index) => ({
+    index: index + 1,
+    title: row.title?.trim() || `Property ${index + 1}`,
+    location: [row.county, row.city, row.stateAbbreviation].filter(Boolean).join(", "),
+    description: descriptionToText(row.description),
+  }))
+  const aiSummary = await summarizeComparedListingsWithLlm(summaryItems)
+
   return NextResponse.json({
     ok: true,
     message: "Solid backend test words: compare API reached successfully.",
     comparedProperties,
+    aiSummary,
   })
 }

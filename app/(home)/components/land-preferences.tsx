@@ -62,12 +62,23 @@ const buyerTypes = [
   },
 ]
 
+const acreageOptions = [
+  "Under 1 acre",
+  "1-5 acres",
+  "5-10 acres",
+  "10-20 acres",
+  "20-50 acres",
+  "50-100 acres",
+  "100+ acres",
+]
+
 const timeframeOptions = ["ASAP", "1-3 months", "3-6 months", "6+ months", "Just researching"]
 
 export default function LandPreferences() {
-  const [selectedBudget, setSelectedBudget] = useState(budgetOptions[0])
-  const [selectedBuyerType, setSelectedBuyerType] = useState("myself")
-  const [selectedTimeframe, setSelectedTimeframe] = useState(timeframeOptions[0])
+  const [selectedBudget, setSelectedBudget] = useState<string | null>(null)
+  const [selectedAcreage, setSelectedAcreage] = useState<string | null>(null)
+  const [selectedBuyerType, setSelectedBuyerType] = useState<string | null>(null)
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -83,12 +94,16 @@ export default function LandPreferences() {
 
         const profile = data as {
           preferenceBudget?: string
+          preferenceAcreage?: string
           preferencePurpose?: string
           preferenceTimeframe?: string
         }
 
         if (profile.preferenceBudget && budgetOptions.includes(profile.preferenceBudget)) {
           setSelectedBudget(profile.preferenceBudget)
+        }
+        if (profile.preferenceAcreage && acreageOptions.includes(profile.preferenceAcreage)) {
+          setSelectedAcreage(profile.preferenceAcreage)
         }
         if (profile.preferencePurpose && buyerTypes.some((type) => type.id === profile.preferencePurpose)) {
           setSelectedBuyerType(profile.preferencePurpose)
@@ -113,9 +128,10 @@ export default function LandPreferences() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          preferenceBudget: selectedBudget,
-          preferencePurpose: selectedBuyerType,
-          preferenceTimeframe: selectedTimeframe,
+          preferenceBudget: selectedBudget ?? "",
+          preferenceAcreage: selectedAcreage ?? "",
+          preferencePurpose: selectedBuyerType ?? "",
+          preferenceTimeframe: selectedTimeframe ?? "",
         }),
       })
       const data = await response.json().catch(() => ({}))
@@ -149,7 +165,30 @@ export default function LandPreferences() {
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setSelectedBudget(option)}
+                  onClick={() => setSelectedBudget((prev) => (prev === option ? null : option))}
+                  className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
+                    isSelected
+                      ? "border-[#04C0AF] bg-[#04C0AF]/10 text-[#04C0AF]"
+                      : "border-border bg-card text-muted-foreground hover:border-[#04C0AF]/50 hover:text-card-foreground"
+                  }`}
+                >
+                  {option}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-card-foreground">What&apos;s your acreage?</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {acreageOptions.map((option) => {
+              const isSelected = option === selectedAcreage
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setSelectedAcreage((prev) => (prev === option ? null : option))}
                   className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
                     isSelected
                       ? "border-[#04C0AF] bg-[#04C0AF]/10 text-[#04C0AF]"
@@ -172,7 +211,9 @@ export default function LandPreferences() {
                 <button
                   key={type.id}
                   type="button"
-                  onClick={() => setSelectedBuyerType(type.id)}
+                  onClick={() =>
+                    setSelectedBuyerType((prev) => (prev === type.id ? null : type.id))
+                  }
                   className={`flex items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
                     isSelected
                       ? "border-[#04C0AF] bg-[#04C0AF]/10"
@@ -205,7 +246,7 @@ export default function LandPreferences() {
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setSelectedTimeframe(option)}
+                  onClick={() => setSelectedTimeframe((prev) => (prev === option ? null : option))}
                   className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
                     isSelected
                       ? "border-[#04C0AF] bg-[#04C0AF]/10 text-[#04C0AF]"

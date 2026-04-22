@@ -2,8 +2,12 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, arrayContains, asc, desc, eq, gt, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landListings } from "@/db/schema";
+import { favorites, landListings, users } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import {
+  PREFERENCE_ACREAGE_TO_RANGE,
+  PREFERENCE_BUDGET_TO_RANGE,
+} from "@/lib/land-preference-buckets";
 import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map";
 
 const STATIC_MAP_FETCH_CONCURRENCY = 4;
@@ -53,6 +57,9 @@ export async function GET(request: NextRequest) {
     const county = searchParams.get("county")?.trim() ?? null;
     const sort = (searchParams.get("sort") ?? "default").trim().toLowerCase();
 
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+
     const conditions = [];
 
     // Exclude junk/invalid prices (0, 1, 2) from results
@@ -79,6 +86,44 @@ export async function GET(request: NextRequest) {
     if (maxAcres != null) {
       conditions.push(lte(landListings.acres, String(maxAcres)));
     }
+
+    // When the client sends no min/max for price or acres, apply signed-in user profile preferences.
+    if (
+      userId &&
+      ((minPrice == null && maxPrice == null) || (minAcres == null && maxAcres == null))
+    ) {
+      const needBudgetFromUser = minPrice == null && maxPrice == null;
+      const needAcresFromUser = minAcres == null && maxAcres == null;
+      if (needBudgetFromUser || needAcresFromUser) {
+        const [u] = await db
+          .select({
+            preferenceBudget: users.preferenceBudget,
+            preferenceAcreage: users.preferenceAcreage,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (needBudgetFromUser && u?.preferenceBudget) {
+          const br = PREFERENCE_BUDGET_TO_RANGE[u.preferenceBudget];
+          if (br) {
+            conditions.push(gte(landListings.price, String(br.min)));
+            if (br.max != null) {
+              conditions.push(lte(landListings.price, String(br.max)));
+            }
+          }
+        }
+        if (needAcresFromUser && u?.preferenceAcreage) {
+          const ar = PREFERENCE_ACREAGE_TO_RANGE[u.preferenceAcreage];
+          if (ar) {
+            conditions.push(gte(landListings.acres, String(ar.min)));
+            if (ar.max != null) {
+              conditions.push(lte(landListings.acres, String(ar.max)));
+            }
+          }
+        }
+      }
+    }
+
     if (stateAbbrev && stateAbbrev.length >= 2) {
       conditions.push(eq(landListings.stateAbbreviation, stateAbbrev));
     }
@@ -127,8 +172,6 @@ export async function GET(request: NextRequest) {
         : db.select().from(landListings);
     const rows = await baseQuery.orderBy(orderBy).limit(20);
 
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
     let favoriteIds = new Set<number>();
     if (userId) {
       const favRows = await db
