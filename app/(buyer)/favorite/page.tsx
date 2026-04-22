@@ -318,6 +318,8 @@ function FavoritePageContent() {
     )
   }
 
+  const userProfileLocation = (session.user?.location ?? "").trim()
+
   return (
     <div className="min-h-[calc(100vh-73px)] w-full bg-[#F8F8F8] font-ibm-plex-sans">
       <div className="mx-auto w-full max-w-[1480px] px-5 py-4">
@@ -346,10 +348,12 @@ function FavoritePageContent() {
                 ))}
               </select>
             </label>
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" />
-              Colorado, United States
-            </span>
+            {userProfileLocation ? (
+              <span className="flex min-w-0 max-w-[240px] items-center gap-1 text-muted-foreground" title={userProfileLocation}>
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{userProfileLocation}</span>
+              </span>
+            ) : null}
           </div>
         </div>
 
