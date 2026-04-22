@@ -27,6 +27,8 @@ type PropertyOption = {
 
 type CompareApiPayload = {
   message?: string
+  /** Single cross-listing summary from `/api/compare` (all selected descriptions). */
+  aiSummary?: string
   comparedProperties?: PropertyOption[]
 }
 
@@ -51,6 +53,7 @@ const COMPARISON_ROWS: Array<{ label: string; key: keyof PropertyOption }> = [
 
 export default function ComparePage() {
   const [backendMessage, setBackendMessage] = useState("")
+  const [aiSummary, setAiSummary] = useState("")
   const [propertyOptions, setPropertyOptions] = useState<PropertyOption[]>([])
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false)
   const [imagePreview, setImagePreview] = useState<{ src: string; name: string } | null>(null)
@@ -66,6 +69,9 @@ export default function ComparePage() {
       const parsedPayload = JSON.parse(rawPayload) as CompareApiPayload
       if (parsedPayload.message) {
         setBackendMessage(parsedPayload.message)
+      }
+      if (typeof parsedPayload.aiSummary === "string" && parsedPayload.aiSummary) {
+        setAiSummary(parsedPayload.aiSummary)
       }
       if (Array.isArray(parsedPayload.comparedProperties) && parsedPayload.comparedProperties.length >= 2) {
         const list = parsedPayload.comparedProperties.slice(0, 3)
@@ -128,8 +134,9 @@ export default function ComparePage() {
                 <div>
                   <p className="text-lg font-semibold font-phudu text-[#1F232B]">AI COMPARISON</p>
                   <p className="mt-1 max-w-[1180px] text-sm text-[#5E6470]">
-                    The comparison table below is now using payload values returned from the backend
-                    compare API.
+                    {aiSummary
+                      ? aiSummary
+                      : "The comparison table below uses values returned from the compare API."}
                   </p>
                   {backendMessage ? (
                     <p className="mt-2 text-sm font-semibold text-[#2D5A36]">{backendMessage}</p>

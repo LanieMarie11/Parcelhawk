@@ -1,12 +1,34 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
-import { and, eq, inArray } from "drizzle-orm"
+import { and, eq, inArray, type InferSelectModel } from "drizzle-orm"
 import { db } from "@/db"
 import { favorites, landListings } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
+import { summarizeComparedListingsWithLlm } from "@/lib/ai-description-summary"
 import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map"
+
+type LandListing = InferSelectModel<typeof landListings>
+type CompareListingRow = Pick<
+  LandListing,
+  | "id"
+  | "title"
+  | "price"
+  | "acres"
+  | "city"
+  | "county"
+  | "stateAbbreviation"
+  | "listingDate"
+  | "latitude"
+  | "longitude"
+  | "photos"
+  | "propertyType"
+  | "propertyAmenities"
+  | "brokerCompanyName"
+  | "description"
+  | "url"
+>
 
 function getUserId(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null
@@ -40,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}))
-  const propertyIds = Array.isArray(body?.propertyIds)
+  const propertyIds: number[] = Array.isArray(body?.propertyIds)
     ? body.propertyIds.filter(
         (id: unknown): id is number => typeof id === "number" && Number.isInteger(id) && id > 0
       )
@@ -53,7 +75,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const rows = await db
+  const rows: CompareListingRow[] = await db
     .select({
       id: landListings.id,
       title: landListings.title,
@@ -81,10 +103,15 @@ export async function POST(request: Request) {
       )
     )
 
+  const rowById = new Map<number, CompareListingRow>(rows.map((r) => [r.id, r]))
+  const orderedRows: CompareListingRow[] = propertyIds
+    .map((id) => rowById.get(id))
+    .filter((r): r is CompareListingRow => r != null)
+
   const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim()
 
   const comparedProperties = await Promise.all(
-    rows.map(async (row, index) => {
+    orderedRows.map(async (row, index) => {
       const price = toNumber(row.price)
       const acres = toNumber(row.acres)
       const pricePerAcre = price != null && acres != null && acres > 0 ? price / acres : null
@@ -111,9 +138,10 @@ export async function POST(request: Request) {
         mapsApiKey && lat != null && lon != null
           ? fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey)
           : Promise.resolve(null as string | null)
+      const descriptionText = descriptionToText(row.description)
 
       const [inferredFeatures, satelliteImage] = await Promise.all([
-        inferFeaturesFromDescriptionWithLlm(descriptionToText(row.description)),
+        inferFeaturesFromDescriptionWithLlm(descriptionText),
         satellitePromise,
       ])
 
@@ -141,9 +169,18 @@ export async function POST(request: Request) {
     })
   )
 
+  const summaryItems = orderedRows.map((row, index) => ({
+    index: index + 1,
+    title: row.title?.trim() || `Property ${index + 1}`,
+    location: [row.county, row.city, row.stateAbbreviation].filter(Boolean).join(", "),
+    description: descriptionToText(row.description),
+  }))
+  const aiSummary = await summarizeComparedListingsWithLlm(summaryItems)
+
   return NextResponse.json({
     ok: true,
     message: "Solid backend test words: compare API reached successfully.",
     comparedProperties,
+    aiSummary,
   })
 }

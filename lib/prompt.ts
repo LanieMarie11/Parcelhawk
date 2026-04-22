@@ -18,6 +18,46 @@ export function buildCompareListingFeaturesPrompt(descriptionText: string): stri
   ].join("\n")
 }
 
+/** One block per favorite listing; used only for the compare “single AI summary” call. */
+export type CompareAllListingsSummaryItem = {
+  index: number
+  title: string
+  location: string
+  description: string
+}
+
+/**
+ * Vertex / Gemini user prompt: one consolidated summary for all listings in a compare.
+ * Adjust the instructions here to change how the cross-listing summary reads.
+ */
+export function buildCompareAllListingsSummaryPrompt(
+  items: CompareAllListingsSummaryItem[]
+): string {
+  const blocks = items.map((item) => {
+    const desc =
+      item.description.trim().length > 0 ? item.description : "(No description text.)"
+    return [
+      `### Listing ${item.index}: ${item.title}`,
+      `Location: ${item.location || "N/A"}`,
+      "",
+      "Description:",
+      desc,
+    ].join("\n")
+  })
+
+  return [
+    "You are helping a land buyer who is comparing several saved listings at once.",
+    "Write exactly ONE short summary (2–4 sentences) that synthesizes across all listings below.",
+    "Focus on how they differ in terrain, access, utilities, water/flood, zoning, or stated use,",
+    "using only the provided text. Do not invent details. Avoid marketing language.",
+    "If the descriptions are thin or similar, say that briefly instead of padding.",
+    "",
+    "Listings:",
+    "",
+    ...blocks,
+  ].join("\n\n")
+}
+
 export type SearchQueryExtractionPromptParams = {
   userPrompt: string
   /** JSON string of allowed activity labels (exact spelling for the model). */
