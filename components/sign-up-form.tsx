@@ -118,6 +118,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
           body: JSON.stringify({
             userId: createdUserId,
             budget: prefs.budget,
+            acreage: prefs.acreage,
             purpose: prefs.purpose,
             timeframe: prefs.timeframe,
           }),
@@ -299,6 +300,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
           onSkip={() => {
             setCompletedPreferences({
               budget: null,
+              acreage: null,
               purpose: null,
               timeframe: null,
             })

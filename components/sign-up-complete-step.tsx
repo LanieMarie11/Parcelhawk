@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 
 export type SignUpCompletePreferences = {
   budget: string | null
+  acreage: string | null
   purpose: string | null
   timeframe: string | null
 }
@@ -35,6 +36,7 @@ export function SignUpCompleteStep({
     ? PURPOSE_LABELS[preferences.purpose] ?? preferences.purpose
     : "—"
   const budgetLabel = preferences.budget ?? "—"
+  const acreageLabel = preferences.acreage ?? "—"
   const timeframeLabel = preferences.timeframe ?? "—"
 
   return (
@@ -51,10 +53,14 @@ export function SignUpCompleteStep({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Your preferences
           </p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <p className="text-sm text-muted-foreground">Budget</p>
               <p className="mt-0.5 font-medium text-foreground">{budgetLabel}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Acreage</p>
+              <p className="mt-0.5 font-medium text-foreground">{acreageLabel}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Buyer type</p>

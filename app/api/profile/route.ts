@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     phone?: string
     location?: string
     preferenceBudget?: string
+    preferenceAcreage?: string
     preferencePurpose?: string
     preferenceTimeframe?: string
   }
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
     phone?: string | null
     location?: string | null
     preferenceBudget?: string | null
+    preferenceAcreage?: string | null
     preferencePurpose?: string | null
     preferenceTimeframe?: string | null
     updatedAt: Date
@@ -64,6 +66,9 @@ export async function POST(request: Request) {
   if (body.location !== undefined) updates.location = body.location === "" ? null : body.location
   if (body.preferenceBudget !== undefined) {
     updates.preferenceBudget = body.preferenceBudget === "" ? null : body.preferenceBudget
+  }
+  if (body.preferenceAcreage !== undefined) {
+    updates.preferenceAcreage = body.preferenceAcreage === "" ? null : body.preferenceAcreage
   }
   if (body.preferencePurpose !== undefined) {
     updates.preferencePurpose = body.preferencePurpose === "" ? null : body.preferencePurpose
@@ -132,6 +137,7 @@ export async function GET() {
       phone: user.phone ?? "",
       location: user.location ?? "",
       preferenceBudget: user.preferenceBudget ?? "",
+      preferenceAcreage: user.preferenceAcreage ?? "",
       preferencePurpose: user.preferencePurpose ?? "",
       preferenceTimeframe: user.preferenceTimeframe ?? "",
     })
