@@ -114,6 +114,7 @@ export async function GET() {
         phone: users.phone,
         location: users.location,
         preferenceBudget: users.preferenceBudget,
+        preferenceAcreage: users.preferenceAcreage,
         preferencePurpose: users.preferencePurpose,
         preferenceTimeframe: users.preferenceTimeframe,
       })
