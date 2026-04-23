@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { investors, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: Request) {
@@ -36,19 +36,30 @@ export async function POST(request: Request) {
 
     const allowedRoles = ["buyer", "investor"];
     const userRole = allowedRoles.includes(role) ? role : "buyer";
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
 
     const hashedPassword = await hash(password, 10);
 
     const [created] = await db
       .insert(users)
       .values({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim().toLowerCase(),
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
         password: hashedPassword,
         role: userRole,
       })
       .returning({ id: users.id });
+
+    if (userRole === "investor") {
+      await db.insert(investors).values({
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
+      });
+    }
 
     return NextResponse.json(
       { message: "Account created successfully", userId: created.id },
