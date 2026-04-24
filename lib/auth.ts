@@ -12,20 +12,25 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        role: { label: "Role", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email?.trim() || !credentials?.password) {
           return null;
         }
+        const roleRaw = (credentials as { role?: string }).role?.toLowerCase();
+        if (roleRaw !== "buyer" && roleRaw !== "investor") {
+          return null;
+        }
         const normalizedEmail = credentials.email.trim().toLowerCase();
 
-        const [user] = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, normalizedEmail))
-          .limit(1);
-
-        if (user) {
+        if (roleRaw === "buyer") {
+          const [user] = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, normalizedEmail))
+            .limit(1);
+          if (!user) return null;
           const match = await compare(credentials.password, user.password);
           if (!match) return null;
           return {
@@ -47,7 +52,6 @@ export const authOptions: NextAuthOptions = {
           .where(eq(investors.email, normalizedEmail))
           .limit(1);
         if (!investor) return null;
-
         const investorMatch = await compare(credentials.password, investor.password);
         if (!investorMatch) return null;
 

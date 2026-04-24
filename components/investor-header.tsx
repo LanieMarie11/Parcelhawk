@@ -19,7 +19,7 @@ const navItems: readonly NavItem[] = [
   { href: "/realtor-portal/buyer-intel", label: "Buyer intel" },
   { href: "/realtor-portal/curated-parcels", label: "Curated parcels" },
   { href: "/realtor-portal/analytics", label: "Analytics" },
-  { href: "/realtor-portal/messages", label: "Messages", badge: 3 },
+  { href: "/realtor-portal/messages", label: "Messages"},
   { href: "/realtor-portal/invite-links", label: "Invite links" },
   { href: "/realtor-portal/settings", label: "Settings" },
 ];
@@ -45,21 +45,28 @@ export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps)
       : (user?.name?.slice(0, 2).toUpperCase() ?? "?");
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-3 font-ibm-plex-sans md:px-8">
-      <nav className="mx-auto flex max-w-[1600px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
+      <nav className="mx-auto flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Link
           href="/realtor-portal"
           className="flex shrink-0 flex-col gap-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1D31]"
         >
           <div className="flex items-center gap-2">
-            <Image src={ParcelLogo} alt="ParcelHawk" width={100} height={36} className="h-8 w-auto" />
+            <Image
+              src={ParcelLogo}
+              alt="ParcelHawk"
+              width={100}
+              height={36}
+              className="h-8 w-auto"
+              priority
+            />
           </div>
           <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
             Smarter land search
           </span>
         </Link>
 
-        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-center gap-x-5 gap-y-2 lg:justify-center">
+        <div className="flex flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-center">
           {navItems.map(({ href, label, badge }) => {
             const active =
               href === "/realtor-portal"
@@ -70,8 +77,8 @@ export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps)
               <Link
                 key={href}
                 href={href}
-                className={`relative inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-white ${
-                  active ? "text-white" : "text-white/75"
+                className={`relative inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                  active ? "text-white" : "text-white/75 hover:text-white"
                 }`}
               >
                 <span
@@ -93,7 +100,7 @@ export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps)
           })}
         </div>
 
-        <div className="flex items-center justify-end gap-3 lg:shrink-0">
+        <div className="flex items-center justify-end gap-2">
           <div
             className="flex rounded-full border border-white/20 bg-white/5 p-0.5"
             role="group"
