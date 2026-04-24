@@ -27,7 +27,8 @@ export const investors = pgTable("investors", {
   password: text("password").notNull(),
   phone: text("phone"),
   address: text("address"),
-  referralUrl: text("referral_url"),
+  /** Opaque signup ref token; build URLs like /signup?ref=… in the app. */
+  referralUrl: text("referral_url").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
 });

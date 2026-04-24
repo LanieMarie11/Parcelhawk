@@ -1,0 +1,1 @@
+ALTER TABLE "investors" ADD CONSTRAINT "investors_referral_url_unique" UNIQUE("referral_url");
