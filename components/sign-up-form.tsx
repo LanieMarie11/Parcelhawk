@@ -95,8 +95,15 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
         if (userId) {
           setCreatedUserId(userId)
         }
+        const referralCode =
+          typeof data.referralCode === "string" && data.referralCode
+            ? data.referralCode
+            : null
         toast.success("Account created", {
-          description: "You can sign in with your new account.",
+          description:
+            selectedRole === "investor" && referralCode
+              ? `Your referral code: ${referralCode}. Use ?ref=${referralCode} in your signup link.`
+              : "You can sign in with your new account.",
         })
         if (selectedRole === "investor") {
           await autoSignInWithNewCredentials()

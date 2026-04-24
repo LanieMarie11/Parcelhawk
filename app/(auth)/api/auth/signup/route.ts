@@ -2,7 +2,18 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
 import { investors, users } from "@/db/schema";
+import { generateReferralCode } from "@/lib/referral-code";
 import { eq } from "drizzle-orm";
+
+function isPostgresUniqueViolation(err: unknown): boolean {
+  let e: unknown = err;
+  for (let d = 0; d < 5 && e; d++) {
+    const o = e as { code?: string; cause?: unknown };
+    if (o?.code === "23505") return true;
+    e = o.cause;
+  }
+  return false;
+}
 
 export async function POST(request: Request) {
   try {
@@ -67,16 +78,47 @@ export async function POST(request: Request) {
           { status: 409 }
         );
       }
-      const [createdInvestor] = await db
-      .insert(investors)
-      .values({
-        firstName: normalizedFirstName,
-        lastName: normalizedLastName,
-        email: normalizedEmail,
-        password: hashedPassword,
-      })
-      .returning({ id: investors.id });
+
+      const maxAttempts = 8;
+      let createdInvestor: { id: string; referralUrl: string | null } | undefined;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const referralCode = generateReferralCode();
+        try {
+          const [row] = await db
+            .insert(investors)
+            .values({
+              firstName: normalizedFirstName,
+              lastName: normalizedLastName,
+              email: normalizedEmail,
+              password: hashedPassword,
+              referralUrl: referralCode,
+            })
+            .returning({ id: investors.id, referralUrl: investors.referralUrl });
+          createdInvestor = row;
+          break;
+        } catch (err) {
+          if (isPostgresUniqueViolation(err) && attempt < maxAttempts - 1) {
+            continue;
+          }
+          throw err;
+        }
+      }
+      if (!createdInvestor) {
+        return NextResponse.json(
+          { error: "Could not create referral code. Please try again." },
+          { status: 500 }
+        );
+      }
       createdId = createdInvestor.id;
+
+      return NextResponse.json(
+        {
+          message: "Account created successfully",
+          userId: createdId,
+          referralCode: createdInvestor.referralUrl,
+        },
+        { status: 201 }
+      );
     }
 
     return NextResponse.json(

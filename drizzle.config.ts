@@ -20,7 +20,7 @@ if (host.includes("10.10.7")) {
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-  schema: "./db/schema.ts",
+  schema: "./db/schema/index.ts",
   out: "./db/migrations",
   dialect: "postgresql",
   dbCredentials: {
