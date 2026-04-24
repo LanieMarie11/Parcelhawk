@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell, Home, LineChart } from "lucide-react";
 import ParcelLogo from "@/public/images/parcel.png";
+import InvestorProfileMenu from "./investor-profile-menu";
 
 type NavItem = {
   href: string;
@@ -35,10 +36,15 @@ export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps)
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
+  const isSignedIn = status === "authenticated" && !!session;
 
   const user = session?.user as
     | { firstName?: string; lastName?: string; name?: string; image?: string | null }
     | undefined;
+  const profileLabel =
+    user?.firstName?.trim() && user?.lastName?.trim()
+      ? `${user.firstName.trim()[0]}${user.lastName.trim()[0]}`.toUpperCase()
+      : (user?.name ?? "Account");
   const initials =
     user?.firstName?.trim() && user?.lastName?.trim()
       ? `${user.firstName.trim()[0]}${user.lastName.trim()[0]}`.toUpperCase()
@@ -142,9 +148,14 @@ export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps)
           </button>
 
           {status === "loading" ? (
-            <div
-              className="size-9 shrink-0 rounded-full border border-white/30 bg-white/10"
-              aria-hidden
+            <div className="min-w-[140px] rounded-lg border border-white/40 px-4 py-2" aria-hidden>
+              <span className="invisible text-sm">Login</span>
+            </div>
+          ) : isSignedIn ? (
+            <InvestorProfileMenu
+              triggerClassName="flex min-w-[140px] items-center justify-center gap-2 rounded-lg border border-white/80 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+              displayName={profileLabel}
+              userImage={user?.image}
             />
           ) : (
             <div
