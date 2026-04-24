@@ -2,6 +2,7 @@
 
 import { signIn } from "next-auth/react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, X } from "lucide-react"
 import BuyerIcon from "@/components/icons/buyer"
 import InvestorIcon from "@/components/icons/investor"
@@ -15,6 +16,7 @@ type SignInFormProps = {
 }
 
 export default function SignInForm({ onClose }: SignInFormProps) {
+  const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<Role>("buyer")
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
@@ -32,6 +34,9 @@ export default function SignInForm({ onClose }: SignInFormProps) {
         toast.success("Signed in successfully", {
           description: "You can continue to the app.",
         })
+        if (selectedRole === "investor") {
+          router.push("/realtor-portal")
+        }
         onClose?.()
         return
       }

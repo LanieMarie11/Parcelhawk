@@ -2,7 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { investors, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export const authOptions: NextAuthOptions = {
@@ -17,24 +17,52 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email?.trim() || !credentials?.password) {
           return null;
         }
+        const normalizedEmail = credentials.email.trim().toLowerCase();
+
         const [user] = await db
           .select()
           .from(users)
-          .where(eq(users.email, credentials.email.trim().toLowerCase()))
+          .where(eq(users.email, normalizedEmail))
           .limit(1);
-        if (!user) return null;
-        const match = await compare(credentials.password, user.password);
-        if (!match) return null;
+
+        if (user) {
+          const match = await compare(credentials.password, user.password);
+          if (!match) return null;
+          return {
+            id: user.id,
+            email: user.email,
+            name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+            image: null,
+            role: user.role,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone ?? null,
+            location: user.location ?? null,
+          };
+        }
+
+        const [investor] = await db
+          .select()
+          .from(investors)
+          .where(eq(investors.email, normalizedEmail))
+          .limit(1);
+        if (!investor) return null;
+
+        const investorMatch = await compare(credentials.password, investor.password);
+        if (!investorMatch) return null;
+
         return {
-          id: user.id,
-          email: user.email,
-          name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
+          id: investor.id,
+          email: investor.email,
+          name:
+            [investor.firstName, investor.lastName].filter(Boolean).join(" ") ||
+            investor.email,
           image: null,
-          role: user.role,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone ?? null,
-          location: user.location ?? null,
+          role: "investor",
+          firstName: investor.firstName,
+          lastName: investor.lastName,
+          phone: investor.phone ?? null,
+          location: investor.address ?? null,
         };
       },
     }),

@@ -1,1 +1,1 @@
-ALTER TABLE "users" ADD COLUMN "preference_acreage" text;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "preference_acreage" text;

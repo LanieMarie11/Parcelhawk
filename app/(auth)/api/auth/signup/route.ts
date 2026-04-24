@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { investors, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: Request) {
@@ -22,36 +22,65 @@ export async function POST(request: Request) {
       );
     }
 
-    const [existing] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email.trim().toLowerCase()))
-      .limit(1);
-    if (existing) {
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 409 }
-      );
-    }
-
     const allowedRoles = ["buyer", "investor"];
     const userRole = allowedRoles.includes(role) ? role : "buyer";
-
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
     const hashedPassword = await hash(password, 10);
+    let createdId: string;
 
-    const [created] = await db
-      .insert(users)
+    if (userRole === "buyer") {
+      const [existingBuyer] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, normalizedEmail))
+        .limit(1);
+
+      if (existingBuyer) {
+        return NextResponse.json(
+          { error: "An account with this email already exists" },
+          { status: 409 }
+        );
+      }
+      const [createdBuyer] = await db
+        .insert(users)
+        .values({
+          firstName: normalizedFirstName,
+          lastName: normalizedLastName,
+          email: normalizedEmail,
+          password: hashedPassword,
+          role: userRole,
+        })
+        .returning({ id: users.id });
+      createdId = createdBuyer.id;
+    } else {
+      const [existingInvestor] = await db
+        .select()
+        .from(investors)
+        .where(eq(investors.email, normalizedEmail))
+        .limit(1);
+
+      if (existingInvestor) {
+        return NextResponse.json(
+          { error: "An investor account with this email already exists" },
+          { status: 409 }
+        );
+      }
+      const [createdInvestor] = await db
+      .insert(investors)
       .values({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim().toLowerCase(),
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
         password: hashedPassword,
-        role: userRole,
       })
-      .returning({ id: users.id });
+      .returning({ id: investors.id });
+      createdId = createdInvestor.id;
+    }
 
     return NextResponse.json(
-      { message: "Account created successfully", userId: created.id },
+      { message: "Account created successfully", userId: createdId },
       { status: 201 }
     );
   } catch (error) {
