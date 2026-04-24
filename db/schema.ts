@@ -196,8 +196,11 @@ export const investors = pgTable("investors", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   email: text("email").notNull().unique(),
+  password: text("password").notNull(),
   phone: text("phone"),
   address: text("address"),
   referralUrl: text("referral_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLoginAt: timestamp("last_login_at"),
 });
 

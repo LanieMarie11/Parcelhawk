@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import { toast } from "sonner"
 import { Eye, EyeOff, X } from "lucide-react"
 import BuyerIcon from "@/components/icons/buyer"
@@ -45,6 +46,27 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
     useState<SignUpPreferencesData | null>(null)
   const [createdUserId, setCreatedUserId] = useState<string | null>(null)
 
+  const autoSignInWithNewCredentials = async () => {
+    try {
+      const signInResult = await signIn("credentials", {
+        email: email.trim(),
+        password,
+        redirect: false,
+      })
+
+      if (!signInResult?.ok) {
+        toast.error("Account created, but auto sign-in failed", {
+          description: "Please log in with your new credentials.",
+        })
+      }
+    } catch (error) {
+      console.error("Auto sign-in failed", error)
+      toast.error("Account created, but auto sign-in failed", {
+        description: "Please log in with your new credentials.",
+      })
+    }
+  }
+
   const handleSignUp = async () => {
     try {
       if (!isValidEmail(email)) {
@@ -76,6 +98,14 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
         toast.success("Account created", {
           description: "You can sign in with your new account.",
         })
+        if (selectedRole === "investor") {
+          await autoSignInWithNewCredentials()
+          if (onClose) {
+            onClose()
+          }
+          router.push("/realtor-portal")
+          return
+        }
         if (onClose) {
           onClose()
           return
@@ -126,6 +156,10 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
       } catch (error) {
         console.error("Failed to save preferences", error)
       }
+    }
+
+    if (selectedRole === "buyer") {
+      await autoSignInWithNewCredentials()
     }
 
     setCurrentStep(3)
@@ -304,7 +338,12 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
               purpose: null,
               timeframe: null,
             })
-            setCurrentStep(3)
+            void (async () => {
+              if (selectedRole === "buyer") {
+                await autoSignInWithNewCredentials()
+              }
+              setCurrentStep(3)
+            })()
           }}
         />
       )}

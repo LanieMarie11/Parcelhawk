@@ -57,6 +57,13 @@
       "when": 1776958306698,
       "tag": "0007_faithful_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777040685275,
+      "tag": "0008_romantic_adam_destine",
+      "breakpoints": true
     }
   ]
 }
