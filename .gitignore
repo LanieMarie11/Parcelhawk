@@ -42,3 +42,4 @@ ROADMAP.md
 *.tsbuildinfo
 next-env.d.ts
 embedding.py
+QA-messaging.md
