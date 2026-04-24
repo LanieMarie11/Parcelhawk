@@ -9,30 +9,9 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
-  uuid,
-  varchar,
   vector,
+  varchar,
 } from "drizzle-orm/pg-core";
-
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  phone: text("phone"),
-  location: text("location"),
-  role: text("role").notNull().default("buyer"),
-  preferenceBudget: text("preference_budget"),
-  preferenceAcreage: text("preference_acreage"),
-  preferencePurpose: text("preference_purpose"),
-  preferenceTimeframe: text("preference_timeframe"),
-  domainLink: text("domain_link"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  subscriptionStatus: text("subscription_status").notNull().default("free"),
-});
 
 export const landListings = pgTable("land_listings", {
   id: bigserial("id", { mode: "number" }).primaryKey(),
@@ -146,61 +125,3 @@ export const landListingEmbeddings = pgTable(
     ),
   ]
 );
-
-export const favorites = pgTable(
-  "favorites",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    landListingId: integer("land_listing_id")
-      .notNull()
-      .references(() => landListings.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    // One favorite per user per listing
-    uniqueIndex("favorites_user_listing_idx").on(
-      table.userId,
-      table.landListingId
-    ),
-  ]
-);
-
-export const savedSearches = pgTable("saved_searches", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  frequency: text("frequency").notNull(),
-  // Search criteria (nullable = not set in saved search)
-  minPrice: numeric("min_price"),
-  maxPrice: numeric("max_price"),
-  minAcres: numeric("min_acres"),
-  maxAcres: numeric("max_acres"),
-  location: text("location"),
-  prompt: text("prompt"),
-  propertyType: text("property_type"),
-  landType: text("land_type"),
-  activities: text("activities").array(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
-
-export const investors = pgTable("investors", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  phone: text("phone"),
-  address: text("address"),
-  referralUrl: text("referral_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastLoginAt: timestamp("last_login_at"),
-});
-
