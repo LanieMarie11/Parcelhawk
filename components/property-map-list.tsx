@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { ChevronDown } from "lucide-react"
-import { PropertyCard } from "@/components/property-card"
-import { MarketplaceMap } from "@/components/marketplace-map"
+import { PropertyCard } from "@/app/(buyer)/components/property-card"
+import { MarketplaceMap } from "@/app/(buyer)/components/marketplace-map"
 
 const PAGE_SIZE = 50
 

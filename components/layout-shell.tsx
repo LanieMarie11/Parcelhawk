@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { InvestorHeader } from "@/components/investor-header";
+import { InvestorHeader } from "@/app/(investor)/components/investor-header";
 import { LandingHeader } from "@/components/landing-header";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {

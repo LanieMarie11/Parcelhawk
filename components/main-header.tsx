@@ -8,7 +8,7 @@ import SignInForm from "./sign-in-form";
 import SignUpForm from "./sign-up-form";
 import ParcelLogo from "@/public/images/parcel.png";
 import ParcelLogoDark from "@/public/images/parcel-dark.png";
-import BuyerProfileSidebar from "./buyer-profile-sidebar";
+import BuyerProfileSidebar from "../app/(buyer)/components/buyer-profile-sidebar";
 import Image from "next/image";
 import Link from "next/link";
 import { useSignInModal } from "@/lib/sign-in-modal-context";
