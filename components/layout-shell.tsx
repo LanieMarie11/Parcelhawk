@@ -26,9 +26,6 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       pathname,
     });
   }, [session, status, role, isInvestor, pathname]);
-  const investorPortalActive =
-    pathname === "/realtor-portal" || pathname.startsWith("/realtor-portal/");
-
   const isSignUp = pathname === "/sign-up";
 
   if (isSignUp) {
@@ -38,7 +35,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {isInvestor ? (
-        <InvestorHeader activeMode={investorPortalActive ? "investor" : "realtor"} />
+        <InvestorHeader />
       ) : (
         <LandingHeader />
       )}

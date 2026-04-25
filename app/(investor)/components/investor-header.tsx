@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Bell, Home, LineChart } from "lucide-react";
+import { Bell } from "lucide-react";
 import ParcelLogo from "@/public/images/parcel.png";
 import InvestorProfileMenu from "./investor-profile-menu";
+import { PortalModeToggle } from "./portal-mode-toggle";
 
 type NavItem = {
   href: string;
@@ -25,16 +26,8 @@ const navItems: readonly NavItem[] = [
   { href: "/realtor-portal/settings", label: "Settings" },
 ];
 
-type PortalMode = "realtor" | "investor";
-
-type InvestorHeaderProps = {
-  /** Which tab is visually selected in the Realtor / Investor switch. */
-  activeMode?: PortalMode;
-};
-
-export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps) {
+export function InvestorHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const { data: session, status } = useSession();
   const isSignedIn = status === "authenticated" && !!session;
 
@@ -107,36 +100,7 @@ export function InvestorHeader({ activeMode = "investor" }: InvestorHeaderProps)
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <div
-            className="flex rounded-full border border-white/20 bg-white/5 p-0.5"
-            role="group"
-            aria-label="Portal mode"
-          >
-            <button
-              type="button"
-              onClick={() => router.push("/land-property")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                activeMode === "realtor"
-                  ? "bg-[#04C0AF] text-white shadow-sm"
-                  : "text-white/80 hover:text-white"
-              }`}
-            >
-              <Home className="size-3.5 shrink-0" aria-hidden />
-              Realtor
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push("/realtor-portal")}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                activeMode === "investor"
-                  ? "bg-[#04C0AF] text-white shadow-sm"
-                  : "text-white/80 hover:text-white"
-              }`}
-            >
-              <LineChart className="size-3.5 shrink-0" aria-hidden />
-              Investor
-            </button>
-          </div>
+          <PortalModeToggle />
 
           <button
             type="button"
