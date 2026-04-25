@@ -6,7 +6,7 @@ import type { CountyFilterValue } from "@/components/county-filter"
 import {
   DEFAULT_LAND_FEATURE_FILTERS,
   type LandFeatureFilters,
-} from "@/components/filter-option"
+} from "@/app/(buyer)/components/filter-option"
 import { PropertyMapList, type ListingItem, type SortId } from "@/components/property-map-list"
 import { SearchFiltersBar } from "@/components/search-filters-bar"
 import type { StateFilterValue } from "@/components/state-filter"

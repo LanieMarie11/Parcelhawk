@@ -5,7 +5,7 @@ import { MapPin, Plus, Search, Sparkles, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
-import { formatPropertyLocation } from "@/components/property-card"
+import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
 import type { ListingItem } from "@/components/property-map-list"
 
 const SORT_OPTIONS = ["Newest", "Oldest", "Price: Low to High", "Price: High to Low"] as const

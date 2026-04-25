@@ -51,6 +51,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
       const signInResult = await signIn("credentials", {
         email: email.trim(),
         password,
+        role: selectedRole,
         redirect: false,
       })
 

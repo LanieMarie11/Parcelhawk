@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import ParcelLogo from "@/public/images/parcel.png";
 import SignInForm from "./sign-in-form";
-import BuyerProfileSidebar from "./buyer-profile-sidebar";
+import BuyerProfileSidebar from "../app/(buyer)/components/buyer-profile-sidebar";
 import { useSignInModal } from "@/lib/sign-in-modal-context";
 
 const nav = [
