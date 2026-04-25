@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   preferencePurpose: text("preference_purpose"),
   preferenceTimeframe: text("preference_timeframe"),
   domainLink: text("domain_link"),
+  referralId: text("referral_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   subscriptionStatus: text("subscription_status").notNull().default("free"),
