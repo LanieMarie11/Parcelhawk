@@ -18,6 +18,8 @@ type Role = "buyer" | "investor"
 
 type SignUpFormProps = {
   onClose?: () => void
+  /** From `?ref=` on `/sign-up`; sent to the API only for buyer signup. */
+  referralRef?: string
 }
 
 const STEPS = [
@@ -33,7 +35,7 @@ const isValidEmail = (value: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
 }
 
-export default function SignUpForm({ onClose }: SignUpFormProps) {
+export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRole, setSelectedRole] = useState<Role>("buyer")
@@ -77,6 +79,11 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
         return
       }
 
+      const refForBuyer =
+        selectedRole === "buyer" && referralRef?.trim()
+          ? referralRef.trim()
+          : undefined
+
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,6 +93,7 @@ export default function SignUpForm({ onClose }: SignUpFormProps) {
           email,
           password,
           role: selectedRole,
+          ...(refForBuyer ? { ref: refForBuyer } : {}),
         }),
       })
       const data = await response.json().catch(() => ({} as Record<string, unknown>))

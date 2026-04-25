@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { investors, users } from "@/db/schema";
+import { buyerInvestorLinks, investors, users } from "@/db/schema";
 import { generateReferralCode } from "@/lib/referral-code";
 import { eq } from "drizzle-orm";
 
@@ -18,12 +18,13 @@ function isPostgresUniqueViolation(err: unknown): boolean {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { firstName, lastName, email, password, role } = body as {
+    const { firstName, lastName, email, password, role, ref } = body as {
       firstName: string;
       lastName: string;
       email: string;
       password: string;
       role: string;
+      ref?: string;
     };
 
     if (!firstName?.trim() || !lastName?.trim() || !email?.trim() || !password) {
@@ -65,6 +66,28 @@ export async function POST(request: Request) {
         })
         .returning({ id: users.id });
       createdId = createdBuyer.id;
+
+      const refToken = typeof ref === "string" ? ref.trim() : "";
+      if (refToken) {
+        const [referrer] = await db
+          .select({ id: investors.id })
+          .from(investors)
+          .where(eq(investors.referralUrl, refToken))
+          .limit(1);
+        if (referrer) {
+          await db
+            .update(users)
+            .set({ referralId: refToken })
+            .where(eq(users.id, createdId));
+
+          await db.insert(buyerInvestorLinks).values({
+            buyerId: createdId,
+            investorId: referrer.id,
+            status: "active",
+            linkedVia: "referral_link",
+          });
+        }
+      }
     } else {
       const [existingInvestor] = await db
         .select()
