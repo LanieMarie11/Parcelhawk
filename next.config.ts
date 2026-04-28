@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "ssl.cdn-redfin.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "**.public.blob.vercel-storage.com",
+        pathname: "/**",
+      },
     ],
   },
 };

@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   phone: text("phone"),
   location: text("location"),
+  avatarUrl: text("avatar_url"),
   role: text("role").notNull().default("buyer"),
   preferenceBudget: text("preference_budget"),
   preferenceAcreage: text("preference_acreage"),
@@ -28,6 +29,7 @@ export const investors = pgTable("investors", {
   password: text("password").notNull(),
   phone: text("phone"),
   address: text("address"),
+  avatarUrl: text("avatar_url"),
   /** Opaque signup ref token; build URLs like /signup?ref=… in the app. */
   referralUrl: text("referral_url").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

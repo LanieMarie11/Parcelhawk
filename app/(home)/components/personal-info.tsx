@@ -1,14 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, type ChangeEvent } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import avatar from "@/public/images/buyer-pages/avatar.png"
 import Image from "next/image"
 
 export default function PersonalInfo() {
-  const { data: session } = useSession()
+  const { data: session, update, status } = useSession()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
+  const [avatarPreviewSrc, setAvatarPreviewSrc] = useState<string | null>(null)
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const [phone, setPhone] = useState("")
   const [location, setLocation] = useState("")
@@ -22,51 +27,126 @@ export default function PersonalInfo() {
 
   const handleSaveChanges = async () => {
     try {
+      setIsSaving(true)
+      const formData = new FormData()
+      formData.append("fullName", fullName)
+      formData.append("email", email)
+      formData.append("phone", phone)
+      formData.append("location", location)
+      if (pendingAvatarFile) {
+        formData.append("avatar", pendingAvatarFile)
+      }
+
       const response = await fetch("/api/profile", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName, email, phone, location }),
+        body: formData,
       })
-      const data = await response.json().catch(() => ({}))
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: string
+        avatarUrl?: string | null
+      }
       if (response.ok) {
+        await update({
+          name: fullName,
+          phone,
+          location,
+          avatarUrl: data.avatarUrl ?? session?.user?.avatarUrl ?? null,
+        })
+        if (avatarPreviewSrc) {
+          URL.revokeObjectURL(avatarPreviewSrc)
+          setAvatarPreviewSrc(null)
+        }
+        setPendingAvatarFile(null)
         toast.success("Profile updated successfully")
       } else {
-        toast.error((data as { error?: string }).error ?? "Failed to update profile")
+        toast.error(data.error ?? "Failed to update profile")
       }
-    } catch {
-      toast.error("Connection failed. Please try again.")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Connection failed. Please try again.")
+    } finally {
+      setIsSaving(false)
     }
   }
 
+  const handleAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
+      toast.error("Only JPG, GIF or PNG files are allowed")
+      event.target.value = ""
+      return
+    }
+
+    if (file.size > 1024 * 1024) {
+      toast.error("Image size must be 1MB or less")
+      event.target.value = ""
+      return
+    }
+
+    const localImageUrl = URL.createObjectURL(file)
+    setAvatarPreviewSrc((currentSrc) => {
+      if (currentSrc?.startsWith("blob:")) {
+        URL.revokeObjectURL(currentSrc)
+      }
+      return localImageUrl
+    })
+    setPendingAvatarFile(file)
+    event.target.value = ""
+  }
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewSrc?.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarPreviewSrc)
+      }
+    }
+  }, [avatarPreviewSrc])
+
+  const resolvedAvatarSrc = avatarPreviewSrc ?? session?.user?.avatarUrl ?? avatar.src
+
   return (
     <section id="personal-information" className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold text-card-foreground">Personal Information</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Manage your public profile and private details.
-      </p>
+      <div>
+        <h2 className="text-lg font-semibold text-card-foreground">Personal Information</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage your public profile and private details.
+        </p>
+      </div>
 
       {/* Avatar */}
-      {/* <div className="mt-5 flex items-center gap-4">
+      <div className="mt-5 flex items-center gap-4">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full">
-          <Image
-            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face"
-            alt="Profile photo"
-            fill
-            className="object-cover"
-          />
+          {status === "loading" ? (
+            <div className="h-full w-full animate-pulse bg-muted" />
+          ) : (
+            <Image
+              src={resolvedAvatarSrc}
+              alt="Profile photo"
+              fill
+              className="object-cover"
+            />
+          )}
         </div>
         <div className="flex flex-col gap-1">
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif"
+            className="hidden"
+            onChange={handleAvatarFileChange}
+          />
           <button
             type="button"
+            onClick={() => avatarInputRef.current?.click()}
             className="w-fit rounded-md border border-border px-4 py-1.5 text-sm font-medium text-card-foreground transition-colors hover:bg-accent"
           >
             Change photo
           </button>
-          <span className="text-xs text-muted-foreground">
-            JPG, GIF or PNG. 1MB max.
-          </span>
+          <span className="text-xs text-muted-foreground">JPG, GIF or PNG. 1MB max.</span>
         </div>
-      </div> */}
+      </div>
 
       {/* Form fields */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -157,9 +237,10 @@ export default function PersonalInfo() {
         <button
           type="button"
           onClick={handleSaveChanges}
+          disabled={isSaving}
           className="rounded-md bg-[#04C0AF] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#03ac9d]"
         >
-          Save Changes
+          {isSaving ? "Saving..." : "Save Changes"}
         </button>
       </div>
     </section>
