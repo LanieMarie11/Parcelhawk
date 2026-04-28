@@ -44,6 +44,7 @@ export const authOptions: NextAuthOptions = {
             phone: user.phone ?? null,
             location: user.location ?? null,
             avatarUrl: user.avatarUrl ?? null,
+            referralUrl: null,
           };
         }
 
@@ -69,6 +70,7 @@ export const authOptions: NextAuthOptions = {
           phone: investor.phone ?? null,
           location: investor.address ?? null,
           avatarUrl: investor.avatarUrl ?? null,
+          referralUrl: investor.referralUrl ?? null,
         };
       },
     }),
@@ -83,6 +85,7 @@ export const authOptions: NextAuthOptions = {
         token.phone = (user as { phone?: string | null }).phone ?? null;
         token.location = (user as { location?: string | null }).location ?? null;
         token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
+        token.referralUrl = (user as { referralUrl?: string | null }).referralUrl ?? null;
       }
       if (trigger === "update") {
         const updatedSession = (session as {
@@ -122,6 +125,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as { phone?: string | null }).phone = token.phone ?? null;
         (session.user as { location?: string | null }).location = token.location ?? null;
         (session.user as { avatarUrl?: string | null }).avatarUrl = token.avatarUrl ?? null;
+        (session.user as { referralUrl?: string | null }).referralUrl = token.referralUrl ?? null;
       }
       return session;
     },
