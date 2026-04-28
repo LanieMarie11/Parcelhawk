@@ -15,21 +15,32 @@ type NavItem = {
   badge?: number;
 };
 
-const navItems: readonly NavItem[] = [
+const realtorNavItems: readonly NavItem[] = [
   { href: "/realtor-portal", label: "Overview" },
   { href: "/realtor-portal/my-buyers", label: "My buyers" },
   { href: "/realtor-portal/buyer-intel", label: "Buyer intel" },
   { href: "/realtor-portal/curated-parcels", label: "Curated parcels" },
   { href: "/realtor-portal/analytics", label: "Analytics" },
-  { href: "/realtor-portal/messages", label: "Messages"},
+  { href: "/realtor-portal/messages", label: "Messages" },
   { href: "/realtor-portal/invite-links", label: "Invite links" },
   { href: "/realtor-portal/settings", label: "Settings" },
+];
+
+const investorNavItems: readonly NavItem[] = [
+  { href: "/investor-portal", label: "Overview" },
+  { href: "/investor-portal/curated-parcels", label: "Curated parcels" },
+  { href: "/investor-portal/analytics", label: "Analytics" },
+  { href: "/investor-portal/settings", label: "Settings" },
 ];
 
 export function InvestorHeader() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const isSignedIn = status === "authenticated" && !!session;
+  const isRealtorMode =
+    pathname === "/realtor-portal" || pathname.startsWith("/realtor-portal/");
+  const navItems = isRealtorMode ? realtorNavItems : investorNavItems;
+  const portalRoot = isRealtorMode ? "/realtor-portal" : "/investor-portal";
 
   const user = session?.user as
     | { firstName?: string; lastName?: string; name?: string; image?: string | null }
@@ -47,7 +58,7 @@ export function InvestorHeader() {
     <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
       <nav className="mx-auto flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Link
-          href="/realtor-portal"
+          href={portalRoot}
           className="flex shrink-0 flex-col gap-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1D31]"
         >
           <div className="flex items-center gap-2">
@@ -68,8 +79,8 @@ export function InvestorHeader() {
         <div className="flex flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-center">
           {navItems.map(({ href, label, badge }) => {
             const active =
-              href === "/realtor-portal"
-                ? pathname === "/realtor-portal" || pathname === "/realtor-portal/"
+              href === portalRoot
+                ? pathname === portalRoot || pathname === `${portalRoot}/`
                 : pathname === href || pathname.startsWith(`${href}/`);
 
             return (

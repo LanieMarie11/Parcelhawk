@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronDown } from "lucide-react"
-import { signOut } from "next-auth/react"
+import Image from "next/image"
+import { signOut, useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
 
 const menuItems = [
@@ -24,9 +25,16 @@ export default function BuyerProfileSidebar({
   triggerClassName,
   userName = "Account",
 }: BuyerProfileSidebarProps) {
+  const { data: session } = useSession()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const firstName = session?.user?.firstName?.trim()
+  const lastName = session?.user?.lastName?.trim()
+  const fullNameFromSession = [firstName, lastName].filter(Boolean).join(" ").trim()
+  const sessionName = session?.user?.name?.trim()
+  const resolvedUserName = fullNameFromSession || sessionName || userName
+  const avatarUrl = session?.user?.avatarUrl ?? null
 
   useEffect(() => {
     if (!open) return
@@ -52,7 +60,7 @@ export default function BuyerProfileSidebar({
         aria-expanded={open}
         aria-haspopup="true"
       >
-        <span>{userName}</span>
+        <span>{resolvedUserName}</span>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
           aria-hidden
@@ -64,10 +72,19 @@ export default function BuyerProfileSidebar({
         <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
           {/* Profile Section */}
           <div className="flex items-center gap-3 p-4">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-border bg-muted" />
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-border bg-muted">
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt={`${resolvedUserName} avatar`}
+                  fill
+                  className="object-cover"
+                />
+              ) : null}
+            </div>
             <div className="flex min-w-0 flex-col">
               <span className="truncate text-base font-semibold text-foreground">
-                {userName === "Account" ? "Account" : userName}
+                {resolvedUserName === "Account" ? "Account" : resolvedUserName}
               </span>
               <span className="text-sm text-muted-foreground">Buyer</span>
             </div>
