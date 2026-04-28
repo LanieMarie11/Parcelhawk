@@ -8,6 +8,7 @@ declare module "next-auth" {
     lastName?: string;
     phone?: string | null;
     location?: string | null;
+    avatarUrl?: string | null;
   }
 
   interface Session {
@@ -18,6 +19,7 @@ declare module "next-auth" {
       lastName?: string;
       phone?: string | null;
       location?: string | null;
+      avatarUrl?: string | null;
     };
   }
 }
@@ -30,5 +32,6 @@ declare module "next-auth/jwt" {
     lastName?: string;
     phone?: string | null;
     location?: string | null;
+    avatarUrl?: string | null;
   }
 }

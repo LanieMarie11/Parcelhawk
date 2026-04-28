@@ -43,6 +43,7 @@ export const authOptions: NextAuthOptions = {
             lastName: user.lastName,
             phone: user.phone ?? null,
             location: user.location ?? null,
+            avatarUrl: user.avatarUrl ?? null,
           };
         }
 
@@ -67,12 +68,13 @@ export const authOptions: NextAuthOptions = {
           lastName: investor.lastName,
           phone: investor.phone ?? null,
           location: investor.address ?? null,
+          avatarUrl: investor.avatarUrl ?? null,
         };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
@@ -80,17 +82,46 @@ export const authOptions: NextAuthOptions = {
         token.lastName = (user as { lastName?: string }).lastName;
         token.phone = (user as { phone?: string | null }).phone ?? null;
         token.location = (user as { location?: string | null }).location ?? null;
+        token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
+      }
+      if (trigger === "update") {
+        const updatedSession = (session as {
+          name?: string | null;
+          avatarUrl?: string | null;
+          phone?: string | null;
+          location?: string | null;
+        } | undefined) ?? {
+          name: undefined,
+          avatarUrl: undefined,
+          phone: undefined,
+          location: undefined,
+        };
+
+        if (updatedSession.name !== undefined) {
+          token.name = updatedSession.name;
+        }
+        if (updatedSession.avatarUrl !== undefined) {
+          token.avatarUrl = updatedSession.avatarUrl;
+        }
+        if (updatedSession.phone !== undefined) {
+          token.phone = updatedSession.phone;
+        }
+        if (updatedSession.location !== undefined) {
+          token.location = updatedSession.location;
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
+        session.user.name = (token.name as string | null | undefined) ?? session.user.name;
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { firstName?: string }).firstName = token.firstName as string;
         (session.user as { lastName?: string }).lastName = token.lastName as string;
         (session.user as { phone?: string | null }).phone = token.phone ?? null;
         (session.user as { location?: string | null }).location = token.location ?? null;
+        (session.user as { avatarUrl?: string | null }).avatarUrl = token.avatarUrl ?? null;
       }
       return session;
     },
