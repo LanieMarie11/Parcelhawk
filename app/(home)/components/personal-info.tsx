@@ -1,14 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, type ChangeEvent } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
+import avatar from "@/public/images/buyer-pages/avatar.png"
 import Image from "next/image"
 
 export default function PersonalInfo() {
   const { data: session } = useSession()
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
+  const [avatarSrc, setAvatarSrc] = useState(avatar.src)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const [phone, setPhone] = useState("")
   const [location, setLocation] = useState("")
@@ -38,35 +41,77 @@ export default function PersonalInfo() {
     }
   }
 
+  const handleAvatarFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
+      toast.error("Only JPG, GIF or PNG files are allowed")
+      event.target.value = ""
+      return
+    }
+
+    if (file.size > 1024 * 1024) {
+      toast.error("Image size must be 1MB or less")
+      event.target.value = ""
+      return
+    }
+
+    const localImageUrl = URL.createObjectURL(file)
+    setAvatarSrc((currentSrc) => {
+      if (currentSrc.startsWith("blob:")) {
+        URL.revokeObjectURL(currentSrc)
+      }
+      return localImageUrl
+    })
+    event.target.value = ""
+  }
+
+  useEffect(() => {
+    return () => {
+      if (avatarSrc.startsWith("blob:")) {
+        URL.revokeObjectURL(avatarSrc)
+      }
+    }
+  }, [avatarSrc])
+
   return (
     <section id="personal-information" className="rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold text-card-foreground">Personal Information</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Manage your public profile and private details.
-      </p>
+      <div>
+        <h2 className="text-lg font-semibold text-card-foreground">Personal Information</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage your public profile and private details.
+        </p>
+      </div>
 
       {/* Avatar */}
-      {/* <div className="mt-5 flex items-center gap-4">
+      <div className="mt-5 flex items-center gap-4">
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full">
           <Image
-            src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face"
+            src={avatarSrc}
             alt="Profile photo"
             fill
             className="object-cover"
           />
         </div>
         <div className="flex flex-col gap-1">
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif"
+            className="hidden"
+            onChange={handleAvatarFileChange}
+          />
           <button
             type="button"
+            onClick={() => avatarInputRef.current?.click()}
             className="w-fit rounded-md border border-border px-4 py-1.5 text-sm font-medium text-card-foreground transition-colors hover:bg-accent"
           >
             Change photo
           </button>
-          <span className="text-xs text-muted-foreground">
-            JPG, GIF or PNG. 1MB max.
-          </span>
+          <span className="text-xs text-muted-foreground">JPG, GIF or PNG. 1MB max.</span>
         </div>
-      </div> */}
+      </div>
 
       {/* Form fields */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
