@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Loader2 } from "lucide-react"
 import { PropertyCard } from "@/app/(buyer)/components/property-card"
 import { MarketplaceMap } from "@/app/(buyer)/components/marketplace-map"
 
@@ -57,9 +57,16 @@ interface PropertyMapListProps {
   /** When provided, sort is controlled by parent (e.g. to refetch API with sort param). */
   sortId?: SortId
   onSortChange?: (sortId: SortId) => void
+  isLoading?: boolean
 }
 
-export function PropertyMapList({ listings, title = "Acreage", sortId: controlledSortId, onSortChange }: PropertyMapListProps) {
+export function PropertyMapList({
+  listings,
+  title = "Acreage",
+  sortId: controlledSortId,
+  onSortChange,
+  isLoading = false,
+}: PropertyMapListProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortOpen, setSortOpen] = useState(false)
   const [internalSortId, setInternalSortId] = useState<SortId>("default")
@@ -110,6 +117,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
               <button
                 type="button"
                 onClick={() => setSortOpen((prev) => !prev)}
+                disabled={isLoading}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                 aria-expanded={sortOpen}
                 aria-haspopup="true"
@@ -145,6 +153,12 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
 
         <div className="px-6 py-4">
           <div className="flex flex-col gap-4">
+            {isLoading ? (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                <span>Loading properties...</span>
+              </div>
+            ) : null}
             {paginatedListings.map((listing) => (
               <PropertyCard
                 id={listing.id}
@@ -179,7 +193,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
+              disabled={isLoading || currentPage <= 1}
               className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
             >
               Previous
@@ -190,7 +204,7 @@ export function PropertyMapList({ listings, title = "Acreage", sortId: controlle
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
+              disabled={isLoading || currentPage >= totalPages}
               className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
             >
               Next

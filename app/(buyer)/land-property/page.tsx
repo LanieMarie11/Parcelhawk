@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import type { CountyFilterValue } from "@/components/county-filter"
+import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   DEFAULT_LAND_FEATURE_FILTERS,
   type LandFeatureFilters,
@@ -102,6 +103,7 @@ function LandPropertyPageContent() {
   const [sortId, setSortId] = useState<SortId>("default")
   const [stateFilter, setStateFilter] = useState<StateFilterValue>(null)
   const [countyFilter, setCountyFilter] = useState<CountyFilterValue>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const autoEmbeddedPromptRef = useRef<string | null>(null)
   /**
    * Skips land-location fetches that would fight with AI results. Incremented when:
@@ -127,6 +129,7 @@ function LandPropertyPageContent() {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      setIsLoading(true)
       try {
         // When a prompt is handed off from home, results should come only from embedding-search.
         if (pendingSearchPrompt) return
@@ -170,6 +173,8 @@ function LandPropertyPageContent() {
         console.log("mapped", mapped)
       } catch {
         setListingsData(properties)
+      } finally {
+        if (!cancelled) setIsLoading(false)
       }
     }
     load()
@@ -194,41 +199,46 @@ function LandPropertyPageContent() {
   ])
 
   const handleEmbeddingSearch = useCallback(async (prompt: string): Promise<boolean> => {
-    const base = getBaseUrl()
-    const res = await fetch(`${base}/api/embedding-search`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        features: landFeatureFilters,
-      }),
-    })
-    if (!res.ok) return false
-    const contentType = res.headers.get("content-type") ?? ""
-    if (!contentType.includes("application/json")) return false
-    const data = await res.json()
-    const rows = Array.isArray(data?.listings) ? data.listings : Array.isArray(data) ? data : null
-    if (rows == null) return false
-    const promptFilters = data?.promptFilters ?? null
-    console.log("embedding-search promptFilters (from LLM / SQL pre-filter)", promptFilters)
+    setIsLoading(true)
+    try {
+      const base = getBaseUrl()
+      const res = await fetch(`${base}/api/embedding-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          features: landFeatureFilters,
+        }),
+      })
+      if (!res.ok) return false
+      const contentType = res.headers.get("content-type") ?? ""
+      if (!contentType.includes("application/json")) return false
+      const data = await res.json()
+      const rows = Array.isArray(data?.listings) ? data.listings : Array.isArray(data) ? data : null
+      if (rows == null) return false
+      const promptFilters = data?.promptFilters ?? null
+      console.log("embedding-search promptFilters (from LLM / SQL pre-filter)", promptFilters)
 
-    if (promptFilters) {
-      pendingLandLocationFetchSkipsRef.current += 1
-      const nextState = resolveStateFilterFromPromptFilters(promptFilters)
-      setStateFilter(nextState)
-      setCountyFilter(resolveCountyFilterFromPromptFilters(promptFilters, nextState))
-      setPriceRange({ min: promptFilters.minPrice ?? null, max: promptFilters.maxPrice ?? null })
-      setSizeRange({ min: promptFilters.minAcres ?? null, max: promptFilters.maxAcres ?? null })
+      if (promptFilters) {
+        pendingLandLocationFetchSkipsRef.current += 1
+        const nextState = resolveStateFilterFromPromptFilters(promptFilters)
+        setStateFilter(nextState)
+        setCountyFilter(resolveCountyFilterFromPromptFilters(promptFilters, nextState))
+        setPriceRange({ min: promptFilters.minPrice ?? null, max: promptFilters.maxPrice ?? null })
+        setSizeRange({ min: promptFilters.minAcres ?? null, max: promptFilters.maxAcres ?? null })
+      }
+
+      const mapped = rows
+        .map(mapLandListingRow)
+        .sort(
+          (a: ListingItem, b: ListingItem) =>
+            (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1)
+        )
+      setListingsData(mapped)
+      return true
+    } finally {
+      setIsLoading(false)
     }
-
-    const mapped = rows
-      .map(mapLandListingRow)
-      .sort(
-        (a: ListingItem, b: ListingItem) =>
-          (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1)
-      )
-    setListingsData(mapped)
-    return true
   }, [landFeatureFilters])
 
   useEffect(() => {
@@ -281,7 +291,7 @@ function LandPropertyPageContent() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
+    <div className="relative flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
       <div className="sticky top-[73px] z-40 shrink-0 border-b border-border bg-background">
         <SearchFiltersBar
           listingIds={listingsData.map((l) => l.id)}
@@ -317,14 +327,15 @@ function LandPropertyPageContent() {
         sortId={sortId}
         onSortChange={setSortId}
       />
+      {isLoading ? <PageLoadingIndicator label="Loading properties..." fixed /> : null}
     </div>
   )
 }
 
 function LandPropertyPageFallback() {
   return (
-    <div className="flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
-      <p className="text-sm text-muted-foreground">Loading marketplace…</p>
+    <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+      <PageLoadingIndicator label="Loading marketplace..." fixed={false} />
     </div>
   )
 }

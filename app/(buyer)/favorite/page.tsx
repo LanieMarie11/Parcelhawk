@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
+import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
 
 const SORT_OPTIONS = ["Newest", "Oldest", "Price: Low to High", "Price: High to Low"] as const
@@ -302,8 +303,8 @@ function FavoritePageContent() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
-        <p className="text-sm text-muted-foreground">Loading favorites…</p>
+      <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+        <PageLoadingIndicator label="Loading favorites..." fixed={false} />
       </div>
     )
   }
@@ -451,8 +452,8 @@ export default function FavoritePage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
-          <p className="text-sm text-muted-foreground">Loading…</p>
+        <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+          <PageLoadingIndicator label="Loading..." fixed={false} />
         </div>
       }
     >
