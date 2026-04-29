@@ -3,6 +3,7 @@
 export type BuyerRow = {
   id: string;
   name: string;
+  avatarUrl: string;
   location: string;
   joinedAt: string;
   lastActive: string;
@@ -90,8 +91,23 @@ export function BuyersTable({
                 onClick={() => onSelectBuyer?.(row)}
               >
                 <td className="px-4 py-3">
-                  <p className="font-semibold text-zinc-800">{row.name}</p>
-                  <p className="text-xs text-zinc-500">{row.joinedAt}</p>
+                  <div className="flex items-center gap-3">
+                    {row.avatarUrl ? (
+                      <img
+                        src={row.avatarUrl}
+                        alt={row.name}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
+                        {row.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-zinc-800">{row.name}</p>
+                      <p className="text-xs text-zinc-500">{row.joinedAt}</p>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{row.lastActive}</td>
                 <td className="px-4 py-3">

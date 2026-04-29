@@ -82,6 +82,7 @@ export async function GET() {
         id: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
+        avatarUrl: users.avatarUrl,
         location: users.location,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
@@ -98,6 +99,7 @@ export async function GET() {
       return {
         id: buyer.id,
         name: [buyer.firstName, buyer.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
+        avatarUrl: buyer.avatarUrl ?? "",
         location: buyer.location ?? "",
         joinedAt: formatJoined(buyer.createdAt),
         lastActive: formatRelativeTime(buyer.updatedAt),
