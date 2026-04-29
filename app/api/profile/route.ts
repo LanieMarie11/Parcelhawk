@@ -25,6 +25,11 @@ function splitFullName(fullName: string): { firstName: string; lastName: string 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/gif"]
 const MAX_AVATAR_SIZE_BYTES = 1024 * 1024
 
+function isMissingBlobTokenError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? "")
+  return message.includes("Vercel Blob: No token found")
+}
+
 function isVercelBlobUrl(url: string): boolean {
   return url.includes(".public.blob.vercel-storage.com")
 }
@@ -164,10 +169,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, avatarUrl: newAvatarUrl })
   } catch (err) {
     console.error("Profile update error:", err)
-    return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 }
-    )
+    if (isMissingBlobTokenError(err)) {
+      return NextResponse.json(
+        {
+          error:
+            "Avatar upload is not configured. Set BLOB_READ_WRITE_TOKEN in your environment and try again.",
+        },
+        { status: 503 }
+      )
+    }
+    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 })
   }
 }
 

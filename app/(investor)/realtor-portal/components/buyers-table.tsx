@@ -1,17 +1,53 @@
-const buyerRows = [
-  { name: "Marcus Reed", lastActive: "12 min ago", score: "Hot", searches: "47", preference: "40+ acres, recreational", action: "Call Now" },
-  { name: "Sarah Alcott", lastActive: "1h ago", score: "Hot", searches: "31", preference: "Viewing Request", action: "Push" },
-  { name: "Jen Larimore", lastActive: "4h ago", score: "Warm", searches: "18", preference: "40.5 ac", action: "Call Now" },
-  { name: "Hannah Weiss", lastActive: "Yesterday", score: "Warm", searches: "12", preference: "Mixed-use, paved access", action: "Push" },
-];
+"use client";
 
-export function BuyersTable() {
+export type BuyerRow = {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  location: string;
+  joinedAt: string;
+  lastActive: string;
+  score: "Hot" | "Warm" | "Cold";
+  searches: string;
+  preferenceAcreage: string;
+  preferenceBudget: string;
+  preferenceTimeframe: string;
+  action: "Call Now" | "Push";
+};
+
+type BuyersTableProps = {
+  buyerRows: BuyerRow[];
+  isLoading: boolean;
+  error: string | null;
+  selectedBuyerId?: string;
+  onSelectBuyer?: (buyer: BuyerRow) => void;
+};
+
+export function BuyersTable({
+  buyerRows,
+  isLoading,
+  error,
+  selectedBuyerId,
+  onSelectBuyer,
+}: BuyersTableProps) {
+  const activeBuyerCount = buyerRows.length;
+  const scoreTextClass: Record<BuyerRow["score"], string> = {
+    Hot: "text-rose-600",
+    Warm: "text-amber-600",
+    Cold: "text-zinc-500",
+  };
+  const scoreDotClass: Record<BuyerRow["score"], string> = {
+    Hot: "bg-rose-500",
+    Warm: "bg-amber-500",
+    Cold: "bg-zinc-400",
+  };
+
   return (
     <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
       <header className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
         <div>
           <h2 className="text-md font-phudu font-medium uppercase tracking-wide text-[#0F172A]">My Buyers - Colorado</h2>
-          <p className="text-xs text-zinc-500">10 active buyers across 3 state</p>
+          <p className="text-xs text-zinc-500">{activeBuyerCount} active buyers matched by referral URL</p>
         </div>
         <button className="text-sm font-medium text-zinc-600 hover:text-zinc-900">All States</button>
       </header>
@@ -29,36 +65,90 @@ export function BuyersTable() {
             </tr>
           </thead>
           <tbody>
-            {buyerRows.map((row) => (
-              <tr key={row.name} className="border-t border-zinc-100">
+            {isLoading ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-zinc-500" colSpan={6}>
+                  Loading buyers...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-rose-600" colSpan={6}>
+                  {error}
+                </td>
+              </tr>
+            ) : buyerRows.length === 0 ? (
+              <tr>
+                <td className="px-4 py-4 text-sm text-zinc-500" colSpan={6}>
+                  No buyers connected to your referral URL yet.
+                </td>
+              </tr>
+            ) : (
+              buyerRows.map((row) => (
+              <tr
+                key={row.id}
+                className="cursor-pointer border-t border-zinc-100 hover:bg-zinc-50"
+                onClick={() => onSelectBuyer?.(row)}
+              >
                 <td className="px-4 py-3">
-                  <p className="font-semibold text-zinc-800">{row.name}</p>
-                  <p className="text-xs text-zinc-500">Joined Mar 2026</p>
+                  <div className="flex items-center gap-3">
+                    {row.avatarUrl ? (
+                      <img
+                        src={row.avatarUrl}
+                        alt={row.name}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
+                        {row.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-zinc-800">{row.name}</p>
+                      <p className="text-xs text-zinc-500">{row.joinedAt}</p>
+                    </div>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{row.lastActive}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${row.score === "Hot" ? "text-rose-600" : "text-amber-600"}`}>
-                    <span className={`h-2 w-2 rounded-full ${row.score === "Hot" ? "bg-rose-500" : "bg-amber-500"}`} />
+                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${scoreTextClass[row.score]}`}>
+                    <span className={`h-2 w-2 rounded-full ${scoreDotClass[row.score]}`} />
                     {row.score}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{row.searches}</td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">{row.preference}</span>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+                      {row.preferenceAcreage || "Acreage: -"}
+                    </span>
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+                      {row.preferenceBudget || "Budget: -"}
+                    </span>
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+                      {row.preferenceTimeframe || "Timeframe: -"}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectBuyer?.(row);
+                    }}
                     className={`rounded-lg px-4 py-1.5 text-xs font-semibold ${
-                      row.action === "Call Now"
+                      row.id === selectedBuyerId
                         ? "bg-emerald-700 text-white hover:bg-emerald-800"
                         : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
                     }`}
                   >
-                    {row.action}
+                    {row.id === selectedBuyerId ? "Call Now" : "Push"}
                   </button>
                 </td>
               </tr>
-            ))}
+              ))
+            )}
           </tbody>
         </table>
       </div>
