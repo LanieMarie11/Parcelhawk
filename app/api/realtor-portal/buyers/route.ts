@@ -10,6 +10,8 @@ type SessionUser = {
   role?: string
 }
 
+type BuyerScore = "Hot" | "Warm" | "Cold"
+
 function formatRelativeTime(value: Date): string {
   const now = Date.now()
   const diffMs = now - value.getTime()
@@ -30,6 +32,21 @@ function formatRelativeTime(value: Date): string {
   }
   const days = Math.floor(diffMs / dayMs)
   return `${days}d ago`
+}
+
+function calculateBuyerScore(updatedAt: Date): BuyerScore {
+  const diffMs = Date.now() - updatedAt.getTime()
+  const dayMs = 24 * 60 * 60 * 1000
+
+  // Suggested baseline thresholds:
+  // - Hot: active within the last 24h
+  // - Warm: active within the last 7d
+  // - Cold: inactive for over 7d
+  // TODO: upgrade Hot logic to also include "viewing request sent"
+  // when activity/event logging is available on backend.
+  if (diffMs <= dayMs) return "Hot"
+  if (diffMs <= 7 * dayMs) return "Warm"
+  return "Cold"
 }
 
 function formatJoined(value: Date): string {
@@ -65,10 +82,11 @@ export async function GET() {
         id: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
+        location: users.location,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         preferenceAcreage: users.preferenceAcreage,
-        preferencePurpose: users.preferencePurpose,
+        preferenceBudget: users.preferenceBudget,
         preferenceTimeframe: users.preferenceTimeframe,
       })
       .from(users)
@@ -77,19 +95,17 @@ export async function GET() {
 
     const buyers = buyerRows.map((buyer, index) => {
       const searchesCount = Math.max(8, 40 - index * 4).toString()
-      const hasDetailedPreference = Boolean(buyer.preferenceAcreage || buyer.preferencePurpose)
       return {
         id: buyer.id,
         name: [buyer.firstName, buyer.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
+        location: buyer.location ?? "",
         joinedAt: formatJoined(buyer.createdAt),
         lastActive: formatRelativeTime(buyer.updatedAt),
-        score: index < 2 ? "Hot" : "Warm",
+        score: calculateBuyerScore(buyer.updatedAt),
         searches: searchesCount,
-        preference:
-          buyer.preferenceAcreage ||
-          buyer.preferencePurpose ||
-          buyer.preferenceTimeframe ||
-          (hasDetailedPreference ? "Preference set" : "No preference yet"),
+        preferenceAcreage: buyer.preferenceAcreage ?? "",
+        preferenceBudget: buyer.preferenceBudget ?? "",
+        preferenceTimeframe: buyer.preferenceTimeframe ?? "",
         action: index % 2 === 0 ? "Call Now" : "Push",
       }
     })

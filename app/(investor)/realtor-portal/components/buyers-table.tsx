@@ -1,58 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-type BuyerRow = {
+export type BuyerRow = {
   id: string;
   name: string;
+  location: string;
   joinedAt: string;
   lastActive: string;
-  score: "Hot" | "Warm";
+  score: "Hot" | "Warm" | "Cold";
   searches: string;
-  preference: string;
+  preferenceAcreage: string;
+  preferenceBudget: string;
+  preferenceTimeframe: string;
   action: "Call Now" | "Push";
 };
 
-type BuyersResponse = {
-  buyers: BuyerRow[];
+type BuyersTableProps = {
+  buyerRows: BuyerRow[];
+  isLoading: boolean;
+  error: string | null;
+  selectedBuyerId?: string;
+  onSelectBuyer?: (buyer: BuyerRow) => void;
 };
 
-export function BuyersTable() {
-  const [buyerRows, setBuyerRows] = useState<BuyerRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadBuyers() {
-      try {
-        const response = await fetch("/api/realtor-portal/buyers", { cache: "no-store" });
-        const data = (await response.json()) as BuyersResponse & { error?: string };
-        if (!response.ok) {
-          throw new Error(data.error ?? "Failed to load buyers");
-        }
-        if (isMounted) {
-          setBuyerRows(data.buyers ?? []);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : "Failed to load buyers");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadBuyers();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const activeBuyerCount = useMemo(() => buyerRows.length, [buyerRows]);
+export function BuyersTable({
+  buyerRows,
+  isLoading,
+  error,
+  selectedBuyerId,
+  onSelectBuyer,
+}: BuyersTableProps) {
+  const activeBuyerCount = buyerRows.length;
+  const scoreTextClass: Record<BuyerRow["score"], string> = {
+    Hot: "text-rose-600",
+    Warm: "text-amber-600",
+    Cold: "text-zinc-500",
+  };
+  const scoreDotClass: Record<BuyerRow["score"], string> = {
+    Hot: "bg-rose-500",
+    Warm: "bg-amber-500",
+    Cold: "bg-zinc-400",
+  };
 
   return (
     <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -97,31 +84,50 @@ export function BuyersTable() {
               </tr>
             ) : (
               buyerRows.map((row) => (
-              <tr key={row.id} className="border-t border-zinc-100">
+              <tr
+                key={row.id}
+                className="cursor-pointer border-t border-zinc-100 hover:bg-zinc-50"
+                onClick={() => onSelectBuyer?.(row)}
+              >
                 <td className="px-4 py-3">
                   <p className="font-semibold text-zinc-800">{row.name}</p>
                   <p className="text-xs text-zinc-500">{row.joinedAt}</p>
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{row.lastActive}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${row.score === "Hot" ? "text-rose-600" : "text-amber-600"}`}>
-                    <span className={`h-2 w-2 rounded-full ${row.score === "Hot" ? "bg-rose-500" : "bg-amber-500"}`} />
+                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${scoreTextClass[row.score]}`}>
+                    <span className={`h-2 w-2 rounded-full ${scoreDotClass[row.score]}`} />
                     {row.score}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{row.searches}</td>
                 <td className="px-4 py-3">
-                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">{row.preference}</span>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+                      {row.preferenceAcreage || "Acreage: -"}
+                    </span>
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+                      {row.preferenceBudget || "Budget: -"}
+                    </span>
+                    <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-600">
+                      {row.preferenceTimeframe || "Timeframe: -"}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectBuyer?.(row);
+                    }}
                     className={`rounded-lg px-4 py-1.5 text-xs font-semibold ${
-                      row.action === "Call Now"
+                      row.id === selectedBuyerId
                         ? "bg-emerald-700 text-white hover:bg-emerald-800"
                         : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
                     }`}
                   >
-                    {row.action}
+                    {row.id === selectedBuyerId ? "Call Now" : "Push"}
                   </button>
                 </td>
               </tr>
