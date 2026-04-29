@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Heart } from "lucide-react"
+import { Search, Heart, Loader2 } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
@@ -51,6 +51,7 @@ interface SearchFiltersBarProps {
   onStateFilterApply?: (state: StateFilterValue) => void
   /** Notifies parent when county is chosen; parent should update `countyFilter` when controlled. */
   onCountyFilterApply?: (county: CountyFilterValue) => void
+  isLoading?: boolean
 }
 
 export function SearchFiltersBar({
@@ -70,6 +71,7 @@ export function SearchFiltersBar({
   countyFilter: countyFilterProp,
   onStateFilterApply,
   onCountyFilterApply,
+  isLoading = false,
 }: SearchFiltersBarProps) {
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
@@ -164,7 +166,7 @@ export function SearchFiltersBar({
                 if (e.key !== "Enter") return
                 e.preventDefault()
                 const q = aiPrompt.trim()
-                if (!q || embeddingSearching) return
+                if (!q || embeddingSearching || isLoading) return
                 setEmbeddingSearching(true)
                 void Promise.resolve(onEmbeddingSearch(q)).finally(() => setEmbeddingSearching(false))
               }}
@@ -178,7 +180,7 @@ export function SearchFiltersBar({
               // disabled={!aiPrompt.trim() || embeddingSearching}
               onClick={async () => {
                 const q = aiPrompt.trim()
-                if (!q) return
+                if (!q || isLoading) return
                 setEmbeddingSearching(true)
                 try {
                   await onEmbeddingSearch(q)
@@ -187,11 +189,22 @@ export function SearchFiltersBar({
                 }
               }}
               className="flex h-8 w-8 shrink-0 z-100 items-center justify-center cursor-pointer rounded-full bg-[#2F5B3A] text-white shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[#264A30] hover:shadow-md active:scale-[0.92] active:bg-[#1a3324] active:shadow-inner disabled:pointer-events-none disabled:opacity-45"
-              aria-label={embeddingSearching ? "Searching" : "Search"}
+              disabled={isLoading || embeddingSearching || !aiPrompt.trim()}
+              aria-label={embeddingSearching || isLoading ? "Searching" : "Search"}
             >
-              <Search className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+              {isLoading || embeddingSearching ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Search className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+              )}
             </button>
           </div>
+          {isLoading ? (
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+              <span>Updating results...</span>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
