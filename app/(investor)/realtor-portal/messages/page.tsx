@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal, UsersRound } from "lucide-react";
 
 type BuyerThread = {
@@ -5,8 +8,9 @@ type BuyerThread = {
   name: string;
   preview: string;
   unread?: boolean;
-  active?: boolean;
   avatarUrl: string;
+  location?: string;
+  lastActive?: string;
 };
 
 type ChatMessage = {
@@ -16,71 +20,18 @@ type ChatMessage = {
   avatarUrl?: string;
 };
 
-const buyerThreads: readonly BuyerThread[] = [
-  {
-    id: "marcus-chen",
-    name: "MARCUS CHEN",
-    preview: "Thanks! I will check those out.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=12",
-  },
-  {
-    id: "sofia-martinez",
-    name: "SOFIA MARTINEZ",
-    preview: "Can we do Saturday at 11am?",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=47",
-  },
-  {
-    id: "liam-oconnor",
-    name: "LIAM O'CONNOR",
-    preview: "Thanks! I will check those out.",
-    active: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=15",
-  },
-  {
-    id: "aisha-patel",
-    name: "AISHA PATEL",
-    preview: "Sent you the disclosure docs.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=5",
-  },
-  {
-    id: "noah-kim",
-    name: "NOAH KIM",
-    preview: "Thanks! I will check those out.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=54",
-  },
-  {
-    id: "emma-dubois",
-    name: "EMMA DUBOIS",
-    preview: "Sent you the disclosure docs.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=34",
-  },
-  {
-    id: "carlos-gomez",
-    name: "CARLOS GOMEZ",
-    preview: "Sent you the disclosure docs.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=66",
-  },
-  {
-    id: "nia-johnson",
-    name: "NIA JOHNSON",
-    preview: "Thanks! I will check those out.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=24",
-  },
-  {
-    id: "yuki-tanaka",
-    name: "YUKI TANAKA",
-    preview: "Thanks! I will check those out.",
-    unread: true,
-    avatarUrl: "https://i.pravatar.cc/100?img=14",
-  },
-];
+type MessageThreadsApiResponse = {
+  threads: Array<{
+    buyerId: string;
+    name: string;
+    avatarUrl: string;
+    location: string;
+    lastActive: string;
+    lastMessagePreview: string;
+    unreadCount: number;
+  }>;
+  error?: string;
+};
 
 const conversation: readonly ChatMessage[] = [
   {
@@ -103,6 +54,53 @@ const conversation: readonly ChatMessage[] = [
 ];
 
 export default function RealtorMessagesPage() {
+  const [buyerThreads, setBuyerThreads] = useState<BuyerThread[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadBuyers() {
+      try {
+        const response = await fetch("/api/realtor-portal/messages/threads", { cache: "no-store" });
+        const data = (await response.json()) as MessageThreadsApiResponse;
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to load message threads");
+        }
+
+        const threads: BuyerThread[] = (data.threads ?? []).map((thread) => ({
+          id: thread.buyerId,
+          name: thread.name.toUpperCase(),
+          preview: thread.lastMessagePreview,
+          unread: thread.unreadCount > 0,
+          avatarUrl: thread.avatarUrl,
+          location: thread.location,
+          lastActive: thread.lastActive,
+        }));
+
+        if (!isMounted) return;
+        setBuyerThreads(threads);
+        setSelectedThreadId((current) => current ?? threads[0]?.id ?? null);
+      } catch {
+        if (!isMounted) return;
+        setBuyerThreads([]);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    void loadBuyers();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const selectedThread = useMemo(
+    () => buyerThreads.find((thread) => thread.id === selectedThreadId) ?? null,
+    [buyerThreads, selectedThreadId],
+  );
+
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
       <div className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
@@ -125,20 +123,32 @@ export default function RealtorMessagesPage() {
             </div>
 
             <div>
-              {buyerThreads.map((thread) => (
+              {isLoading ? (
+                <p className="px-4 py-4 text-sm text-zinc-500">Loading buyers...</p>
+              ) : buyerThreads.length === 0 ? (
+                <p className="px-4 py-4 text-sm text-zinc-500">No linked buyers found.</p>
+              ) : (
+                buyerThreads.map((thread) => (
                 <button
                   key={thread.id}
                   type="button"
+                  onClick={() => setSelectedThreadId(thread.id)}
                   className={`flex w-full items-center gap-2.5 border-b border-zinc-200 px-3 py-2.5 text-left transition-colors ${
-                    thread.active ? "bg-[#e7eaee]" : "hover:bg-zinc-100"
+                    thread.id === selectedThreadId ? "bg-[#e7eaee]" : "hover:bg-zinc-100"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={thread.avatarUrl}
-                    alt={thread.name}
-                    className="size-10 shrink-0 rounded-full object-cover"
-                  />
+                  {thread.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={thread.avatarUrl}
+                      alt={thread.name}
+                      className="size-10 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600">
+                      {thread.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-bold leading-5 text-[#1d2630]">
                       {thread.name}
@@ -151,22 +161,35 @@ export default function RealtorMessagesPage() {
                     </span>
                   ) : null}
                 </button>
-              ))}
+                ))
+              )}
             </div>
           </aside>
 
           <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
             <header className="border-b border-zinc-200 px-5 py-3.5">
               <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://i.pravatar.cc/100?img=15"
-                  alt="Liam O'Connor"
-                  className="size-11 rounded-full object-cover"
-                />
+                {selectedThread?.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={selectedThread.avatarUrl}
+                    alt={selectedThread?.name ?? "Buyer"}
+                    className="size-11 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-11 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600">
+                    {(selectedThread?.name ?? "B").charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div>
-                  <p className="text-sm font-bold uppercase text-[#1d2630]">LIAM O'CONNOR</p>
-                  <p className="text-xs text-zinc-500">California · Active 12 min ago</p>
+                  <p className="text-sm font-bold uppercase text-[#1d2630]">
+                    {selectedThread?.name ?? "No buyer selected"}
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    {(selectedThread?.location || "Unknown location") +
+                      " · Active " +
+                      (selectedThread?.lastActive || "-")}
+                  </p>
                 </div>
               </div>
             </header>
@@ -175,12 +198,18 @@ export default function RealtorMessagesPage() {
               {conversation.map((message) =>
                 message.sender === "buyer" ? (
                   <div key={message.id} className="flex max-w-[70%] items-start gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={message.avatarUrl}
-                      alt=""
-                      className="mt-0.5 size-9 rounded-full object-cover"
-                    />
+                    {message.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={message.avatarUrl}
+                        alt=""
+                        className="mt-0.5 size-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
+                        {(selectedThread?.name ?? "B").charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700">
                       {message.text}
                     </div>
