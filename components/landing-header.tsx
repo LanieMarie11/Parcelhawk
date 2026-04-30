@@ -16,6 +16,7 @@ const nav = [
   { href: "/favorite", label: "Saved Properties" },
   { href: "/compare", label: "Compare" },
   { href: "/resources", label: "Resources" },
+  { href: "/message", label: "Messages" },
   { href: "/profile-settings", label: "Profile" },
 ] as const;
 
