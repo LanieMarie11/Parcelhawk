@@ -2,29 +2,37 @@
 
 import { UserRound } from "lucide-react";
 
-type RealtorInformationProps = {
+type BuyerInformationProps = {
   name: string;
   avatarUrl?: string;
   lastActive: string;
   email: string;
   phone: string;
   location: string;
+  preferenceBudget: string;
+  preferenceAcreage: string;
+  preferencePurpose: string;
+  preferenceTimeframe: string;
 };
 
-export function RealtorInformation({
+export function BuyerInformation({
   name,
   avatarUrl,
   lastActive,
   email,
   phone,
   location,
-}: RealtorInformationProps) {
+  preferenceBudget,
+  preferenceAcreage,
+  preferencePurpose,
+  preferenceTimeframe,
+}: BuyerInformationProps) {
   return (
     <aside className="w-full">
       <div className="mb-4 flex items-center gap-2">
         <UserRound className="size-4 text-zinc-700" aria-hidden />
         <p className="text-md font-medium font-phudu uppercase tracking-tight text-[#0F172A]">
-          Realtor Information
+          Buyer Information
         </p>
       </div>
 
@@ -40,19 +48,19 @@ export function RealtorInformation({
           )}
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-md font-medium font-phudu uppercase leading-tight text-[#0F172A]">{name}</p>
+            <p className="truncate text-md font-medium font-phudu uppercase leading-tight text-[#0F172A]">
+              {name}
+            </p>
             <p className="mt-2 text-xs leading-snug text-[#5f7190]">
-              "Helping families find the perfect home with a smooth and stress-free experience."
+              Active {lastActive}
             </p>
           </div>
-
-          <span className="rounded-full border border-[#ef4444] px-3 py-1 text-[11px] font-medium text-[#ef4444]">
-            Expert
-          </span>
         </div>
 
         <div className="border-t border-zinc-300 px-5 py-5">
-          <p className="mb-4 text-xs font-medium font-phudu uppercase leading-none text-[#030303]">Contact Info</p>
+          <p className="mb-4 text-xs font-medium font-phudu uppercase leading-none text-[#030303]">
+            Contact Info
+          </p>
           <div className="space-y-2">
             <div className="grid grid-cols-[120px_1fr] justify-items-start">
               <span className="text-xs text-[#607394]">Email</span>
@@ -71,25 +79,28 @@ export function RealtorInformation({
 
         <div className="border-t border-zinc-300 px-5 py-5">
           <p className="mb-4 text-xs font-medium font-phudu uppercase leading-none text-[#030303]">
-            Professional Details
+            Property Preferences
           </p>
           <div className="space-y-2">
             <div className="grid grid-cols-[120px_1fr] justify-items-start">
-              <span className="text-xs text-[#607394]">Specialization</span>
-              <span className="text-xs font-semibold text-[#1f2937]">Residential | Luxury | Agriculture</span>
+              <span className="text-xs text-[#607394]">Budget</span>
+              <span className="text-xs font-semibold text-[#1f2937]">{preferenceBudget || "-"}</span>
             </div>
             <div className="grid grid-cols-[120px_1fr] justify-items-start">
-              <span className="text-xs text-[#607394]">Experience</span>
-              <span className="text-xs font-semibold text-[#1f2937]">8+ Years Experience</span>
+              <span className="text-xs text-[#607394]">Acreage</span>
+              <span className="text-xs font-semibold text-[#1f2937]">{preferenceAcreage || "-"}</span>
             </div>
             <div className="grid grid-cols-[120px_1fr] justify-items-start">
-              <span className="text-xs text-[#607394]">Service Area</span>
-              <span className="text-xs font-semibold text-[#1f2937]">Austin, TX / Nearby regions</span>
+              <span className="text-xs text-[#607394]">Purpose</span>
+              <span className="text-xs font-semibold text-[#1f2937]">{preferencePurpose || "-"}</span>
+            </div>
+            <div className="grid grid-cols-[120px_1fr] justify-items-start">
+              <span className="text-xs text-[#607394]">Timeline</span>
+              <span className="text-xs font-semibold text-[#1f2937]">{preferenceTimeframe || "-"}</span>
             </div>
           </div>
         </div>
       </div>
-      <p className="sr-only">Last active {lastActive}</p>
     </aside>
   );
 }

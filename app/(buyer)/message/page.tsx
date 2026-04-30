@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Square } from "lucide-react";
 import { RealtorInformation } from "../components/realtor-information";
+import MessageBoxIcon from "@/components/icons/message-box";
 
 type Thread = {
   id: string;
@@ -200,9 +201,9 @@ export default function BuyerMessagePage() {
         >
           <aside className="border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
             <div className="border-b border-zinc-200 px-4 py-3">
-              <div className="flex items-center gap-2 text-[#141f2f]">
-                <Square className="size-4" strokeWidth={2} aria-hidden />
-                <p className="text-base font-semibold uppercase tracking-tight">Contact Realtor</p>
+              <div className="flex items-center gap-2 text-[#141f2f] align-middle">
+                <MessageBoxIcon />
+                <p className="text-xl font-medium font-phudu uppercase tracking-tight">Contact Realtor</p>
               </div>
             </div>
 
@@ -245,7 +246,11 @@ export default function BuyerMessagePage() {
 
           <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
             <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
-              <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDetailInformation((prev) => !prev)}
+                className="flex cursor-pointer items-center gap-3 rounded-lg p-1 text-left transition-colors hover:bg-zinc-100"
+              >
                 {selectedThread ? (
                   <>
                     {selectedThread.avatarUrl ? (
@@ -261,12 +266,14 @@ export default function BuyerMessagePage() {
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-bold uppercase text-[#1d2630]">{selectedThread.name}</p>
-                      <p className="text-xs text-zinc-500">Active {selectedThread.lastActive}</p>
+                      <p className="text-md font-medium font-phudu uppercase text-[#1d2630]">{selectedThread.name}</p>
+                      <p className="text-xs text-[#64748B]">
+                        {(selectedThread.location || "Unknown location") + " · Active " + selectedThread.lastActive}
+                      </p>
                     </div>
                   </>
                 ) : null}
-              </div>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowDetailInformation((prev) => !prev)}

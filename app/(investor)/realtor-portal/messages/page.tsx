@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal, UsersRound } from "lucide-react";
+import MessageMembersIcon from "@/components/icons/message-members";
+import { BuyerInformation } from "../components/buyer-information";
 
 type BuyerThread = {
   id: string;
@@ -10,7 +12,13 @@ type BuyerThread = {
   preview: string;
   unread?: boolean;
   avatarUrl: string;
+  email: string;
+  phone: string;
   location?: string;
+  preferenceBudget: string;
+  preferenceAcreage: string;
+  preferencePurpose: string;
+  preferenceTimeframe: string;
   lastActive?: string;
 };
 
@@ -27,7 +35,13 @@ type MessageThreadsApiResponse = {
     buyerId: string;
     name: string;
     avatarUrl: string;
+    email: string;
+    phone: string;
     location: string;
+    preferenceBudget: string;
+    preferenceAcreage: string;
+    preferencePurpose: string;
+    preferenceTimeframe: string;
     lastActive: string;
     lastMessagePreview: string;
     unreadCount: number;
@@ -52,6 +66,7 @@ export default function RealtorMessagesPage() {
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [showDetailInformation, setShowDetailInformation] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -71,7 +86,13 @@ export default function RealtorMessagesPage() {
           preview: thread.lastMessagePreview,
           unread: thread.unreadCount > 0,
           avatarUrl: thread.avatarUrl,
+          email: thread.email,
+          phone: thread.phone,
           location: thread.location,
+          preferenceBudget: thread.preferenceBudget,
+          preferenceAcreage: thread.preferenceAcreage,
+          preferencePurpose: thread.preferencePurpose,
+          preferenceTimeframe: thread.preferenceTimeframe,
           lastActive: thread.lastActive,
         }));
 
@@ -167,12 +188,18 @@ export default function RealtorMessagesPage() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
       <div className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="grid min-h-[calc(100vh-150px)] grid-cols-1 lg:grid-cols-[285px_minmax(0,1fr)]">
+        <div
+          className={`grid min-h-[calc(100vh-150px)] grid-cols-1 ${
+            showDetailInformation
+              ? "lg:grid-cols-[285px_minmax(0,1fr)_380px]"
+              : "lg:grid-cols-[285px_minmax(0,1fr)]"
+          }`}
+        >
           <aside className="border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
             <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3">
-              <div className="flex items-center gap-2.5 text-[#1d263d]">
-                <UsersRound className="size-5" strokeWidth={2} aria-hidden />
-                <p className="text-md font-phudu font-medium text-[#0F172A] uppercase leading-none tracking-tight">
+              <div className="flex items-center gap-2 text-[#141f2f] align-middle">
+                <MessageMembersIcon />
+                <p className="text-xl font-medium font-phudu uppercase tracking-tight">
                   Linked Buyers
                 </p>
               </div>
@@ -230,8 +257,12 @@ export default function RealtorMessagesPage() {
           </aside>
 
           <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
-            <header className="border-b border-zinc-200 px-5 py-3.5">
-              <div className="flex items-center gap-3">
+            <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setShowDetailInformation((prev) => !prev)}
+                className="flex cursor-pointer items-center gap-3 rounded-lg p-1 text-left transition-colors hover:bg-zinc-100"
+              >
                 {selectedThread?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -245,19 +276,26 @@ export default function RealtorMessagesPage() {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm font-bold uppercase text-[#1d2630]">
+                  <p className="text-md font-medium font-phudu uppercase text-[#1d2630]">
                     {selectedThread?.name ?? "No buyer selected"}
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-[#64748B]">
                     {(selectedThread?.location || "Unknown location") +
                       " · Active " +
                       (selectedThread?.lastActive || "-")}
                   </p>
                 </div>
-              </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDetailInformation((prev) => !prev)}
+                className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                {showDetailInformation ? "Hide Detail Information" : "View Detail Information"}
+              </button>
             </header>
 
-            <div className="flex-1 space-y-5 overflow-y-auto p-5">
+            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
               {isLoadingMessages ? (
                 <p className="text-sm text-zinc-500">Loading messages...</p>
               ) : conversation.length === 0 ? (
@@ -314,6 +352,22 @@ export default function RealtorMessagesPage() {
               </div>
             </div>
           </section>
+          {showDetailInformation ? (
+            <div className="border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
+              <BuyerInformation
+                name={selectedThread?.name ?? "No Buyer Selected"}
+                avatarUrl={selectedThread?.avatarUrl}
+                lastActive={selectedThread?.lastActive ?? "-"}
+                email={selectedThread?.email ?? ""}
+                phone={selectedThread?.phone ?? ""}
+                location={selectedThread?.location ?? ""}
+                preferenceBudget={selectedThread?.preferenceBudget ?? ""}
+                preferenceAcreage={selectedThread?.preferenceAcreage ?? ""}
+                preferencePurpose={selectedThread?.preferencePurpose ?? ""}
+                preferenceTimeframe={selectedThread?.preferenceTimeframe ?? ""}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
