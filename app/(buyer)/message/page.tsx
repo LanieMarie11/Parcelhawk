@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Square } from "lucide-react";
+import { RealtorInformation } from "../components/realtor-information";
+import MessageBoxIcon from "@/components/icons/message-box";
 
 type Thread = {
   id: string;
@@ -9,6 +11,9 @@ type Thread = {
   preview: string;
   avatarUrl: string;
   lastActive: string;
+  email: string;
+  phone: string;
+  location: string;
 };
 
 type Message = {
@@ -23,6 +28,9 @@ type BuyerThreadsApiResponse = {
     investorId: string;
     name: string;
     avatarUrl: string;
+    email: string;
+    phone: string;
+    location: string;
     lastActive: string;
     lastMessagePreview: string;
   }>;
@@ -57,6 +65,7 @@ export default function BuyerMessagePage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showDetailInformation, setShowDetailInformation] = useState(false);
 
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) ?? null,
@@ -79,6 +88,9 @@ export default function BuyerMessagePage() {
           name: thread.name.toUpperCase(),
           preview: thread.lastMessagePreview,
           avatarUrl: thread.avatarUrl,
+          email: thread.email,
+          phone: thread.phone,
+          location: thread.location,
           lastActive: thread.lastActive,
         }));
 
@@ -180,12 +192,18 @@ export default function BuyerMessagePage() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
       <div className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="grid min-h-[calc(100vh-150px)] grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div
+          className={`grid min-h-[calc(100vh-150px)] grid-cols-1 ${
+            showDetailInformation
+              ? "lg:grid-cols-[280px_minmax(0,1fr)_380px]"
+              : "lg:grid-cols-[280px_minmax(0,1fr)]"
+          }`}
+        >
           <aside className="border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
             <div className="border-b border-zinc-200 px-4 py-3">
-              <div className="flex items-center gap-2 text-[#141f2f]">
-                <Square className="size-4" strokeWidth={2} aria-hidden />
-                <p className="text-base font-semibold uppercase tracking-tight">Contact Realtor</p>
+              <div className="flex items-center gap-2 text-[#141f2f] align-middle">
+                <MessageBoxIcon />
+                <p className="text-xl font-medium font-phudu uppercase tracking-tight">Contact Realtor</p>
               </div>
             </div>
 
@@ -228,7 +246,11 @@ export default function BuyerMessagePage() {
 
           <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
             <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
-              <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDetailInformation((prev) => !prev)}
+                className="flex cursor-pointer items-center gap-3 rounded-lg p-1 text-left transition-colors hover:bg-zinc-100"
+              >
                 {selectedThread ? (
                   <>
                     {selectedThread.avatarUrl ? (
@@ -244,17 +266,20 @@ export default function BuyerMessagePage() {
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-bold uppercase text-[#1d2630]">{selectedThread.name}</p>
-                      <p className="text-xs text-zinc-500">Active {selectedThread.lastActive}</p>
+                      <p className="text-md font-medium font-phudu uppercase text-[#1d2630]">{selectedThread.name}</p>
+                      <p className="text-xs text-[#64748B]">
+                        {(selectedThread.location || "Unknown location") + " · Active " + selectedThread.lastActive}
+                      </p>
                     </div>
                   </>
                 ) : null}
-              </div>
+              </button>
               <button
                 type="button"
+                onClick={() => setShowDetailInformation((prev) => !prev)}
                 className="rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
               >
-                View Detail Information
+                {showDetailInformation ? "Hide Detail Information" : "View Detail Information"}
               </button>
             </header>
 
@@ -321,6 +346,18 @@ export default function BuyerMessagePage() {
               </div>
             </div>
           </section>
+          {showDetailInformation ? (
+            <div className="border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
+              <RealtorInformation
+                name={selectedThread?.name ?? "No Realtor Selected"}
+                avatarUrl={selectedThread?.avatarUrl}
+                lastActive={selectedThread?.lastActive ?? "-"}
+                email={selectedThread?.email ?? ""}
+                phone={selectedThread?.phone ?? ""}
+                location={selectedThread?.location ?? ""}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

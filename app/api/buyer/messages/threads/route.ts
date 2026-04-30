@@ -54,6 +54,9 @@ export async function GET() {
         firstName: investors.firstName,
         lastName: investors.lastName,
         avatarUrl: investors.avatarUrl,
+        email: investors.email,
+        phone: investors.phone,
+        address: investors.address,
       })
       .from(messageThreads)
       .innerJoin(investors, eq(messageThreads.investorId, investors.id))
@@ -95,6 +98,9 @@ export async function GET() {
             [thread.firstName, thread.lastName].filter(Boolean).join(" ").trim() ||
             "Unknown realtor",
           avatarUrl: thread.avatarUrl ?? "",
+          email: thread.email ?? "",
+          phone: thread.phone ?? "",
+          location: thread.address ?? "",
           lastActive: formatRelativeTime(latest?.createdAt ?? thread.updatedAt),
           lastMessagePreview: latest?.body ?? "Start your conversation.",
         };
