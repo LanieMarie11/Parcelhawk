@@ -5,6 +5,7 @@ import { SlidersHorizontal, UsersRound } from "lucide-react";
 
 type BuyerThread = {
   id: string;
+  threadId: string;
   name: string;
   preview: string;
   unread?: boolean;
@@ -22,6 +23,7 @@ type ChatMessage = {
 
 type MessageThreadsApiResponse = {
   threads: Array<{
+    threadId: string;
     buyerId: string;
     name: string;
     avatarUrl: string;
@@ -32,31 +34,24 @@ type MessageThreadsApiResponse = {
   }>;
   error?: string;
 };
-
-const conversation: readonly ChatMessage[] = [
-  {
-    id: "buyer-1",
-    sender: "buyer",
-    text: "Hi Liam - really interested in the Highway 140 parcel.",
-    avatarUrl: "https://i.pravatar.cc/100?img=47",
-  },
-  {
-    id: "agent-1",
-    sender: "agent",
-    text: "Hi Priya Raman - Yes I'm really interested in the Highway 140 parcel.",
-  },
-  {
-    id: "buyer-2",
-    sender: "buyer",
-    text: "I Wil Sent you the disclosure docs.",
-    avatarUrl: "https://i.pravatar.cc/100?img=47",
-  },
-];
+type ThreadMessagesApiResponse = {
+  messages: Array<{
+    id: string;
+    sender: "investor" | "buyer";
+    text: string;
+    createdAt: string;
+  }>;
+  error?: string;
+};
 
 export default function RealtorMessagesPage() {
   const [buyerThreads, setBuyerThreads] = useState<BuyerThread[]>([]);
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<ChatMessage[]>([]);
+  const [draftMessage, setDraftMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,6 +65,7 @@ export default function RealtorMessagesPage() {
         }
 
         const threads: BuyerThread[] = (data.threads ?? []).map((thread) => ({
+          threadId: thread.threadId,
           id: thread.buyerId,
           name: thread.name.toUpperCase(),
           preview: thread.lastMessagePreview,
@@ -81,7 +77,7 @@ export default function RealtorMessagesPage() {
 
         if (!isMounted) return;
         setBuyerThreads(threads);
-        setSelectedThreadId((current) => current ?? threads[0]?.id ?? null);
+        setSelectedBuyerId((current) => current ?? threads[0]?.id ?? null);
       } catch {
         if (!isMounted) return;
         setBuyerThreads([]);
@@ -97,9 +93,76 @@ export default function RealtorMessagesPage() {
   }, []);
 
   const selectedThread = useMemo(
-    () => buyerThreads.find((thread) => thread.id === selectedThreadId) ?? null,
-    [buyerThreads, selectedThreadId],
+    () => buyerThreads.find((thread) => thread.id === selectedBuyerId) ?? null,
+    [buyerThreads, selectedBuyerId],
   );
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadMessages() {
+      if (!selectedThread?.threadId) {
+        if (isMounted) {
+          setConversation([]);
+          setIsLoadingMessages(false);
+        }
+        return;
+      }
+      setIsLoadingMessages(true);
+      try {
+        const response = await fetch(
+          `/api/realtor-portal/messages/threads/${selectedThread.threadId}`,
+          { cache: "no-store" },
+        );
+        const data = (await response.json()) as ThreadMessagesApiResponse;
+        if (!response.ok) {
+          if (isMounted) setConversation([]);
+          return;
+        }
+        if (!isMounted) return;
+        setConversation(
+          (data.messages ?? []).map((message) => ({
+            id: message.id,
+            sender: message.sender === "investor" ? "agent" : "buyer",
+            text: message.text,
+            avatarUrl: message.sender === "buyer" ? selectedThread.avatarUrl : undefined,
+          })),
+        );
+      } finally {
+        if (isMounted) setIsLoadingMessages(false);
+      }
+    }
+    void loadMessages();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedThread?.threadId, selectedThread?.avatarUrl]);
+
+  async function sendMessage() {
+    const text = draftMessage.trim();
+    if (!text || !selectedThread?.threadId) return;
+    setIsSending(true);
+    try {
+      const response = await fetch(`/api/realtor-portal/messages/threads/${selectedThread.threadId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = (await response.json()) as { message?: { id: string; text: string }; error?: string };
+      if (!response.ok || !data.message) return;
+      setConversation((prev) => [
+        ...prev,
+        { id: data.message!.id, sender: "agent", text: data.message!.text },
+      ]);
+      setBuyerThreads((prev) =>
+        prev.map((thread) =>
+          thread.id === selectedThread.id ? { ...thread, preview: text } : thread,
+        ),
+      );
+      setDraftMessage("");
+    } finally {
+      setIsSending(false);
+    }
+  }
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
@@ -132,9 +195,9 @@ export default function RealtorMessagesPage() {
                 <button
                   key={thread.id}
                   type="button"
-                  onClick={() => setSelectedThreadId(thread.id)}
+                  onClick={() => setSelectedBuyerId(thread.id)}
                   className={`flex w-full items-center gap-2.5 border-b border-zinc-200 px-3 py-2.5 text-left transition-colors ${
-                    thread.id === selectedThreadId ? "bg-[#e7eaee]" : "hover:bg-zinc-100"
+                    thread.id === selectedBuyerId ? "bg-[#e7eaee]" : "hover:bg-zinc-100"
                   }`}
                 >
                   {thread.avatarUrl ? (
@@ -194,34 +257,61 @@ export default function RealtorMessagesPage() {
               </div>
             </header>
 
-            <div className="flex-1 space-y-5 p-5">
-              {conversation.map((message) =>
-                message.sender === "buyer" ? (
-                  <div key={message.id} className="flex max-w-[70%] items-start gap-3">
-                    {message.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={message.avatarUrl}
-                        alt=""
-                        className="mt-0.5 size-9 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
-                        {(selectedThread?.name ?? "B").charAt(0).toUpperCase()}
+            <div className="flex-1 space-y-5 overflow-y-auto p-5">
+              {isLoadingMessages ? (
+                <p className="text-sm text-zinc-500">Loading messages...</p>
+              ) : conversation.length === 0 ? (
+                <p className="text-sm text-zinc-500">
+                  {selectedThread ? "No messages yet. Say hello below." : "Select a buyer to view messages."}
+                </p>
+              ) : (
+                conversation.map((message) =>
+                  message.sender === "buyer" ? (
+                    <div key={message.id} className="flex max-w-[70%] items-start gap-3">
+                      {message.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={message.avatarUrl}
+                          alt=""
+                          className="mt-0.5 size-9 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
+                          {(selectedThread?.name ?? "B").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700">
+                        {message.text}
                       </div>
-                    )}
-                    <div className="rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700">
-                      {message.text}
                     </div>
-                  </div>
-                ) : (
-                  <div key={message.id} className="flex justify-end">
-                    <div className="max-w-[72%] rounded-2xl bg-[#3f6f39] px-4 py-2.5 text-sm leading-relaxed text-white">
-                      {message.text}
+                  ) : (
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[72%] rounded-2xl bg-[#3f6f39] px-4 py-2.5 text-sm leading-relaxed text-white">
+                        {message.text}
+                      </div>
                     </div>
-                  </div>
-                ),
+                  ),
+                )
               )}
+            </div>
+            <div className="border-t border-zinc-200 p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  value={draftMessage}
+                  onChange={(e) => setDraftMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  disabled={isLoadingMessages}
+                  className="h-10 flex-1 rounded-lg border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => void sendMessage()}
+                  disabled={isSending || !selectedThread || isLoadingMessages}
+                  className="rounded-lg bg-[#3f6f39] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345f30] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Send
+                </button>
+              </div>
             </div>
           </section>
         </div>

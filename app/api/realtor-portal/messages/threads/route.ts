@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { investors, users } from "@/db/schema"
+import { investors, messages, messageThreads, users } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -56,7 +56,7 @@ export async function GET() {
       return NextResponse.json({ threads: [] })
     }
 
-    const rows = await db
+    const buyers = await db
       .select({
         buyerId: users.id,
         firstName: users.firstName,
@@ -69,16 +69,70 @@ export async function GET() {
       .where(and(eq(users.role, "buyer"), eq(users.referralId, investor.referralUrl)))
       .orderBy(desc(users.updatedAt))
 
-    const threads = rows.map((buyer) => ({
-      buyerId: buyer.buyerId,
-      name: [buyer.firstName, buyer.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
-      avatarUrl: buyer.avatarUrl ?? "",
-      location: buyer.location ?? "",
-      lastActive: formatRelativeTime(buyer.updatedAt),
-      lastMessagePreview: "Start a conversation with this buyer.",
-      lastMessageAt: buyer.updatedAt.toISOString(),
-      unreadCount: 0,
-    }))
+    if (buyers.length === 0) {
+      return NextResponse.json({ threads: [] })
+    }
+
+    const buyerIds = buyers.map((b) => b.buyerId)
+    const existingThreads = await db
+      .select({
+        id: messageThreads.id,
+        buyerUserId: messageThreads.buyerUserId,
+      })
+      .from(messageThreads)
+      .where(
+        and(
+          eq(messageThreads.investorId, investorId),
+          inArray(messageThreads.buyerUserId, buyerIds),
+        ),
+      )
+
+    const threadByBuyerId = new Map(existingThreads.map((t) => [t.buyerUserId, t.id]))
+    const missingBuyerIds = buyerIds.filter((id) => !threadByBuyerId.has(id))
+    if (missingBuyerIds.length > 0) {
+      const created = await db
+        .insert(messageThreads)
+        .values(missingBuyerIds.map((buyerUserId) => ({ investorId, buyerUserId })))
+        .returning({ id: messageThreads.id, buyerUserId: messageThreads.buyerUserId })
+      for (const row of created) {
+        threadByBuyerId.set(row.buyerUserId, row.id)
+      }
+    }
+
+    const threadIds = [...threadByBuyerId.values()]
+    const latestMessages = threadIds.length
+      ? await db
+          .select({
+            threadId: messages.threadId,
+            body: messages.body,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(inArray(messages.threadId, threadIds))
+          .orderBy(desc(messages.createdAt))
+      : []
+    const latestByThread = new Map<string, { body: string; createdAt: Date }>()
+    for (const item of latestMessages) {
+      if (!latestByThread.has(item.threadId)) {
+        latestByThread.set(item.threadId, { body: item.body, createdAt: item.createdAt })
+      }
+    }
+
+    const threads = buyers.map((buyer) => {
+      const threadId = threadByBuyerId.get(buyer.buyerId) ?? ""
+      const latest = threadId ? latestByThread.get(threadId) : undefined
+      return {
+        threadId,
+        buyerId: buyer.buyerId,
+        name: [buyer.firstName, buyer.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
+        avatarUrl: buyer.avatarUrl ?? "",
+        location: buyer.location ?? "",
+        lastActive: formatRelativeTime(buyer.updatedAt),
+        lastMessagePreview: latest?.body || "Start a conversation with this buyer.",
+        lastMessageAt: (latest?.createdAt ?? buyer.updatedAt).toISOString(),
+        unreadCount: 0,
+      }
+    })
 
     return NextResponse.json({ threads })
   } catch (error) {
