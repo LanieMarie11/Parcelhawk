@@ -1,5 +1,17 @@
 import type { ListingItem } from "@/components/property-map-list"
 
+function normalizeListingUpdatedAtIso(raw: unknown): string | null {
+  if (raw == null) return null
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime()) ? null : raw.toISOString()
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    const d = new Date(raw)
+    return Number.isNaN(d.getTime()) ? null : d.toISOString()
+  }
+  return null
+}
+
 /** Normalize API / DB row (camelCase or snake_case) into map + card shape.*/
 // LOCATION: location is the city, state, and zip code
 export function mapLandListingRow(item: any): ListingItem {
@@ -32,5 +44,6 @@ export function mapLandListingRow(item: any): ListingItem {
     url: item.url,
     description: item.description,
     parcelSatelliteMapDataUrl: item.parcelSatelliteMapDataUrl ?? null,
+    updatedAt: normalizeListingUpdatedAtIso(item.updatedAt ?? item.updated_at),
   }
 }
