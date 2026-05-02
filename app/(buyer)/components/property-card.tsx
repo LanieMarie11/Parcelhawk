@@ -28,6 +28,16 @@ export function formatPropertyLocation(p: {
   return (p.location?.trim() ?? "")
 }
 
+/** `land_listings.updated_at` from API (ISO string) or Date; used for card label */
+export function formatListingUpdatedAt(
+  input: string | Date | null | undefined
+): string | null {
+  if (input == null) return null
+  const d = typeof input === "string" ? new Date(input) : input
+  if (Number.isNaN(d.getTime())) return null
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(d)
+}
+
 interface PropertyCardProps {
   id: number
   /** Single image (used by featured-list); ignored if images is provided */
@@ -57,6 +67,9 @@ interface PropertyCardProps {
   initialIsFavorite?: boolean
   /** URL to open when image is clicked (new tab). Use landListings.url when available; defaults to /property?id={id} */
   detailUrl?: string
+  /** `land_listings.updated_at` — when the listing row was last updated in the database */
+  updatedAt?: string | Date | null
+  onViewingRequest?: () => void
   onMouseEnter?: () => void
   onMouseLeave?: () => void
 }
@@ -104,6 +117,8 @@ export function PropertyCard({
   parcelSatelliteMapDataUrl,
   initialIsFavorite = false,
   detailUrl,
+  updatedAt,
+  onViewingRequest,
   onMouseEnter,
   onMouseLeave,
 }: PropertyCardProps) {
@@ -139,6 +154,8 @@ export function PropertyCard({
     location,
   })
 
+  const updatedAtLabel = formatListingUpdatedAt(updatedAt)
+
   const saveFavorite = async (listingId: number) => {
     const res = await fetch("/api/favorites", {
       method: "POST",
@@ -162,21 +179,6 @@ export function PropertyCard({
           onMouseLeave={onMouseLeave}
         >
           <div className="flex shrink-0 gap-2">
-            {/* TODO : Update this to show the image */}
-            {/* <a
-              href={linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl bg-muted"
-            >
-              <Image
-                src={getImageSrc(firstImage)}
-                alt={name}
-                fill
-                className="object-cover transition-transform duration-300 group-hover:scale-105"
-                sizes="148px"
-              />
-            </a> */}
             {parcelSatelliteMapDataUrl ? (
               <div
                 role="button"
@@ -276,8 +278,24 @@ export function PropertyCard({
             </div>
 
             {descriptionText ? (
-              <p className="mt-2 text-xs text-muted-foreground line-clamp-2">{descriptionText}</p>
+              <p className="mt-2 text-sm text-[#5D606D] line-clamp-2">{descriptionText}</p>
             ) : null}
+            <div className="mt-1.5 flex min-h-8 items-center justify-between gap-3">
+              <p className="min-w-0 text-xs text-muted-foreground">
+                {updatedAtLabel ? <>Updated {updatedAtLabel}</> : null}
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onViewingRequest?.()
+                }}
+                className="shrink-0 rounded-lg border border-emerald-800 bg-transparent px-4 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-50"
+              >
+                Viewing Request
+              </button>
+            </div>
           </div>
         </div>
 
@@ -384,6 +402,9 @@ export function PropertyCard({
           {acreage} Acres
         </span>
       </div>
+      {updatedAtLabel ? (
+        <p className="pt-1 text-[11px] text-muted-foreground">Updated {updatedAtLabel}</p>
+      ) : null}
     </div>
   )
 }

@@ -62,6 +62,7 @@ export async function GET() {
         propertyType: landListings.propertyType,
         url: landListings.url,
         description: landListings.description,
+        updatedAt: landListings.updatedAt,
       })
       .from(favorites)
       .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
@@ -87,6 +88,12 @@ export async function GET() {
       isFavorite: true,
       url: row.url ?? undefined,
       description: row.description ?? undefined,
+      updatedAt:
+        row.updatedAt != null
+          ? row.updatedAt instanceof Date
+            ? row.updatedAt.toISOString()
+            : String(row.updatedAt)
+          : null,
     }));
 
     const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();

@@ -49,6 +49,8 @@ export interface ListingItem {
   description?: string[] | string | null
   /** Satellite Static Map PNG as data URL (parcel boundary on aerial), from land-location-search */
   parcelSatelliteMapDataUrl?: string | null
+  /** ISO string from `land_listings.updated_at` */
+  updatedAt?: string | null
 }
 
 interface PropertyMapListProps {
@@ -180,6 +182,7 @@ export function PropertyMapList({
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
                 parcelSatelliteMapDataUrl={listing.parcelSatelliteMapDataUrl ?? undefined}
+                updatedAt={listing.updatedAt ?? undefined}
                 variant="list"
                 onMouseEnter={() => setHoveredListingId(listing.id)}
                 onMouseLeave={() => setHoveredListingId(null)}
