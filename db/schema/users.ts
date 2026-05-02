@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   referralId: text("referral_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  lastActiveAt: timestamp("last_active_at"),
   subscriptionStatus: text("subscription_status").notNull().default("free"),
 });
 
@@ -34,4 +35,5 @@ export const investors = pgTable("investors", {
   referralUrl: text("referral_url").unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
+  lastActiveAt: timestamp("last_active_at"),
 });

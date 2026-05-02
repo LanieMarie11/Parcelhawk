@@ -57,6 +57,7 @@ export async function GET() {
         email: investors.email,
         phone: investors.phone,
         address: investors.address,
+        investorLastActiveAt: investors.lastActiveAt,
       })
       .from(messageThreads)
       .innerJoin(investors, eq(messageThreads.investorId, investors.id))
@@ -101,7 +102,11 @@ export async function GET() {
           email: thread.email ?? "",
           phone: thread.phone ?? "",
           location: thread.address ?? "",
-          lastActive: formatRelativeTime(latest?.createdAt ?? thread.updatedAt),
+          lastActive: formatRelativeTime(
+            thread.investorLastActiveAt ??
+              latest?.createdAt ??
+              thread.updatedAt,
+          ),
           lastMessagePreview: latest?.body ?? "Start your conversation.",
         };
       }),

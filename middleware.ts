@@ -1,8 +1,10 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
+import type { NextFetchEvent } from "next/server";
 import type { NextRequest } from "next/server";
+import { attachLastActivePing } from "@/lib/last-active-middleware";
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // NextAuth session is checked on every request (every URL change / navigation)
   const token = await getToken({
     req: request,
@@ -13,7 +15,13 @@ export async function middleware(request: NextRequest) {
 
   // Logged-in investors use /realtor-portal as home; keep / for buyers/guests
   if (path === "/" && token?.role === "investor") {
-    return NextResponse.redirect(new URL("/realtor-portal", request.url));
+    return attachLastActivePing(
+      request,
+      event,
+      path,
+      token,
+      NextResponse.redirect(new URL("/realtor-portal", request.url))
+    );
   }
 
   const isInvestorOnlyPath =
@@ -24,7 +32,13 @@ export async function middleware(request: NextRequest) {
   if (isInvestorOnlyPath && token?.role !== "investor") {
     const fallback =
       token?.role === "buyer" ? "/buyer-dashboard" : "/";
-    return NextResponse.redirect(new URL(fallback, request.url));
+    return attachLastActivePing(
+      request,
+      event,
+      path,
+      token,
+      NextResponse.redirect(new URL(fallback, request.url))
+    );
   }
 
   const protectedPaths = ["/profile-setting"];
@@ -34,7 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next();
-  return response;
+  return attachLastActivePing(request, event, path, token, response);
 }
 
 export const config = {
