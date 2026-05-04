@@ -155,13 +155,19 @@ function FavoritePropertyCard({
         <div className="mt-3 flex items-center gap-2">
           <button
             type="button"
-            className="flex-1 rounded-lg border border-border bg-background py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            className="flex-1 rounded-lg bg-[#2D4A31] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#253e2a]"
           >
             View Report
           </button>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-[#EE5A5A] transition-colors hover:bg-red-50"
+            className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
+          >
+            View Request
+          </button>
+          <button
+            type="button"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#EE5A5A] transition-colors hover:bg-red-50"
             aria-label="Remove from favorites"
           >
             <Trash2 className="h-4 w-4" />

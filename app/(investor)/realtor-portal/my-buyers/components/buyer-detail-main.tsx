@@ -1,9 +1,36 @@
 "use client";
 
-import { Eye, Search, Star, UserRound, Zap } from "lucide-react";
+import Image from "next/image";
+import { Eye, MapPin, Search, Star, UserRound, Zap } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
 
-import type { ActivityRow, BuyerDetail } from "./types";
+import type { ActivityRow, BuyerDetail, SavedPropertyRow, SavedPropertyViewRequest } from "./types";
+
+function viewingRequestBadgeClasses(kind: Exclude<SavedPropertyViewRequest, "none">) {
+  if (kind === "pending")
+    return "border border-amber-300 bg-amber-50 text-amber-800";
+  return "border border-sky-200 bg-sky-50 text-sky-700";
+}
+
+function viewingRequestLabel(kind: Exclude<SavedPropertyViewRequest, "none">) {
+  if (kind === "pending") return "Viewing Request pending";
+  if (kind === "scheduled") return "Viewing Request Scheduled";
+  return "Viewing Request Completed";
+}
+
+function SavedPropertyThumbnail({ row }: { row: SavedPropertyRow }) {
+  return (
+    <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-zinc-200">
+      <Image
+        src={row.thumbnailSrc}
+        alt="Property thumbnail"
+        fill
+        className="object-cover"
+        sizes="56px"
+      />
+    </div>
+  );
+}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -107,37 +134,31 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
               key={`${label}-${i}`}
               className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-center shadow-sm"
             >
-              <p className="text-2xl font-semibold tabular-nums text-zinc-900">{value}</p>
-              <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+              <p className="text-2xl font-bold font-ibm-plex-sans tabular-nums text-zinc-900">{value}</p>
+              <p className="mt-1 text-[12px] font-medium font-ibm-plex-sans uppercase text-zinc-500">{label}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid gap-3">
           <button
             type="button"
-            className="rounded-xl bg-[#2D4A31] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#253e2a]"
+            className="rounded-xl bg-[#2D4A31] px-4 py-3 text-md font-ibm-plex-sans font-medium text-white transition-colors hover:bg-[#253e2a]"
           >
             Message
-          </button>
-          <button
-            type="button"
-            className="rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 transition-colors hover:bg-zinc-50"
-          >
-            View Details
           </button>
         </div>
       </section>
 
       <section>
-        <h3 className="text-[11px] font-phudu font-semibold uppercase tracking-wide text-zinc-500">
+        <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">
           Active search filters
         </h3>
         <div className="mt-3 flex flex-wrap gap-2">
           {selected.filters.map((tag) => (
             <span
               key={tag}
-              className="rounded-full border border-zinc-200 bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700"
+              className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]"
             >
               {tag}
             </span>
@@ -146,30 +167,41 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <h3 className="text-[11px] font-phudu font-semibold uppercase tracking-wide text-zinc-500">Saved property</h3>
+        <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">
+          Saved property
+        </h3>
         {selected.savedProperties.length === 0 ? (
           <p className="mt-4 py-8 text-center text-sm text-zinc-500">No saved properties yet.</p>
         ) : (
           <ul className="mt-3 divide-y divide-zinc-100">
             {selected.savedProperties.map((row) => (
-              <li key={row.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-zinc-200 to-zinc-300 text-[10px] font-semibold text-zinc-600">
-                  {initials(row.label)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-zinc-800">{row.label}</p>
-                  <p className="truncate text-xs text-zinc-500">{row.subtitle}</p>
+              <li
+                key={row.id}
+                className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <SavedPropertyThumbnail row={row} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-md font-medium font-phudu text-[#0F172A]">{row.price}</p>
+                    <p className="truncate text-xs font-ibm-plex-sans text-[#64748B]">{row.subtitle}</p>
+                    <p className="mt-1 flex items-start gap-1 text-sm text-[#373940]">
+                      <MapPin className="mt-0.5 size-3 shrink-0 text-zinc-400" aria-hidden />
+                      <span>{row.address}</span>
+                    </p>
+                  </div>
                 </div>
-                <p className="shrink-0 text-sm font-semibold text-zinc-900">{row.price}</p>
-                <span
-                  className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                    row.status === "Viewing pending"
-                      ? "border border-sky-200 bg-sky-50 text-sky-700"
-                      : "border border-emerald-200 bg-emerald-50 text-emerald-800"
-                  }`}
-                >
-                  {row.status}
-                </span>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 sm:pl-2">
+                  <span className="rounded-full border border-slate-400 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-800">
+                    {row.acreageLabel}
+                  </span>
+                  {row.viewingRequest !== "none" ? (
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${viewingRequestBadgeClasses(row.viewingRequest)}`}
+                    >
+                      {viewingRequestLabel(row.viewingRequest)}
+                    </span>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>
@@ -178,10 +210,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-[11px] font-phudu font-semibold uppercase tracking-wide text-zinc-500">Recent activity</h3>
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-            Active
-          </span>
+          <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">Recent activity</h3>
         </div>
         {selected.activity.length === 0 ? (
           <p className="mt-4 py-6 text-center text-sm text-zinc-500">No recent activity.</p>

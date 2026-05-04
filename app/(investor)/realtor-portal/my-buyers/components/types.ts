@@ -1,9 +1,14 @@
+/** Optional second badge; omit or `'none'` to show acreage only. */
+export type SavedPropertyViewRequest = "none" | "pending" | "scheduled" | "completed";
+
 export type SavedPropertyRow = {
   id: string;
-  label: string;
-  subtitle: string;
+  thumbnailSrc: string;
   price: string;
-  status: "Viewing pending" | "Saved";
+  subtitle: string;
+  address: string;
+  acreageLabel: string;
+  viewingRequest: SavedPropertyViewRequest;
 };
 
 export type ActivityRow = {
