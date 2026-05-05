@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RealtorInformation } from "../components/realtor-information";
 import MessageBoxIcon from "@/components/icons/message-box";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
@@ -82,6 +82,7 @@ export default function BuyerMessagePage() {
   const [draftMessage, setDraftMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [showDetailInformation, setShowDetailInformation] = useState(false);
+  const messageScrollRef = useRef<HTMLDivElement | null>(null);
 
   const selectedThread = useMemo(
     () => threads.find((thread) => thread.id === selectedThreadId) ?? null,
@@ -169,6 +170,13 @@ export default function BuyerMessagePage() {
     };
   }, [selectedThreadId]);
 
+  useEffect(() => {
+    if (isLoadingMessages) return;
+    const container = messageScrollRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, [conversation, isLoadingMessages, selectedThreadId]);
+
   async function sendMessage() {
     const text = draftMessage.trim();
     if (!text || !selectedThreadId) return;
@@ -210,7 +218,7 @@ export default function BuyerMessagePage() {
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
-      <div className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="mx-auto max-h-[calc(100vh-90px)] w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div
           className={`grid min-h-[calc(100vh-150px)] grid-cols-1 ${
             showDetailInformation
@@ -218,7 +226,7 @@ export default function BuyerMessagePage() {
               : "lg:grid-cols-[280px_minmax(0,1fr)]"
           }`}
         >
-          <aside className="border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
+          <aside className="flex max-h-[calc(100vh-150px)] flex-col overflow-hidden border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
             <div className="border-b border-zinc-200 px-4 py-3">
               <div className="flex items-center gap-2 text-[#141f2f] align-middle">
                 <MessageBoxIcon />
@@ -226,7 +234,7 @@ export default function BuyerMessagePage() {
               </div>
             </div>
 
-            <div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {isLoadingThreads ? (
                 <p className="px-4 py-4 text-sm text-zinc-500">Loading conversations...</p>
               ) : threads.length === 0 ? (
@@ -307,7 +315,10 @@ export default function BuyerMessagePage() {
               </button>
             </header>
 
-            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+            <div
+              ref={messageScrollRef}
+              className="max-h-[calc(100vh-280px)] flex-1 space-y-6 overflow-y-auto px-6 py-6"
+            >
               {isLoadingMessages ? (
                 <p className="text-sm text-zinc-500">Loading messages...</p>
               ) : conversation.length === 0 ? (
@@ -364,7 +375,7 @@ export default function BuyerMessagePage() {
             </div>
           </section>
           {showDetailInformation ? (
-            <div className="border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
+            <div className="max-h-[calc(100vh-150px)] overflow-y-auto border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
               <RealtorInformation
                 name={selectedThread?.name ?? "No Realtor Selected"}
                 avatarUrl={selectedThread?.avatarUrl}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BuyerInformation } from "../components/buyer-information";
 import { LinkedBuyersPanel, type BuyerThread } from "./components/linked-buyers-panel";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
@@ -65,6 +65,7 @@ export default function RealtorMessagesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [showDetailInformation, setShowDetailInformation] = useState(false);
+  const messageScrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -154,6 +155,13 @@ export default function RealtorMessagesPage() {
     };
   }, [selectedThread?.threadId, selectedThread?.avatarUrl]);
 
+  useEffect(() => {
+    if (isLoadingMessages) return;
+    const container = messageScrollRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, [conversation, isLoadingMessages, selectedThread?.threadId]);
+
   async function sendMessage() {
     const text = draftMessage.trim();
     if (!text || !selectedThread?.threadId) return;
@@ -193,7 +201,7 @@ export default function RealtorMessagesPage() {
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
-      <div className="mx-auto w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="mx-auto max-h-[calc(100vh-90px)] w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div
           className={`grid min-h-[calc(100vh-150px)] grid-cols-1 ${
             showDetailInformation
@@ -247,7 +255,10 @@ export default function RealtorMessagesPage() {
               </button>
             </header>
 
-            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+            <div
+              ref={messageScrollRef}
+              className="max-h-[calc(100vh-280px)] flex-1 space-y-6 overflow-y-auto px-6 py-6"
+            >
               {isLoadingMessages ? (
                 <p className="text-sm text-zinc-500">Loading messages...</p>
               ) : conversation.length === 0 ? (

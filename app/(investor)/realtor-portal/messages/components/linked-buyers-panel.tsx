@@ -34,7 +34,7 @@ export function LinkedBuyersPanel({
   onSelectBuyer,
 }: LinkedBuyersPanelProps) {
   return (
-    <aside className="border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
+    <aside className="flex max-h-[calc(100vh-150px)] flex-col overflow-hidden border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
       <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3">
         <div className="flex items-center gap-2 text-[#141f2f] align-middle">
           <MessageMembersIcon />
@@ -51,7 +51,7 @@ export function LinkedBuyersPanel({
         </button>
       </div>
 
-      <div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <p className="px-4 py-4 text-sm text-zinc-500">Loading buyers...</p>
         ) : threads.length === 0 ? (
