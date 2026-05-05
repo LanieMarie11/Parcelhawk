@@ -8,6 +8,7 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
+import { ViewRequestModal } from "../components/view-request-modal"
 
 const SORT_OPTIONS = ["Newest", "Oldest", "Price: Low to High", "Price: High to Low"] as const
 
@@ -41,6 +42,7 @@ function FavoritePropertyCard({
   onToggleCompare: () => void
 }) {
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
+  const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
   const satelliteUrl = listing.parcelSatelliteMapDataUrl ?? null
   const cardImageSrc = getFavoriteCardImageSrc(listing)
   const priceText = formatPrice(listing.price)
@@ -161,6 +163,7 @@ function FavoritePropertyCard({
           </button>
           <button
             type="button"
+            onClick={() => setIsViewRequestOpen(true)}
             className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
           >
             View Request
@@ -205,6 +208,12 @@ function FavoritePropertyCard({
         </div>
       </div>
     ) : null}
+
+    <ViewRequestModal
+      open={isViewRequestOpen}
+      listingId={listing.id}
+      onClose={() => setIsViewRequestOpen(false)}
+    />
     </>
   )
 }

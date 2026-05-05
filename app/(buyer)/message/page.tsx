@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Square } from "lucide-react";
 import { RealtorInformation } from "../components/realtor-information";
 import MessageBoxIcon from "@/components/icons/message-box";
+import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
+import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 
 type Thread = {
   id: string;
@@ -16,11 +17,15 @@ type Thread = {
   location: string;
 };
 
-type Message = {
-  id: string;
-  sender: "realtor" | "buyer";
-  text: string;
-};
+type ConversationItem =
+  | {
+      kind: "message";
+      id: string;
+      sender: "realtor" | "buyer";
+      text: string;
+      createdAt: string;
+    }
+  | ThreadTimelineViewingRequest;
 
 type BuyerThreadsApiResponse = {
   threads: Array<{
@@ -38,12 +43,7 @@ type BuyerThreadsApiResponse = {
 };
 
 type BuyerThreadMessagesApiResponse = {
-  messages: Array<{
-    id: string;
-    sender: "investor" | "buyer";
-    text: string;
-    createdAt: string;
-  }>;
+  timeline?: ThreadTimelineItem[];
   error?: string;
 };
 
@@ -57,11 +57,25 @@ type BuyerSendMessageApiResponse = {
   error?: string;
 };
 
+function mapTimelineForBuyer(items: ThreadTimelineItem[]): ConversationItem[] {
+  return items.map((item) =>
+    item.kind === "message"
+      ? {
+          kind: "message" as const,
+          id: item.id,
+          sender: item.sender === "investor" ? ("realtor" as const) : ("buyer" as const),
+          text: item.text,
+          createdAt: item.createdAt,
+        }
+      : item
+  );
+}
+
 export default function BuyerMessagePage() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [isLoadingThreads, setIsLoadingThreads] = useState(true);
-  const [conversation, setConversation] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<ConversationItem[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -135,13 +149,7 @@ export default function BuyerMessagePage() {
         }
         if (!isMounted) return;
 
-        setConversation(
-          (data.messages ?? []).map((message) => ({
-            id: message.id,
-            sender: message.sender === "investor" ? "realtor" : "buyer",
-            text: message.text,
-          })),
-        );
+        setConversation(mapTimelineForBuyer(data.timeline ?? []));
       } finally {
         if (isMounted) setIsLoadingMessages(false);
       }
@@ -167,12 +175,15 @@ export default function BuyerMessagePage() {
       if (!response.ok || !data.message) return;
       const sentMessage = data.message;
 
+      const createdAt = sentMessage.createdAt ?? new Date().toISOString();
       setConversation((prev) => [
         ...prev,
         {
+          kind: "message" as const,
           id: sentMessage.id,
-          sender: sentMessage.sender === "investor" ? "realtor" : "buyer",
+          sender: sentMessage.sender === "investor" ? ("realtor" as const) : ("buyer" as const),
           text: sentMessage.text,
+          createdAt,
         },
       ]);
 
@@ -291,33 +302,26 @@ export default function BuyerMessagePage() {
                   {selectedThread ? "No messages yet." : "Select a conversation to view messages."}
                 </p>
               ) : (
-                conversation.map((message) =>
-                  message.sender === "realtor" ? (
-                    <div key={message.id} className="flex max-w-[70%] items-start gap-3">
-                      {selectedThread?.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={selectedThread.avatarUrl}
-                          alt=""
-                          className="mt-0.5 size-9 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
-                          {(selectedThread?.name ?? "R").charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700">
-                        {message.text}
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={message.id} className="flex justify-end">
-                      <div className="max-w-[72%] rounded-2xl bg-[#3f6f39] px-4 py-2.5 text-sm leading-relaxed text-white">
-                        {message.text}
-                      </div>
-                    </div>
-                  ),
-                )
+                <ThreadConversationTimeline
+                  variant="buyer"
+                  items={conversation.map((item) =>
+                    item.kind === "viewing_request"
+                      ? item
+                      : {
+                          kind: "message" as const,
+                          id: item.id,
+                          text: item.text,
+                          createdAt: item.createdAt,
+                          direction:
+                            item.sender === "realtor" ? ("incoming" as const) : ("outgoing" as const),
+                          incomingAvatarUrl:
+                            item.sender === "realtor" ? selectedThread?.avatarUrl : undefined,
+                          incomingPlaceholderInitial: (selectedThread?.name ?? "R")
+                            .charAt(0)
+                            .toUpperCase(),
+                        },
+                  )}
+                />
               )}
             </div>
             <div className="border-t border-zinc-200 p-4">
