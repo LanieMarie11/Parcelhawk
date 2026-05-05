@@ -139,6 +139,11 @@ export default function RealtorMessagesPage() {
         }
         if (!isMounted) return;
         setConversation(mapTimelineForRealtor(data.timeline ?? [], selectedThread.avatarUrl));
+        setBuyerThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === selectedThread.id ? { ...thread, unread: false } : thread,
+          ),
+        );
       } finally {
         if (isMounted) setIsLoadingMessages(false);
       }
@@ -177,7 +182,7 @@ export default function RealtorMessagesPage() {
       ]);
       setBuyerThreads((prev) =>
         prev.map((thread) =>
-          thread.id === selectedThread.id ? { ...thread, preview: text } : thread,
+          thread.id === selectedThread.id ? { ...thread, preview: text, unread: false } : thread,
         ),
       );
       setDraftMessage("");

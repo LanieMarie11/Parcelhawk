@@ -10,6 +10,7 @@ type Thread = {
   id: string;
   name: string;
   preview: string;
+  unread: boolean;
   avatarUrl: string;
   lastActive: string;
   email: string;
@@ -38,6 +39,7 @@ type BuyerThreadsApiResponse = {
     location: string;
     lastActive: string;
     lastMessagePreview: string;
+    unreadCount: number;
   }>;
   error?: string;
 };
@@ -101,6 +103,7 @@ export default function BuyerMessagePage() {
           id: thread.threadId,
           name: thread.name.toUpperCase(),
           preview: thread.lastMessagePreview,
+          unread: thread.unreadCount > 0,
           avatarUrl: thread.avatarUrl,
           email: thread.email,
           phone: thread.phone,
@@ -150,6 +153,11 @@ export default function BuyerMessagePage() {
         if (!isMounted) return;
 
         setConversation(mapTimelineForBuyer(data.timeline ?? []));
+        setThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === selectedThreadId ? { ...thread, unread: false } : thread,
+          ),
+        );
       } finally {
         if (isMounted) setIsLoadingMessages(false);
       }
@@ -190,7 +198,7 @@ export default function BuyerMessagePage() {
       setThreads((prev) =>
         prev.map((thread) =>
           thread.id === selectedThreadId
-            ? { ...thread, preview: sentMessage.text, lastActive: "just now" }
+            ? { ...thread, preview: sentMessage.text, lastActive: "just now", unread: false }
             : thread,
         ),
       );
@@ -249,6 +257,11 @@ export default function BuyerMessagePage() {
                       <p className="truncate text-[13px] font-bold leading-4 text-[#1d2630]">{thread.name}</p>
                       <p className="truncate text-[12px] leading-4 text-zinc-500">{thread.preview}</p>
                     </div>
+                    {thread.unread ? (
+                      <span className="rounded-full border border-[#94dbe7] bg-[#e7f8fb] px-2 py-0.5 text-[10px] font-semibold text-[#36a7bf]">
+                        Unread
+                      </span>
+                    ) : null}
                   </button>
                 ))
               )}

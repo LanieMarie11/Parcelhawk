@@ -23,6 +23,8 @@ export const messageThreads = pgTable(
     buyerUserId: uuid("buyer_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    investorLastReadAt: timestamp("investor_last_read_at", { withTimezone: true }),
+    buyerLastReadAt: timestamp("buyer_last_read_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

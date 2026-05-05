@@ -41,6 +41,11 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 })
   }
 
+  await db
+    .update(messageThreads)
+    .set({ investorLastReadAt: new Date() })
+    .where(eq(messageThreads.id, threadId))
+
   const [messageRows, viewingRows] = await Promise.all([
     db
       .select({
@@ -123,7 +128,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   await db
     .update(messageThreads)
-    .set({ updatedAt: new Date() })
+    .set({ updatedAt: new Date(), investorLastReadAt: new Date() })
     .where(eq(messageThreads.id, threadId))
 
   return NextResponse.json({
