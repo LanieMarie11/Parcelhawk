@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { investors, messages, messageThreads, users } from "@/db/schema"
+import { investors, messages, messageThreads, users, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -84,6 +84,7 @@ export async function GET() {
       .select({
         id: messageThreads.id,
         buyerUserId: messageThreads.buyerUserId,
+        investorLastReadAt: messageThreads.investorLastReadAt,
       })
       .from(messageThreads)
       .where(
@@ -118,10 +119,53 @@ export async function GET() {
           .orderBy(desc(messages.createdAt))
       : []
     const latestByThread = new Map<string, { body: string; createdAt: Date }>()
+    const unreadCountByThread = new Map<string, number>()
     for (const item of latestMessages) {
       if (!latestByThread.has(item.threadId)) {
         latestByThread.set(item.threadId, { body: item.body, createdAt: item.createdAt })
       }
+    }
+    const threadMetaById = new Map(
+      existingThreads.map((thread) => [thread.id, { investorLastReadAt: thread.investorLastReadAt }]),
+    )
+    const messagesWithSender = threadIds.length
+      ? await db
+          .select({
+            threadId: messages.threadId,
+            senderRole: messages.senderRole,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(inArray(messages.threadId, threadIds))
+      : []
+    for (const item of messagesWithSender) {
+      if (item.senderRole !== "buyer") continue
+      const meta = threadMetaById.get(item.threadId)
+      if (!meta) continue
+      if (meta.investorLastReadAt && item.createdAt <= meta.investorLastReadAt) continue
+      unreadCountByThread.set(item.threadId, (unreadCountByThread.get(item.threadId) ?? 0) + 1)
+    }
+    const viewingRows = buyerIds.length
+      ? await db
+          .select({
+            buyerId: viewingRequests.buyerId,
+            createdAt: viewingRequests.createdAt,
+          })
+          .from(viewingRequests)
+          .where(
+            and(
+              eq(viewingRequests.realtorId, investorId),
+              inArray(viewingRequests.buyerId, buyerIds),
+            ),
+          )
+      : []
+    for (const request of viewingRows) {
+      const threadId = threadByBuyerId.get(request.buyerId)
+      if (!threadId) continue
+      const meta = threadMetaById.get(threadId)
+      if (!meta) continue
+      if (meta.investorLastReadAt && request.createdAt <= meta.investorLastReadAt) continue
+      unreadCountByThread.set(threadId, (unreadCountByThread.get(threadId) ?? 0) + 1)
     }
 
     const threads = buyers.map((buyer) => {
@@ -142,7 +186,7 @@ export async function GET() {
         lastActive: formatRelativeTime(buyer.updatedAt),
         lastMessagePreview: latest?.body || "Start a conversation with this buyer.",
         lastMessageAt: (latest?.createdAt ?? buyer.updatedAt).toISOString(),
-        unreadCount: 0,
+        unreadCount: unreadCountByThread.get(threadId) ?? 0,
       }
     })
 

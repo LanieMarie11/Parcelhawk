@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { investors, messages, messageThreads } from "@/db/schema";
+import { investors, messages, messageThreads, viewingRequests } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 
 type SessionUser = {
@@ -51,6 +51,7 @@ export async function GET() {
         threadId: messageThreads.id,
         investorId: messageThreads.investorId,
         updatedAt: messageThreads.updatedAt,
+        buyerLastReadAt: messageThreads.buyerLastReadAt,
         firstName: investors.firstName,
         lastName: investors.lastName,
         avatarUrl: investors.avatarUrl,
@@ -80,6 +81,7 @@ export async function GET() {
       .orderBy(desc(messages.createdAt));
 
     const latestByThread = new Map<string, { body: string; createdAt: Date }>();
+    const unreadCountByThread = new Map<string, number>();
     for (const item of latestMessages) {
       if (!latestByThread.has(item.threadId)) {
         latestByThread.set(item.threadId, {
@@ -87,6 +89,54 @@ export async function GET() {
           createdAt: item.createdAt,
         });
       }
+    }
+
+    const readByThread = new Map(
+      threads.map((thread) => [thread.threadId, { buyerLastReadAt: thread.buyerLastReadAt }]),
+    );
+    const messageRows = threadIds.length
+      ? await db
+          .select({
+            threadId: messages.threadId,
+            senderRole: messages.senderRole,
+            createdAt: messages.createdAt,
+          })
+          .from(messages)
+          .where(inArray(messages.threadId, threadIds))
+      : [];
+    for (const message of messageRows) {
+      if (message.senderRole !== "investor") continue;
+      const readMeta = readByThread.get(message.threadId);
+      if (!readMeta) continue;
+      if (readMeta.buyerLastReadAt && message.createdAt <= readMeta.buyerLastReadAt) continue;
+      unreadCountByThread.set(message.threadId, (unreadCountByThread.get(message.threadId) ?? 0) + 1);
+    }
+    const investorIds = threads.map((thread) => thread.investorId);
+    const viewingRows = investorIds.length
+      ? await db
+          .select({
+            realtorId: viewingRequests.realtorId,
+            status: viewingRequests.status,
+            updatedAt: viewingRequests.updatedAt,
+          })
+          .from(viewingRequests)
+          .where(
+            and(
+              eq(viewingRequests.buyerId, buyerUserId),
+              inArray(viewingRequests.realtorId, investorIds),
+            ),
+          )
+      : [];
+    const threadIdByInvestorId = new Map(threads.map((thread) => [thread.investorId, thread.threadId]));
+    for (const request of viewingRows) {
+      // Buyer-created pending requests should not count as unread for buyer.
+      if (request.status === "pending") continue;
+      const threadId = threadIdByInvestorId.get(request.realtorId);
+      if (!threadId) continue;
+      const readMeta = readByThread.get(threadId);
+      if (!readMeta) continue;
+      if (readMeta.buyerLastReadAt && request.updatedAt <= readMeta.buyerLastReadAt) continue;
+      unreadCountByThread.set(threadId, (unreadCountByThread.get(threadId) ?? 0) + 1);
     }
 
     return NextResponse.json({
@@ -108,6 +158,7 @@ export async function GET() {
               thread.updatedAt,
           ),
           lastMessagePreview: latest?.body ?? "Start your conversation.",
+          unreadCount: unreadCountByThread.get(thread.threadId) ?? 0,
         };
       }),
     });

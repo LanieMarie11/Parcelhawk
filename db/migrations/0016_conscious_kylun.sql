@@ -1,0 +1,2 @@
+ALTER TABLE "message_threads" ADD COLUMN "investor_last_read_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "message_threads" ADD COLUMN "buyer_last_read_at" timestamp with time zone;
