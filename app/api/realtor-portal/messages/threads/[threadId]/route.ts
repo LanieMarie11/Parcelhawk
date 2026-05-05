@@ -2,8 +2,9 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, asc, eq } from "drizzle-orm"
 import { db } from "@/db"
-import { messages, messageThreads } from "@/db/schema"
+import { messages, messageThreads, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
+import { mergeThreadTimeline } from "@/lib/thread-timeline"
 
 type SessionUser = {
   id?: string
@@ -27,7 +28,11 @@ export async function GET(_request: Request, context: RouteContext) {
 
   const { threadId } = await context.params
   const [thread] = await db
-    .select({ id: messageThreads.id })
+    .select({
+      id: messageThreads.id,
+      investorId: messageThreads.investorId,
+      buyerUserId: messageThreads.buyerUserId,
+    })
     .from(messageThreads)
     .where(and(eq(messageThreads.id, threadId), eq(messageThreads.investorId, investorId)))
     .limit(1)
@@ -36,25 +41,41 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Thread not found" }, { status: 404 })
   }
 
-  const rows = await db
-    .select({
-      id: messages.id,
-      senderRole: messages.senderRole,
-      body: messages.body,
-      createdAt: messages.createdAt,
-    })
-    .from(messages)
-    .where(eq(messages.threadId, threadId))
-    .orderBy(asc(messages.createdAt))
+  const [messageRows, viewingRows] = await Promise.all([
+    db
+      .select({
+        id: messages.id,
+        senderRole: messages.senderRole,
+        body: messages.body,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(eq(messages.threadId, threadId))
+      .orderBy(asc(messages.createdAt)),
+    db
+      .select({
+        id: viewingRequests.id,
+        listingId: viewingRequests.listingId,
+        status: viewingRequests.status,
+        buyerNote: viewingRequests.buyerNote,
+        scheduledAt: viewingRequests.scheduledAt,
+        completedAt: viewingRequests.completedAt,
+        createdAt: viewingRequests.createdAt,
+        updatedAt: viewingRequests.updatedAt,
+      })
+      .from(viewingRequests)
+      .where(
+        and(
+          eq(viewingRequests.buyerId, thread.buyerUserId),
+          eq(viewingRequests.realtorId, thread.investorId)
+        )
+      )
+      .orderBy(asc(viewingRequests.createdAt)),
+  ])
 
-  return NextResponse.json({
-    messages: rows.map((row) => ({
-      id: row.id,
-      sender: row.senderRole,
-      text: row.body,
-      createdAt: row.createdAt.toISOString(),
-    })),
-  })
+  const timeline = mergeThreadTimeline(messageRows, viewingRows)
+
+  return NextResponse.json({ timeline })
 }
 
 export async function POST(request: Request, context: RouteContext) {

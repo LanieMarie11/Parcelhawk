@@ -1,33 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SlidersHorizontal, UsersRound } from "lucide-react";
-import MessageMembersIcon from "@/components/icons/message-members";
 import { BuyerInformation } from "../components/buyer-information";
+import { LinkedBuyersPanel, type BuyerThread } from "./components/linked-buyers-panel";
+import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
+import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 
-type BuyerThread = {
-  id: string;
-  threadId: string;
-  name: string;
-  preview: string;
-  unread?: boolean;
-  avatarUrl: string;
-  email: string;
-  phone: string;
-  location?: string;
-  preferenceBudget: string;
-  preferenceAcreage: string;
-  preferencePurpose: string;
-  preferenceTimeframe: string;
-  lastActive?: string;
-};
-
-type ChatMessage = {
-  id: string;
-  sender: "buyer" | "agent";
-  text: string;
-  avatarUrl?: string;
-};
+type ChatItem =
+  | {
+      kind: "message";
+      id: string;
+      sender: "buyer" | "agent";
+      text: string;
+      createdAt: string;
+      avatarUrl?: string;
+    }
+  | ThreadTimelineViewingRequest;
 
 type MessageThreadsApiResponse = {
   threads: Array<{
@@ -49,19 +37,29 @@ type MessageThreadsApiResponse = {
   error?: string;
 };
 type ThreadMessagesApiResponse = {
-  messages: Array<{
-    id: string;
-    sender: "investor" | "buyer";
-    text: string;
-    createdAt: string;
-  }>;
+  timeline?: ThreadTimelineItem[];
   error?: string;
 };
+
+function mapTimelineForRealtor(items: ThreadTimelineItem[], buyerAvatarUrl: string): ChatItem[] {
+  return items.map((item) =>
+    item.kind === "message"
+      ? {
+          kind: "message" as const,
+          id: item.id,
+          sender: item.sender === "buyer" ? ("buyer" as const) : ("agent" as const),
+          text: item.text,
+          createdAt: item.createdAt,
+          avatarUrl: item.sender === "buyer" ? buyerAvatarUrl : undefined,
+        }
+      : item
+  );
+}
 
 export default function RealtorMessagesPage() {
   const [buyerThreads, setBuyerThreads] = useState<BuyerThread[]>([]);
   const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
-  const [conversation, setConversation] = useState<ChatMessage[]>([]);
+  const [conversation, setConversation] = useState<ChatItem[]>([]);
   const [draftMessage, setDraftMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -140,14 +138,7 @@ export default function RealtorMessagesPage() {
           return;
         }
         if (!isMounted) return;
-        setConversation(
-          (data.messages ?? []).map((message) => ({
-            id: message.id,
-            sender: message.sender === "investor" ? "agent" : "buyer",
-            text: message.text,
-            avatarUrl: message.sender === "buyer" ? selectedThread.avatarUrl : undefined,
-          })),
-        );
+        setConversation(mapTimelineForRealtor(data.timeline ?? [], selectedThread.avatarUrl));
       } finally {
         if (isMounted) setIsLoadingMessages(false);
       }
@@ -168,11 +159,21 @@ export default function RealtorMessagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const data = (await response.json()) as { message?: { id: string; text: string }; error?: string };
+      const data = (await response.json()) as {
+        message?: { id: string; text: string; createdAt?: string };
+        error?: string;
+      };
       if (!response.ok || !data.message) return;
+      const createdAt = data.message.createdAt ?? new Date().toISOString();
       setConversation((prev) => [
         ...prev,
-        { id: data.message!.id, sender: "agent", text: data.message!.text },
+        {
+          kind: "message" as const,
+          id: data.message!.id,
+          sender: "agent" as const,
+          text: data.message!.text,
+          createdAt,
+        },
       ]);
       setBuyerThreads((prev) =>
         prev.map((thread) =>
@@ -195,66 +196,12 @@ export default function RealtorMessagesPage() {
               : "lg:grid-cols-[285px_minmax(0,1fr)]"
           }`}
         >
-          <aside className="border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
-            <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3">
-              <div className="flex items-center gap-2 text-[#141f2f] align-middle">
-                <MessageMembersIcon />
-                <p className="text-xl font-medium font-phudu uppercase tracking-tight">
-                  Linked Buyers
-                </p>
-              </div>
-              <button
-                type="button"
-                className="inline-flex items-center gap-2 rounded-2xl border border-zinc-300 bg-[#f7f8fa] px-3 py-1.5 text-sm font-semibold text-[#3e6540] transition-colors hover:bg-[#eef2f0]"
-              >
-                <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden />
-                Sort by
-              </button>
-            </div>
-
-            <div>
-              {isLoading ? (
-                <p className="px-4 py-4 text-sm text-zinc-500">Loading buyers...</p>
-              ) : buyerThreads.length === 0 ? (
-                <p className="px-4 py-4 text-sm text-zinc-500">No linked buyers found.</p>
-              ) : (
-                buyerThreads.map((thread) => (
-                <button
-                  key={thread.id}
-                  type="button"
-                  onClick={() => setSelectedBuyerId(thread.id)}
-                  className={`flex w-full items-center gap-2.5 border-b border-zinc-200 px-3 py-2.5 text-left transition-colors ${
-                    thread.id === selectedBuyerId ? "bg-[#e7eaee]" : "hover:bg-zinc-100"
-                  }`}
-                >
-                  {thread.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={thread.avatarUrl}
-                      alt={thread.name}
-                      className="size-10 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600">
-                      {thread.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-bold leading-5 text-[#1d2630]">
-                      {thread.name}
-                    </p>
-                    <p className="truncate text-[11px] leading-4 text-zinc-500">{thread.preview}</p>
-                  </div>
-                  {thread.unread ? (
-                    <span className="rounded-full border border-[#94dbe7] bg-[#e7f8fb] px-2 py-0.5 text-[10px] font-semibold text-[#36a7bf]">
-                      Unread
-                    </span>
-                  ) : null}
-                </button>
-                ))
-              )}
-            </div>
-          </aside>
+          <LinkedBuyersPanel
+            threads={buyerThreads}
+            isLoading={isLoading}
+            selectedBuyerId={selectedBuyerId}
+            onSelectBuyer={setSelectedBuyerId}
+          />
 
           <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
             <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
@@ -303,33 +250,25 @@ export default function RealtorMessagesPage() {
                   {selectedThread ? "No messages yet. Say hello below." : "Select a buyer to view messages."}
                 </p>
               ) : (
-                conversation.map((message) =>
-                  message.sender === "buyer" ? (
-                    <div key={message.id} className="flex max-w-[70%] items-start gap-3">
-                      {message.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={message.avatarUrl}
-                          alt=""
-                          className="mt-0.5 size-9 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
-                          {(selectedThread?.name ?? "B").charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <div className="rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700">
-                        {message.text}
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={message.id} className="flex justify-end">
-                      <div className="max-w-[72%] rounded-2xl bg-[#3f6f39] px-4 py-2.5 text-sm leading-relaxed text-white">
-                        {message.text}
-                      </div>
-                    </div>
-                  ),
-                )
+                <ThreadConversationTimeline
+                  variant="realtor"
+                  items={conversation.map((item) =>
+                    item.kind === "viewing_request"
+                      ? item
+                      : {
+                          kind: "message" as const,
+                          id: item.id,
+                          text: item.text,
+                          createdAt: item.createdAt,
+                          direction: item.sender === "buyer" ? ("incoming" as const) : ("outgoing" as const),
+                          incomingAvatarUrl:
+                            item.sender === "buyer" ? item.avatarUrl : undefined,
+                          incomingPlaceholderInitial: (selectedThread?.name ?? "B")
+                            .charAt(0)
+                            .toUpperCase(),
+                        },
+                  )}
+                />
               )}
             </div>
             <div className="border-t border-zinc-200 p-4">
