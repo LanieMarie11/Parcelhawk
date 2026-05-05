@@ -5,17 +5,29 @@ import { BuyersTable } from "./buyers-table";
 import type { BuyerRow } from "./buyers-table";
 import { EmptySelectionCard } from "./empty-selection-card";
 import { HotBuyersPanel } from "./hot-buyers-panel";
+import type { HotBuyerItem } from "./hot-buyers-panel";
 import { InviteLinkCard } from "./invite-link-card";
 import { SelectedBuyerCard } from "./selected-buyer-card";
 import { StatsCards } from "./stats-cards";
 
 type BuyersResponse = {
   buyers: BuyerRow[];
+  hotBuyers: HotBuyerItem[];
+  stats: StatsResponse;
+};
+
+type StatsResponse = {
+  totalBuyers: number;
+  hotBuyers: number;
+  viewingRequests: number;
+  parcelsPushed: number;
 };
 
 export function RealtorPortalClient() {
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerRow | null>(null);
   const [buyerRows, setBuyerRows] = useState<BuyerRow[]>([]);
+  const [hotBuyers, setHotBuyers] = useState<HotBuyerItem[]>([]);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,13 +36,17 @@ export function RealtorPortalClient() {
 
     async function loadBuyers() {
       try {
-        const response = await fetch("/api/realtor-portal/buyers", { cache: "no-store" });
-        const data = (await response.json()) as BuyersResponse & { error?: string };
-        if (!response.ok) {
-          throw new Error(data.error ?? "Failed to load buyers");
+        const buyersResponse = await fetch("/api/realtor-portal/buyers", { cache: "no-store" });
+        const buyersData = (await buyersResponse.json()) as BuyersResponse & { error?: string };
+
+        if (!buyersResponse.ok) {
+          throw new Error(buyersData.error ?? "Failed to load buyers");
         }
+
         if (isMounted) {
-          setBuyerRows(data.buyers ?? []);
+          setBuyerRows(buyersData.buyers ?? []);
+          setHotBuyers(buyersData.hotBuyers ?? []);
+          setStats(buyersData.stats ?? null);
           setError(null);
         }
       } catch (err) {
@@ -53,11 +69,11 @@ export function RealtorPortalClient() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-8 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1400px]">
-        <StatsCards />
+        <StatsCards stats={stats} isLoading={isLoading} />
 
         <div className="mt-4 grid gap-4 xl:grid-cols-12">
           <div className="space-y-4 xl:col-span-8">
-            <HotBuyersPanel />
+            <HotBuyersPanel hotBuyers={hotBuyers} isLoading={isLoading} />
             <BuyersTable
               buyerRows={buyerRows}
               isLoading={isLoading}

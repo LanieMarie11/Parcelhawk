@@ -1,33 +1,23 @@
 import { Flame } from "lucide-react";
 
-const hotBuyers = [
-  {
-    name: "Sarah Alcott",
-    activity: "Saved 3 parcels in Montrose County, CO in the last 2 hours",
-    tag: "Hot lead",
-    accent: "bg-rose-500",
-    cta: "Reach Out",
-    ctaVariant: "outline",
-  },
-  {
-    name: "Marcus Reed",
-    activity: "MR Requested viewing - Gunnison County, 55 ac, $78.000",
-    tag: "Viewing Request",
-    accent: "bg-sky-500",
-    cta: "Call Now",
-    ctaVariant: "solid",
-  },
-  {
-    name: "Jen Larimore",
-    activity: "Ran 5 searches for Montana land over 40 acres today",
-    tag: "Warm",
-    accent: "bg-amber-500",
-    cta: "Reach Out",
-    ctaVariant: "outline",
-  },
-];
+export type HotBuyerItem = {
+  id: string;
+  name: string;
+  avatarUrl: string;
+  activity: string;
+  tag: "Hot lead" | "Warm";
+  accent: "bg-rose-500" | "bg-amber-500";
+  cta: "Call Now" | "Reach Out";
+  ctaVariant: "solid" | "outline";
+  lastActive: string;
+};
 
-export function HotBuyersPanel() {
+type HotBuyersPanelProps = {
+  hotBuyers: HotBuyerItem[];
+  isLoading: boolean;
+};
+
+export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
   return (
     <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
       <header className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
@@ -41,16 +31,27 @@ export function HotBuyersPanel() {
         <button className="text-sm font-medium text-zinc-600 hover:text-zinc-900">View All</button>
       </header>
       <div className="space-y-1 p-2">
-        {hotBuyers.map((buyer) => (
-          <div key={buyer.name} className="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50">
+        {isLoading ? (
+          <p className="px-3 py-3 text-sm text-zinc-500">Loading hot buyers...</p>
+        ) : hotBuyers.length === 0 ? (
+          <p className="px-3 py-3 text-sm text-zinc-500">No hot buyers right now.</p>
+        ) : (
+          hotBuyers.map((buyer) => (
+          <div key={buyer.id} className="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50">
             <span className={`h-11 w-1 rounded-full ${buyer.accent}`} />
-            <div className="h-10 w-10 rounded-full bg-zinc-200" />
+            {buyer.avatarUrl ? (
+              <img src={buyer.avatarUrl} alt={buyer.name} className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
+                {buyer.name.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-zinc-800">
-                {buyer.name} <span className="text-xs font-normal text-zinc-400">12 min ago</span>
+                {buyer.name} <span className="text-xs font-normal text-zinc-400">{buyer.lastActive}</span>
                 <span
                   className={`ml-2 hidden rounded-full border bg-zinc-50 px-2 py-0.5 text-[11px] font-medium sm:inline-flex ${
-                    buyer.tag.toLowerCase() === "hot lead" || buyer.tag.toLowerCase() === "viewing request"
+                    buyer.tag.toLowerCase() === "hot lead"
                       ? "border-[#E62E2E] text-[#E62E2E]"
                       : "border-zinc-200 text-zinc-500"
                   }`}
@@ -71,7 +72,8 @@ export function HotBuyersPanel() {
               {buyer.cta}
             </button>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </section>
   );

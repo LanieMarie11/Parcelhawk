@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 import { db } from "@/db"
-import { investors, users } from "@/db/schema"
+import { investors, users, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -11,6 +11,7 @@ type SessionUser = {
 }
 
 type BuyerScore = "Hot" | "Warm" | "Cold"
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function formatRelativeTime(value: Date): string {
   const now = Date.now()
@@ -53,6 +54,14 @@ function formatJoined(value: Date): string {
   return `Joined ${value.toLocaleString("en-US", { month: "short", year: "numeric" })}`
 }
 
+function getHotBuyerTag(score: BuyerScore): "Hot lead" | "Warm" {
+  return score === "Hot" ? "Hot lead" : "Warm"
+}
+
+function getHotBuyerAccent(score: BuyerScore): "bg-rose-500" | "bg-amber-500" {
+  return score === "Hot" ? "bg-rose-500" : "bg-amber-500"
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions)
   const sessionUser = (session?.user as SessionUser | undefined) ?? {}
@@ -74,7 +83,16 @@ export async function GET() {
       .limit(1)
 
     if (!investor || !investor.referralUrl) {
-      return NextResponse.json({ buyers: [] })
+      return NextResponse.json({
+        buyers: [],
+        hotBuyers: [],
+        stats: {
+          totalBuyers: 0,
+          hotBuyers: 0,
+          viewingRequests: 0,
+          parcelsPushed: 0,
+        },
+      })
     }
 
     const buyerRows = await db
@@ -97,6 +115,7 @@ export async function GET() {
 
     const buyers = buyerRows.map((buyer, index) => {
       const searchesCount = Math.max(8, 40 - index * 4).toString()
+      const score = calculateBuyerScore(buyer.lastActiveAt ?? buyer.updatedAt)
       return {
         id: buyer.id,
         name: [buyer.firstName, buyer.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
@@ -104,7 +123,7 @@ export async function GET() {
         location: buyer.location ?? "",
         joinedAt: formatJoined(buyer.createdAt),
         lastActive: formatRelativeTime(buyer.lastActiveAt ?? buyer.updatedAt),
-        score: calculateBuyerScore(buyer.lastActiveAt ?? buyer.updatedAt),
+        score,
         searches: searchesCount,
         preferenceAcreage: buyer.preferenceAcreage ?? "",
         preferenceBudget: buyer.preferenceBudget ?? "",
@@ -113,7 +132,47 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ buyers })
+    const hotBuyerItems = buyers
+      .filter((buyer) => buyer.score === "Hot")
+      .slice(0, 3)
+      .map((buyer) => ({
+        id: buyer.id,
+        name: buyer.name,
+        avatarUrl: buyer.avatarUrl,
+        activity: `Active ${buyer.lastActive}${buyer.location ? ` in ${buyer.location}` : ""}`,
+        tag: getHotBuyerTag(buyer.score),
+        accent: getHotBuyerAccent(buyer.score),
+        cta: buyer.score === "Hot" ? "Call Now" : "Reach Out",
+        ctaVariant: buyer.score === "Hot" ? "solid" : "outline",
+        lastActive: buyer.lastActive,
+      }))
+
+    const now = Date.now()
+    const hotBuyers = buyerRows.filter((buyer) => {
+      const activityAt = buyer.lastActiveAt ?? buyer.updatedAt
+      return now - activityAt.getTime() <= DAY_MS
+    }).length
+
+    const [pendingRequests] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(viewingRequests)
+      .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.status, "pending")))
+
+    const [distinctListings] = await db
+      .select({ count: sql<number>`count(distinct ${viewingRequests.listingId})::int` })
+      .from(viewingRequests)
+      .where(eq(viewingRequests.realtorId, investorId))
+
+    return NextResponse.json({
+      buyers,
+      hotBuyers: hotBuyerItems,
+      stats: {
+        totalBuyers: buyerRows.length,
+        hotBuyers,
+        viewingRequests: pendingRequests?.count ?? 0,
+        parcelsPushed: distinctListings?.count ?? 0,
+      },
+    })
   } catch (error) {
     console.error("Realtor buyers fetch error:", error)
     return NextResponse.json({ error: "Failed to fetch buyers" }, { status: 500 })
