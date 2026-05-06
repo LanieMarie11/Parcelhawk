@@ -6,6 +6,25 @@ export type ThreadTimelineMessage = {
   createdAt: string
 }
 
+/** DB + listing snapshot row passed into `mergeThreadTimeline`. */
+export type ThreadViewingRowForMerge = {
+  id: string
+  listingId: number
+  status: "pending" | "scheduled" | "completed" | "cancelled"
+  buyerNote: string | null
+  scheduledAt: Date | null
+  completedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+  price: string
+  acres: string
+  fullAddress: string
+  url: string | null
+  latitude: number | null
+  longitude: number | null
+  parcelSatelliteMapDataUrl: string | null
+}
+
 export type ThreadTimelineViewingRequest = {
   kind: "viewing_request"
   id: string
@@ -16,7 +35,16 @@ export type ThreadTimelineViewingRequest = {
   completedAt: string | null
   createdAt: string
   updatedAt: string
-}
+} & Pick<
+  ThreadViewingRowForMerge,
+  | "price"
+  | "acres"
+  | "fullAddress"
+  | "url"
+  | "latitude"
+  | "longitude"
+  | "parcelSatelliteMapDataUrl"
+>
 
 export type ThreadTimelineItem = ThreadTimelineMessage | ThreadTimelineViewingRequest
 
@@ -32,16 +60,7 @@ export function mergeThreadTimeline(
     body: string
     createdAt: Date
   }>,
-  viewingRows: Array<{
-    id: string
-    listingId: number
-    status: "pending" | "scheduled" | "completed" | "cancelled"
-    buyerNote: string | null
-    scheduledAt: Date | null
-    completedAt: Date | null
-    createdAt: Date
-    updatedAt: Date
-  }>,
+  viewingRows: ThreadViewingRowForMerge[],
 ): ThreadTimelineItem[] {
   const messages: ThreadTimelineMessage[] = messageRows.map((row) => ({
     kind: "message",
@@ -61,6 +80,13 @@ export function mergeThreadTimeline(
     completedAt: timestampToIso(row.completedAt),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    price: row.price,
+    acres: row.acres,
+    fullAddress: row.fullAddress,
+    url: row.url,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    parcelSatelliteMapDataUrl: row.parcelSatelliteMapDataUrl,
   }))
 
   return [...messages, ...viewing].sort(

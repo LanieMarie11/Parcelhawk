@@ -2,9 +2,10 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, asc, eq } from "drizzle-orm"
 import { db } from "@/db"
-import { messages, messageThreads, viewingRequests } from "@/db/schema"
+import { messages, messageThreads } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { mergeThreadTimeline } from "@/lib/thread-timeline"
+import { fetchViewingRowsWithListingsForThread } from "@/lib/thread-viewing-requests-query"
 
 type SessionUser = {
   id?: string
@@ -57,25 +58,7 @@ export async function GET(_request: Request, context: RouteContext) {
       .from(messages)
       .where(eq(messages.threadId, threadId))
       .orderBy(asc(messages.createdAt)),
-    db
-      .select({
-        id: viewingRequests.id,
-        listingId: viewingRequests.listingId,
-        status: viewingRequests.status,
-        buyerNote: viewingRequests.buyerNote,
-        scheduledAt: viewingRequests.scheduledAt,
-        completedAt: viewingRequests.completedAt,
-        createdAt: viewingRequests.createdAt,
-        updatedAt: viewingRequests.updatedAt,
-      })
-      .from(viewingRequests)
-      .where(
-        and(
-          eq(viewingRequests.buyerId, thread.buyerUserId),
-          eq(viewingRequests.realtorId, thread.investorId)
-        )
-      )
-      .orderBy(asc(viewingRequests.createdAt)),
+    fetchViewingRowsWithListingsForThread(thread.buyerUserId, thread.investorId),
   ])
 
   const timeline = mergeThreadTimeline(messageRows, viewingRows)

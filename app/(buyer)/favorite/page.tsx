@@ -159,7 +159,7 @@ function FavoritePropertyCard({
             type="button"
             className="flex-1 rounded-lg bg-[#2D4A31] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#253e2a]"
           >
-            View Report
+            Order Report
           </button>
           <button
             type="button"

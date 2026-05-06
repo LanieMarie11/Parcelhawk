@@ -41,10 +41,14 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     );
   }
 
-  const protectedPaths = ["/profile-setting"];
+  const protectedPaths = ["/profile-setting", "/land-property"];
   const isProtected = protectedPaths.some((p) => path === p || path.startsWith(p + "/"));
   if (isProtected && !token) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const redirectUrl = new URL("/", request.url);
+    if (path === "/land-property" || path.startsWith("/land-property/")) {
+      redirectUrl.searchParams.set("auth", "login-required");
+    }
+    return NextResponse.redirect(redirectUrl);
   }
 
   const response = NextResponse.next();

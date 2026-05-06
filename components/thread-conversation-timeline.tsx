@@ -7,6 +7,27 @@ import {
   formatViewingStatus,
 } from "@/lib/format-thread-message";
 
+function formatViewingCardPrice(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+  const num = Number(s.replace(/[^0-9.]/g, ""));
+  if (Number.isNaN(num)) return s;
+  return `$${num.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+
+function formatViewingCardAcres(raw: string): string | null {
+  const s = raw.trim();
+  if (!s) return null;
+  const num = Number(s.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(num)) return /acre/i.test(s) ? s : `${s} acres`;
+  const label = Math.abs(num) === 1 ? "acre" : "acres";
+  const formatted =
+    Math.abs(num % 1) < 1e-9
+      ? num.toLocaleString("en-US", { maximumFractionDigits: 0 })
+      : num.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return `${formatted} ${label}`;
+}
+
 export type ThreadConversationTimelineItem =
   | {
       kind: "message";
@@ -49,20 +70,68 @@ function ViewingRequestCard({
   omitHeaderSubmittedAt?: boolean;
 }) {
   const accentClass = "text-[#3f6f39]";
-  const heroListingCaption = formatViewingRequestHeroListingLine(item.listingId);
+  const heroListingCaption =
+    item.fullAddress.trim() || formatViewingRequestHeroListingLine(item.listingId);
+  const heroImageUrl = item.parcelSatelliteMapDataUrl ?? null;
+  const priceLine = formatViewingCardPrice(item.price);
+  const acresLine = formatViewingCardAcres(item.acres);
 
   return (
     <div className="w-full max-w-[min(100%,22rem)] overflow-hidden rounded-2xl border border-[#3f6f39]/50 bg-white shadow-sm sm:max-w-md">
-      <div className="relative aspect-16/10 bg-linear-to-br from-[#cdd8ce] via-zinc-300 to-[#dfe6df]">
+      <div
+        className={
+          heroImageUrl
+            ? "relative aspect-16/10 bg-zinc-300"
+            : "relative aspect-16/10 bg-linear-to-br from-[#cdd8ce] via-zinc-300 to-[#dfe6df]"
+        }
+        style={
+          heroImageUrl
+            ? {
+                backgroundImage: `url(${heroImageUrl})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }
+            : undefined
+        }
+      >
         <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/30 to-transparent" aria-hidden />
         <span className="absolute left-2 top-2 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-[2px]">
           {formatViewingStatus(item.status)}
         </span>
         <div className="absolute inset-x-0 bottom-0 space-y-1.5 p-3 text-white">
-          <div className="flex items-start gap-1.5 text-sm font-semibold leading-snug drop-shadow-sm">
-            <MapPin className="mt-0.5 size-3.5 shrink-0 opacity-95" aria-hidden strokeWidth={2} />
-            <span>{heroListingCaption}</span>
-          </div>
+          {item.url ? (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="group flex items-start gap-1.5 text-md font-regular font-ibm-plex-sans leading-snug drop-shadow-sm hover:opacity-95"
+            >
+              <MapPin className="mt-0.5 size-3.5 shrink-0 opacity-95" aria-hidden strokeWidth={2} />
+              <span className="decoration-white/65 underline-offset-[3px] group-hover:underline">
+                {heroListingCaption}
+              </span>
+            </a>
+          ) : (
+            <div className="flex items-start gap-1.5 text-md font-regular font-ibm-plex-sans leading-snug drop-shadow-sm">
+              <MapPin className="mt-0.5 size-3.5 shrink-0 opacity-95" aria-hidden strokeWidth={2} />
+              <span>{heroListingCaption}</span>
+            </div>
+          )}
+          {priceLine || acresLine ? (
+            <div className="flex text-md font-regular flex-wrap items-baseline gap-x-2 gap-y-0.5 drop-shadow-sm">
+              {priceLine ? (
+                <span className="text-base font-medium tabular-nums tracking-tight">{priceLine}</span>
+              ) : null}
+              {priceLine && acresLine ? (
+                <span className="text-sm font-semibold text-white/75" aria-hidden>
+                  ·
+                </span>
+              ) : null}
+              {acresLine ? (
+                <span className="text-sm font-medium tabular-nums">{acresLine}</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
