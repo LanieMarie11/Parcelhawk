@@ -26,7 +26,10 @@ export function LandingHeader() {
   const { data: session, status } = useSession();
   const { registerOpenSignInModal } = useSignInModal();
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const isSignedIn = status === "authenticated" && !!session;
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const isBuyer = isSignedIn && role === "buyer";
 
   const user = session?.user as { firstName?: string; lastName?: string; name?: string } | undefined;
   const profileLabel =
@@ -37,6 +40,40 @@ export function LandingHeader() {
   useEffect(() => {
     registerOpenSignInModal(() => setShowSignInModal(true));
   }, [registerOpenSignInModal]);
+
+  useEffect(() => {
+    if (!isBuyer) {
+      setUnreadMessages(0);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch("/api/buyer/messages/unread-count", {
+          method: "GET",
+          cache: "no-store",
+        });
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { unreadCount?: number };
+        if (isMounted) {
+          setUnreadMessages(Number.isFinite(data.unreadCount) ? (data.unreadCount ?? 0) : 0);
+        }
+      } catch {
+        if (isMounted) {
+          setUnreadMessages(0);
+        }
+      }
+    };
+
+    fetchUnreadCount();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isBuyer, pathname]);
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
@@ -56,15 +93,26 @@ export function LandingHeader() {
         <div className="flex flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 lg:justify-center">
           {nav.map(({ href, label }) => {
             const active = pathname === href || pathname.startsWith(`${href}/`);
+            const badge =
+              href === "/message" && unreadMessages > 0
+                ? unreadMessages > 99
+                  ? "99+"
+                  : unreadMessages
+                : undefined;
             return (
               <Link
                 key={label}
                 href={href}
-                className={`text-sm font-medium text-white transition-colors hover:text-white/90 ${
+                className={`inline-flex items-center gap-1.5 text-sm font-medium text-white transition-colors hover:text-white/90 ${
                   active ? "border-b-2 border-white pb-0.5" : "text-white/90"
                 }`}
               >
                 {label}
+                {badge != null && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}
