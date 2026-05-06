@@ -1,4 +1,4 @@
-import { Calendar, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 import {
   formatChatMessageTime,
@@ -99,24 +99,10 @@ function ViewingRequestCard({
           {formatViewingStatus(item.status)}
         </span>
         <div className="absolute inset-x-0 bottom-0 space-y-1.5 p-3 text-white">
-          {item.url ? (
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="group flex items-start gap-1.5 text-md font-regular font-ibm-plex-sans leading-snug drop-shadow-sm hover:opacity-95"
-            >
-              <MapPin className="mt-0.5 size-3.5 shrink-0 opacity-95" aria-hidden strokeWidth={2} />
-              <span className="decoration-white/65 underline-offset-[3px] group-hover:underline">
-                {heroListingCaption}
-              </span>
-            </a>
-          ) : (
-            <div className="flex items-start gap-1.5 text-md font-regular font-ibm-plex-sans leading-snug drop-shadow-sm">
-              <MapPin className="mt-0.5 size-3.5 shrink-0 opacity-95" aria-hidden strokeWidth={2} />
-              <span>{heroListingCaption}</span>
-            </div>
-          )}
+          <div className="flex items-start gap-1.5 text-md font-regular font-ibm-plex-sans leading-snug drop-shadow-sm">
+            <MapPin className="mt-0.5 size-3.5 shrink-0 opacity-95" aria-hidden strokeWidth={2} />
+            <span>{heroListingCaption}</span>
+          </div>
           {priceLine || acresLine ? (
             <div className="flex text-md font-regular flex-wrap items-baseline gap-x-2 gap-y-0.5 drop-shadow-sm">
               {priceLine ? (
@@ -136,7 +122,8 @@ function ViewingRequestCard({
       </div>
 
       <div className="border-t border-zinc-100 px-4 pb-3 pt-3 text-sm text-zinc-800">
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-zinc-100 pb-2">
+       {/* TODO: Add back in when we have a way to show the viewing request time */}
+        {/* <div className="flex flex-wrap items-center gap-1.5 border-b border-zinc-100 pb-2">
           <p className={`text-[11px] font-semibold uppercase tracking-wide ${accentClass}`}>Viewing request</p>
           {!omitHeaderSubmittedAt ? (
             <>
@@ -148,26 +135,11 @@ function ViewingRequestCard({
               </time>
             </>
           ) : null}
-        </div>
+        </div> */}
 
         <p className="mt-2 text-xs font-medium text-zinc-700">
           Listing #{item.listingId} · {formatViewingStatus(item.status)}
         </p>
-
-        {item.scheduledAt ? (
-          <div className="mt-3 flex items-center gap-3 rounded-full border border-zinc-200/90 bg-[#eef0f3] px-4 py-2.5">
-            <Calendar className={`size-5 shrink-0 ${accentClass}`} strokeWidth={2} aria-hidden />
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium text-zinc-500">Request Time</p>
-              <time
-                className="mt-0.5 block text-sm font-semibold leading-snug text-zinc-900"
-                dateTime={item.scheduledAt}
-              >
-                {formatViewingRequestScheduledTime(item.scheduledAt)}
-              </time>
-            </div>
-          </div>
-        ) : null}
 
         {item.buyerNote ? (
           <figure className="mt-3 flex gap-0">
@@ -181,11 +153,22 @@ function ViewingRequestCard({
           </figure>
         ) : null}
 
-        <p
-          className={`mt-4 text-[11px] font-bold uppercase tracking-wide ${accentClass}`}
-        >
-          VIEW LISTING DETAILS
-        </p>
+        {item.url ? (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-block font-phudu text-[14px] font-regular text-[#2D5A36] uppercase tracking-wide underline-offset-2 hover:underline"
+          >
+            VIEW LISTING DETAILS
+          </a>
+        ) : (
+          <p
+            className="mt-4 font-phudu text-[14px] font-regular text-[#2D5A36] uppercase tracking-wide"
+          >
+            VIEW LISTING DETAILS
+          </p>
+        )}
       </div>
     </div>
   );
@@ -199,17 +182,21 @@ function ViewingRequestRow({
   variant: "buyer" | "realtor";
 }) {
   const alignOutgoing = variant === "buyer";
+  const sideTimeIso = item.scheduledAt ?? item.createdAt;
+  const sideTimeLabel = item.scheduledAt
+    ? formatViewingRequestScheduledTime(item.scheduledAt)
+    : formatChatMessageTime(item.createdAt);
 
   if (alignOutgoing) {
     return (
-      <div className="flex w-full items-start justify-end gap-1.5 px-2">
+      <div className="flex w-full items-end justify-end gap-1.5 px-2">
         <time
-          className="shrink-0 whitespace-nowrap pt-2 text-xs text-zinc-400"
-          dateTime={item.createdAt}
+          className="shrink-0 whitespace-nowrap pb-2 text-xs text-zinc-400"
+          dateTime={sideTimeIso}
         >
-          {formatChatMessageTime(item.createdAt)}
+          {sideTimeLabel}
         </time>
-        <span className="shrink-0 pt-2 text-zinc-400" aria-hidden>
+        <span className="shrink-0 pb-2 text-zinc-400" aria-hidden>
           ·
         </span>
         <ViewingRequestCard item={item} omitHeaderSubmittedAt />
@@ -218,8 +205,14 @@ function ViewingRequestRow({
   }
 
   return (
-    <div className="flex w-full justify-start px-2">
+    <div className="flex w-full items-end justify-start gap-1.5 px-2">
       <ViewingRequestCard item={item} />
+      <span className="shrink-0 pb-2 text-zinc-400" aria-hidden>
+        ·
+      </span>
+      <time className="shrink-0 whitespace-nowrap pb-2 text-xs text-zinc-400" dateTime={sideTimeIso}>
+        {sideTimeLabel}
+      </time>
     </div>
   );
 }
