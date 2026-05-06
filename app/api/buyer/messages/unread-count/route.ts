@@ -70,7 +70,6 @@ export async function GET() {
         viewingRequestsUnreadCount += 1;
       }
     }
-    console.log("viewingRequestsUnreadCount", viewingRequestsUnreadCount);
     return NextResponse.json({
       unreadCount: Number(messageResult?.unreadCount ?? 0) + viewingRequestsUnreadCount,
     });

@@ -90,13 +90,13 @@ export async function POST(request: Request) {
       .from(favorites)
       .where(and(eq(favorites.userId, buyerId), eq(favorites.landListingId, listingId)))
       .limit(1)
-
-    if (!favRow) {
-      return NextResponse.json(
-        { error: "You can only request a viewing for a listing in your favorites" },
-        { status: 403 }
-      )
-    }
+// TODO : check this with client.
+    // if (!favRow) {
+    //   return NextResponse.json(
+    //     { error: "You can only request a viewing for a listing in your favorites" },
+    //     { status: 403 }
+    //   )
+    // }
 
     const [listingRow] = await db
       .select({ id: landListings.id })
