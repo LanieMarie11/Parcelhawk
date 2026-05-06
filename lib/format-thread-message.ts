@@ -21,7 +21,27 @@ export function formatViewingRequestScheduledTime(iso: string): string {
   return `${weekday}, ${monthDay} ${timePart}`;
 }
 
-/** Timeline-only id: caption under the hero image (no listing API data). */
+/** Timeline fallback when no structured address is available */
 export function formatViewingRequestHeroListingLine(listingId: number): string {
   return `Listing #${listingId}`;
+}
+
+/** Single-line address from land_listings-style fields (server-safe). */
+export function buildLandListingFullAddress(p: {
+  address1?: string | null;
+  city?: string | null;
+  stateAbbreviation?: string | null;
+  stateName?: string | null;
+  zip?: string | null;
+}): string {
+  const a1 = p.address1?.trim() ?? "";
+  const city = p.city?.trim() ?? "";
+  const abbr = (p.stateAbbreviation?.trim() ?? "").toUpperCase();
+  const stateNamePart = p.stateName?.trim() ?? "";
+  const st = abbr || stateNamePart;
+  const zip = p.zip?.trim() ?? "";
+  const stateZip = [st, zip].filter(Boolean).join(" ").trim();
+  const cityPart = [city, stateZip].filter(Boolean).join(", ").trim();
+  const parts = [a1, cityPart].filter(Boolean);
+  return parts.join(", ");
 }
