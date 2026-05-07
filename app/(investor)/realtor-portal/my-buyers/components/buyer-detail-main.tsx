@@ -90,9 +90,17 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-start">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-zinc-200 to-zinc-300 text-lg font-medium text-zinc-700 sm:size-12">
-              {initials(selected.name)}
-            </span>
+            {selected.avatarUrl ? (
+              <img
+                src={selected.avatarUrl}
+                alt={selected.name}
+                className="size-12 shrink-0 rounded-full object-cover sm:size-12"
+              />
+            ) : (
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-zinc-200 to-zinc-300 text-lg font-medium text-zinc-700 sm:size-12">
+                {initials(selected.name)}
+              </span>
+            )}
             <div className="min-w-0">
               <div className="flex min-w-0 flex-nowrap items-center gap-2">
                 <p className="min-w-0 truncate text-lg font-phudu font-medium uppercase tracking-wide text-zinc-900">
