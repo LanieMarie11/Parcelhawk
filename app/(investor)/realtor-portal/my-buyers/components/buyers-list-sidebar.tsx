@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUpDown, Users } from "lucide-react";
-
+import MessageMembersIcon from "@/components/icons/message-members";
 import type { BuyerDetail } from "./types";
 
 function initials(name: string) {
@@ -9,6 +9,25 @@ function initials(name: string) {
   const a = parts[0]?.[0] ?? "?";
   const b = parts[1]?.[0] ?? "";
   return `${a}${b}`.toUpperCase();
+}
+
+function formatLastActive(value: string): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  const diffMs = Date.now() - date.getTime();
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+
+  if (diffMs < hourMs) {
+    return `${Math.max(1, Math.floor(diffMs / minuteMs))}m ago`;
+  }
+  if (diffMs < dayMs) {
+    return `${Math.max(1, Math.floor(diffMs / hourMs))}h ago`;
+  }
+  return `${Math.max(1, Math.floor(diffMs / dayMs))}d ago`;
 }
 
 type BuyersListSidebarProps = {
@@ -26,7 +45,7 @@ export function BuyersListSidebar({
     <aside className="flex w-full flex-col border-r-0 border-zinc-100 lg:w-[min(320px,30%)] lg:shrink-0 lg:border-r lg:pr-4">
       <header className="flex items-center justify-between gap-2 pb-3">
         <h2 className="flex items-center gap-2 text-xl font-phudu font-medium uppercase tracking-wide text-[#0F172A]">
-          <Users className="size-4 text-zinc-600" />
+          <MessageMembersIcon />
           Linked buyers
         </h2>
         <button
@@ -56,10 +75,12 @@ export function BuyersListSidebar({
                 <p className="truncate text-md font-phudu font-medium uppercase tracking-wide text-zinc-900">
                   {b.name}
                 </p>
-                <p className="truncate text-xs text-zinc-500">{b.locationSubtitle}</p>
+                <p className="truncate text-xs font-ibm-plex-sans text-zinc-500">
+                  {(b.location || "unkown") + " · " + formatLastActive(b.lastActiveAt)}
+                </p>
               </div>
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full border-2 border-[#00A6E8] text-xs font-semibold text-sky-600">
-                {b.priority}
+              <span className="flex h-7 shrink-0 items-center justify-center rounded-full border border-[#002C58] px-4 text-xs font-medium text-[#002850]">
+                New
               </span>
             </button>
           );

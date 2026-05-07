@@ -22,7 +22,7 @@ export type BuyerDetail = {
   id: string;
   name: string;
   locationSubtitle: string;
-  lastSeen: string;
+  lastActiveAt: string;
   email: string;
   phone: string;
   location: string;
