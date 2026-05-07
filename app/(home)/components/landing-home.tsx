@@ -103,23 +103,6 @@ export function LandingHome() {
           ))}
         </ul>
       </section>
-
-      <footer className="border-t border-neutral-200/80 bg-[#EFEFEF]">
-        <div className="mx-auto grid max-w-5xl grid-cols-1 divide-y divide-neutral-300/80 md:grid-cols-3 md:divide-x md:divide-y-0">
-          <div className="px-6 py-10 text-center md:py-12">
-            <p className="text-3xl font-bold tabular-nums text-neutral-900 md:text-4xl">48,200+</p>
-            <p className="mt-1 text-sm text-neutral-500">Active listings</p>
-          </div>
-          <div className="px-6 py-10 text-center md:py-12">
-            <p className="text-3xl font-bold text-neutral-900 md:text-4xl">38 states</p>
-            <p className="mt-1 text-sm text-neutral-500">Nationwide coverage</p>
-          </div>
-          <div className="px-6 py-10 text-center md:py-12">
-            <p className="text-3xl font-bold text-neutral-900 md:text-4xl">98% Match</p>
-            <p className="mt-1 text-sm text-neutral-500">AI-ranked results</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

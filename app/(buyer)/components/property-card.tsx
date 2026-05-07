@@ -5,6 +5,7 @@ import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { Heart, MapPin, Maximize2 } from "lucide-react"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
+import { ViewRequestModal } from "./view-request-modal"
 
 export function formatPropertyLocation(p: {
   address1?: string | null
@@ -126,6 +127,7 @@ export function PropertyCard({
   const { openSignInModal } = useSignInModal()
   const [isFavorited, setIsFavorited] = useState(initialIsFavorite)
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
+  const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
 
   useEffect(() => {
     setIsFavorited(initialIsFavorite)
@@ -178,7 +180,7 @@ export function PropertyCard({
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 self-stretch gap-2">
             {parcelSatelliteMapDataUrl ? (
               <div
                 role="button"
@@ -194,7 +196,7 @@ export function PropertyCard({
                   e.stopPropagation()
                   setIsParcelPreviewOpen(true)
                 }}
-                className="relative block h-[92px] w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted cursor-pointer"
+                className="relative block h-full w-[148px] shrink-0 overflow-hidden rounded-xl border border-border bg-muted cursor-pointer"
                 title="Open parcel boundary satellite preview"
                 aria-label="Open parcel boundary satellite preview"
               >
@@ -290,8 +292,9 @@ export function PropertyCard({
                   e.preventDefault()
                   e.stopPropagation()
                   onViewingRequest?.()
+                  setIsViewRequestOpen(true)
                 }}
-                className="shrink-0 rounded-lg border border-emerald-800 bg-transparent px-4 py-1.5 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-50"
+                className="shrink-0 rounded-lg border border-[#2D5A36] bg-transparent px-4 py-1.5 text-sm font-medium text-[#2D5A36] transition-colors hover:bg-emerald-50"
               >
                 Viewing Request
               </button>
@@ -328,6 +331,12 @@ export function PropertyCard({
             </div>
           </div>
         ) : null}
+
+        <ViewRequestModal
+          open={isViewRequestOpen}
+          listingId={id}
+          onClose={() => setIsViewRequestOpen(false)}
+        />
       </>
     )
   }
@@ -351,12 +360,6 @@ export function PropertyCard({
           className="object-cover transition-transform duration-300 group-hover:scale-105"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
-        {/* <span
-          className="absolute left-3 top-3 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-primary-foreground backdrop-blur-sm"
-          // style={{ backgroundColor: categoryColor }}
-        >
-          {category}
-        </span> */}
         <button
           type="button"
           onClick={(e) => {
