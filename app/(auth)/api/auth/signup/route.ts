@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { buyerInvestorLinks, investors, users } from "@/db/schema";
+import { buyerInvestorLinks, investors, messageThreads, users } from "@/db/schema";
 import { generateReferralCode } from "@/lib/referral-code";
 import { eq } from "drizzle-orm";
 
@@ -86,6 +86,16 @@ export async function POST(request: Request) {
             status: "active",
             linkedVia: "referral_link",
           });
+
+          await db
+            .insert(messageThreads)
+            .values({
+              investorId: referrer.id,
+              buyerUserId: createdId,
+            })
+            .onConflictDoNothing({
+              target: [messageThreads.investorId, messageThreads.buyerUserId],
+            });
         }
       }
     } else {

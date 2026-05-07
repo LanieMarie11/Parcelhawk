@@ -97,11 +97,25 @@ export async function GET() {
     const threadByBuyerId = new Map(existingThreads.map((t) => [t.buyerUserId, t.id]))
     const missingBuyerIds = buyerIds.filter((id) => !threadByBuyerId.has(id))
     if (missingBuyerIds.length > 0) {
-      const created = await db
+      await db
         .insert(messageThreads)
         .values(missingBuyerIds.map((buyerUserId) => ({ investorId, buyerUserId })))
-        .returning({ id: messageThreads.id, buyerUserId: messageThreads.buyerUserId })
-      for (const row of created) {
+        .onConflictDoNothing({
+          target: [messageThreads.investorId, messageThreads.buyerUserId],
+        })
+      const ensuredThreads = await db
+        .select({
+          id: messageThreads.id,
+          buyerUserId: messageThreads.buyerUserId,
+        })
+        .from(messageThreads)
+        .where(
+          and(
+            eq(messageThreads.investorId, investorId),
+            inArray(messageThreads.buyerUserId, missingBuyerIds),
+          ),
+        )
+      for (const row of ensuredThreads) {
         threadByBuyerId.set(row.buyerUserId, row.id)
       }
     }
