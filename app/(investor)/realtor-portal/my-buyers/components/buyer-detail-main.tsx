@@ -69,7 +69,7 @@ type BuyerDetailMainProps = {
 
 export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetailMainProps) {
   return (
-    <main className="min-w-0 flex-1 space-y-6">
+    <main className="min-h-0 min-w-0 flex-1 space-y-6 overflow-y-auto">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="flex items-center gap-2 text-[28px] font-phudu font-semibold uppercase tracking-wide text-[#0F172A]">
           <MessageMembersIcon />
@@ -103,7 +103,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
                     <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-40" />
                     <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                   </span>
-                  <span className="whitespace-nowrap">{selected.lastSeen}</span>
+                  <span className="whitespace-nowrap">{selected.lastActiveAt || "-"}</span>
                 </span>
               </div>
               <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600">

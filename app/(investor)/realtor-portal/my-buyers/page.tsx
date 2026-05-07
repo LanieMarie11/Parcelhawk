@@ -14,6 +14,7 @@ type MyBuyersApiResponse = {
     email: string;
     phone: string;
     location: string;
+    avatarUrl: string;
     preferenceBudget: string;
     preferenceAcreage: string;
     preferencePurpose: string;
@@ -24,9 +25,29 @@ type MyBuyersApiResponse = {
   error?: string;
 };
 
+type BuyerDetailApiResponse = {
+  buyer?: {
+    id: string;
+    name: string;
+    lastActiveAt: string;
+    email: string;
+    phone: string;
+    location: string;
+    preferenceBudget: string;
+    preferenceAcreage: string;
+    preferencePurpose: string;
+    preferenceTimeframe: string;
+    savedProperties: BuyerDetail["savedProperties"];
+    activity: BuyerDetail["activity"];
+  };
+  error?: string;
+};
+
 export default function MyBuyersPage() {
   const [buyers, setBuyers] = useState<BuyerDetail[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
+  const [selectedDetail, setSelectedDetail] = useState<BuyerDetail | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,6 +67,7 @@ export default function MyBuyersPage() {
           locationSubtitle: buyer.location || "Unknown location",
           lastActiveAt: buyer.lastActiveAt || "",
           email: buyer.email,
+          avatarUrl: buyer.avatarUrl,
           phone: buyer.phone || "",
           location: buyer.location || "",
           priority: Math.max(50, 100 - index * 3),
@@ -61,9 +83,7 @@ export default function MyBuyersPage() {
 
         if (!isMounted) return;
         setBuyers(mapped);
-        setSelectedId((current) =>
-          current && mapped.some((buyer) => buyer.id === current) ? current : (mapped[0]?.id ?? ""),
-        );
+        setSelectedId((current) => (current && mapped.some((buyer) => buyer.id === current) ? current : ""));
       } catch {
         if (!isMounted) return;
         setBuyers([]);
@@ -90,23 +110,87 @@ export default function MyBuyersPage() {
     );
   }, [buyers, search]);
 
-  const selected = filteredBuyers.find((b) => b.id === selectedId) ?? filteredBuyers[0];
+  const selected = filteredBuyers.find((b) => b.id === selectedId);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSelectedBuyerDetail() {
+      if (!selectedId) {
+        if (isMounted) {
+          setSelectedDetail(null);
+          setIsLoadingDetail(false);
+        }
+        return;
+      }
+
+      const selectedSummary = buyers.find((buyer) => buyer.id === selectedId);
+      if (!selectedSummary) {
+        if (isMounted) setSelectedDetail(null);
+        return;
+      }
+
+      setIsLoadingDetail(true);
+      try {
+        const response = await fetch(`/api/realtor-portal/my-buyers/${encodeURIComponent(selectedId)}`, {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as BuyerDetailApiResponse;
+        if (!response.ok || !data.buyer) {
+          throw new Error(data.error ?? "Failed to load buyer details");
+        }
+
+        const detail: BuyerDetail = {
+          ...selectedSummary,
+          savedProperties: data.buyer.savedProperties ?? [],
+          activity: data.buyer.activity ?? [],
+        };
+        if (isMounted) setSelectedDetail(detail);
+      } catch {
+        if (!isMounted) return;
+        setSelectedDetail({
+          ...selectedSummary,
+          savedProperties: [],
+          activity: [],
+        });
+      } finally {
+        if (isMounted) setIsLoadingDetail(false);
+      }
+    }
+
+    void loadSelectedBuyerDetail();
+    return () => {
+      isMounted = false;
+    };
+  }, [buyers, selectedId]);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-10 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[1400px] gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:p-6">
+    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-h-[calc(100vh-120px)] min-h-[calc(100vh-150px)] w-full max-w-[1400px] gap-4 overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:p-6">
         {isLoading ? (
           <div className="p-4 text-sm text-zinc-500">Loading buyers...</div>
-        ) : !selected ? (
+        ) : filteredBuyers.length === 0 ? (
           <div className="p-4 text-sm text-zinc-500">No connected buyers found.</div>
         ) : (
           <>
             <BuyersListSidebar
               buyers={filteredBuyers}
-              selectedId={selected.id}
+              selectedId={selectedId}
               onSelectId={setSelectedId}
             />
-            <BuyerDetailMain selected={selected} search={search} onSearchChange={setSearch} />
+            {selected ? (
+              isLoadingDetail || !selectedDetail ? (
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
+                  Loading buyer details...
+                </div>
+              ) : (
+                <BuyerDetailMain selected={selectedDetail} search={search} onSearchChange={setSearch} />
+              )
+            ) : (
+              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
+                Select a buyer to view details.
+              </div>
+            )}
           </>
         )}
       </div>

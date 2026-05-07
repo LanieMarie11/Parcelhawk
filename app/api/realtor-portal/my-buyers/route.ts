@@ -61,7 +61,7 @@ export async function GET() {
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
         lastActiveAt: user.lastActiveAt ? user.lastActiveAt.toISOString() : "",
-        savedProperties: null,
+        savedProperties: [],
         activity: null,
       }
     })
