@@ -15,7 +15,8 @@ import {
 interface SavedSearch {
   id: string
   name: string
-  location: string
+  state: string
+  county: string
   priceRange: string
   size: string
   type: string
@@ -35,7 +36,8 @@ interface SavedSearchRow {
   maxPrice: string | null
   minAcres: string | null
   maxAcres: string | null
-  location: string | null
+  state: string | null
+  county: string | null
   propertyType: string | null
   landType: string | null
   activities: string[] | null
@@ -87,7 +89,8 @@ function frequencyDisplayLabel(freq: string): string {
 
 function buildViewResultHref(row: SavedSearchRow): string {
   const params = new URLSearchParams()
-  if (row.location?.trim()) params.set("location", row.location.trim())
+  if (row.state?.trim()) params.set("state", row.state.trim())
+  if (row.county?.trim()) params.set("county", row.county.trim())
   if (row.propertyType?.trim()) params.set("type", row.propertyType.trim())
   if (row.minPrice != null && row.minPrice !== "") params.set("minPrice", row.minPrice)
   if (row.maxPrice != null && row.maxPrice !== "") params.set("maxPrice", row.maxPrice)
@@ -102,7 +105,8 @@ function rowToSavedSearch(row: SavedSearchRow): SavedSearch {
   return {
     id: row.id,
     name: row.name,
-    location: row.location ?? "Any location",
+    state: row.state ?? "Any state",
+    county: row.county ?? "Any county",
     priceRange: formatPriceRange(row.minPrice, row.maxPrice),
     size: formatSize(row.minAcres, row.maxAcres),
     type: row.propertyType ?? row.landType ?? "Any type",
@@ -338,7 +342,7 @@ function SearchCard({
           </div>
           <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <MapPin className="size-3.5" />
-            <span>{search.location}</span>
+            <span>{`${search.county}, ${search.state}`}</span>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <FilterTag label="Price Range" value={search.priceRange} />

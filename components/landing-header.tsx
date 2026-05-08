@@ -13,6 +13,7 @@ import { useSignInModal } from "@/lib/sign-in-modal-context";
 
 const nav = [
   { href: "/land-property", label: "Search" },
+  { href: "/saved-search", label: "Saved Searches" },
   { href: "/favorite", label: "Saved Properties" },
   { href: "/compare", label: "Compare" },
   { href: "/resources", label: "Resources" },
