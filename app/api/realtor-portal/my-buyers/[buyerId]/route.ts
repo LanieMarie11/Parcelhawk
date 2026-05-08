@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { buyerInvestorLinks, favorites, landListings, users } from "@/db/schema";
+import {
+  buyerInvestorLinks,
+  favorites,
+  landListings,
+  messageThreads,
+  messages,
+  savedSearches,
+  users,
+  viewingRequests,
+} from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 
 type SessionUser = {
@@ -101,6 +110,70 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       acreageLabel: formatAcreage(fav.acreage),
       viewingRequest: "none" as const,
     }));
+    const savedPropertiesCount = savedProperties.length;
+
+    const [savedSearchesResult] = await db
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(savedSearches)
+      .where(eq(savedSearches.userId, buyerId));
+    const savedSearchesCount = Number(savedSearchesResult?.count ?? 0);
+
+    const [messageUnreadResult] = await db
+      .select({
+        unreadCount: sql<number>`count(*)`,
+      })
+      .from(messages)
+      .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+      .where(
+        and(
+          eq(messageThreads.investorId, investorId),
+          eq(messageThreads.buyerUserId, buyerId),
+          eq(messages.senderRole, "buyer"),
+          or(isNull(messageThreads.investorLastReadAt), gt(messages.createdAt, messageThreads.investorLastReadAt)),
+        ),
+      );
+
+    const [viewingRequestUnreadResult] = await db
+      .select({
+        unreadCount: sql<number>`count(*)`,
+      })
+      .from(viewingRequests)
+      .innerJoin(
+        messageThreads,
+        and(eq(messageThreads.investorId, investorId), eq(viewingRequests.buyerId, messageThreads.buyerUserId)),
+      )
+      .where(
+        and(
+          eq(viewingRequests.realtorId, investorId),
+          eq(viewingRequests.buyerId, buyerId),
+          or(
+            isNull(messageThreads.investorLastReadAt),
+            gt(viewingRequests.createdAt, messageThreads.investorLastReadAt),
+          ),
+        ),
+      );
+
+    const unreadMessages =
+      Number(messageUnreadResult?.unreadCount ?? 0) + Number(viewingRequestUnreadResult?.unreadCount ?? 0);
+
+    const viewingRequestRows = await db
+      .select({
+        status: viewingRequests.status,
+        count: sql<number>`count(*)`,
+      })
+      .from(viewingRequests)
+      .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
+      .groupBy(viewingRequests.status);
+
+    const viewingRequestSummary = { pending: 0, scheduled: 0, completed: 0 };
+    for (const row of viewingRequestRows) {
+      const count = Number(row.count ?? 0);
+      if (row.status === "pending") viewingRequestSummary.pending = count;
+      if (row.status === "scheduled") viewingRequestSummary.scheduled = count;
+      if (row.status === "completed") viewingRequestSummary.completed = count;
+    }
 
     const buyer = {
       id: row.id,
@@ -113,6 +186,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       preferenceAcreage: row.preferenceAcreage ?? "",
       preferencePurpose: row.preferencePurpose ?? "",
       preferenceTimeframe: row.preferenceTimeframe ?? "",
+      unreadMessages,
+      viewingRequests: viewingRequestSummary,
+      savedPropertiesCount,
+      savedSearches: savedSearchesCount,
       savedProperties,
       activity: [],
     };

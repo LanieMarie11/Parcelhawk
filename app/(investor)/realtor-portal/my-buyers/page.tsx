@@ -37,6 +37,10 @@ type BuyerDetailApiResponse = {
     preferenceAcreage: string;
     preferencePurpose: string;
     preferenceTimeframe: string;
+    unreadMessages: number;
+    savedPropertiesCount: number;
+    savedSearches: number;
+    viewingRequests: BuyerDetail["viewingRequests"];
     savedProperties: BuyerDetail["savedProperties"];
     activity: BuyerDetail["activity"];
   };
@@ -71,6 +75,10 @@ export default function MyBuyersPage() {
           phone: buyer.phone || "",
           location: buyer.location || "",
           priority: Math.max(50, 100 - index * 3),
+          unreadMessages: 0,
+          savedPropertiesCount: 0,
+          savedSearches: 0,
+          viewingRequests: { pending: 0, scheduled: 0, completed: 0 },
           stats: { searches: 0, scheduled: 0, unread: 0 },
           filters: [
             buyer.preferenceBudget || "No budget",
@@ -142,6 +150,10 @@ export default function MyBuyersPage() {
 
         const detail: BuyerDetail = {
           ...selectedSummary,
+          unreadMessages: data.buyer.unreadMessages ?? 0,
+          savedPropertiesCount: data.buyer.savedPropertiesCount ?? 0,
+          savedSearches: data.buyer.savedSearches ?? 0,
+          viewingRequests: data.buyer.viewingRequests ?? { pending: 0, scheduled: 0, completed: 0 },
           savedProperties: data.buyer.savedProperties ?? [],
           activity: data.buyer.activity ?? [],
         };
@@ -150,6 +162,8 @@ export default function MyBuyersPage() {
         if (!isMounted) return;
         setSelectedDetail({
           ...selectedSummary,
+          savedPropertiesCount: 0,
+          savedSearches: 0,
           savedProperties: [],
           activity: [],
         });

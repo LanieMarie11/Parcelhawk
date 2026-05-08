@@ -44,37 +44,35 @@ function cardClassName() {
 }
 
 export function BuyerSummaryCards({ selected }: { selected: BuyerDetail }) {
-  const viewing = selected.savedProperties.reduce(
-    (acc, row) => {
-      if (row.viewingRequest === "pending") acc.pending += 1;
-      if (row.viewingRequest === "scheduled") acc.scheduled += 1;
-      if (row.viewingRequest === "completed") acc.completed += 1;
-      return acc;
-    },
-    { pending: 0, scheduled: 0, completed: 0 },
-  );
+  const viewing = selected.viewingRequests;
 
-  const activityLevel = selected.stats.searches;
-  const unreadMessages = selected.stats.unread;
+  const activityLevel = selected.savedSearches;
+  const savedPropertyCount = selected.savedPropertiesCount;
+  const unreadMessages = selected.unreadMessages;
   const clientSince = formatClientSince(selected.lastActiveAt);
 
   return (
     <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <article className={cardClassName()}>
-        <p className="flex items-center gap-2 text-lg font-phudu text-[#245B4E]">
+        <p className="flex items-center gap-2 text-xs font-ibm-plex-sans font-medium text-[#245B4E]">
           <TrendingUp className="size-4 text-[#26C6DA]" aria-hidden />
           Activity Level
         </p>
-        <p className="mt-2 text-4xl font-bold leading-none text-black">{activityLevel}</p>
-        <p className="mt-2 text-sm font-ibm-plex-sans text-[#7B82A8]">logins this week</p>
-        <p className="text-sm font-ibm-plex-sans text-[#7B82A8]">{selected.stats.searches} searches</p>
+        <p className="mt-2 text-2xl font-semibold leading-none text-black">{activityLevel}</p>
+        <p className="mt-2 text-sm font-ibm-plex-sans text-[#7B82A8]">Searchs this week</p>
         <p className="text-sm font-ibm-plex-sans text-[#7B82A8]">
-          Last active: {formatRelativeLastActive(selected.lastActiveAt)}
+          <span className="font-semibold text-black">{savedPropertyCount}</span> Saved property
+        </p>
+        <p className="text-sm font-ibm-plex-sans text-[#7B82A8]">
+          Last active:{" "}
+          <span className="whitespace-nowrap font-semibold">
+            {formatRelativeLastActive(selected.lastActiveAt)}
+          </span>
         </p>
       </article>
 
       <article className={cardClassName()}>
-        <p className="flex items-center gap-2 text-lg font-phudu text-[#245B4E]">
+        <p className="flex items-center gap-2 text-xs font-ibm-plex-sans font-medium text-[#245B4E]">
           <Eye className="size-4 text-[#7B82A8]" aria-hidden />
           Viewing Requests
         </p>
@@ -95,20 +93,20 @@ export function BuyerSummaryCards({ selected }: { selected: BuyerDetail }) {
       </article>
 
       <article className={cardClassName()}>
-        <p className="flex items-center gap-2 text-lg font-phudu text-[#245B4E]">
+        <p className="flex items-center gap-2 text-xs font-ibm-plex-sans font-medium text-[#245B4E]">
           <MessageCircle className="size-4 text-[#7B82A8]" aria-hidden />
           Messages
         </p>
-        <p className="mt-2 text-4xl font-bold leading-none text-black">{unreadMessages}</p>
+        <p className="mt-2 text-2xl font-semibold leading-none text-black">{unreadMessages}</p>
         <p className="mt-2 text-sm font-ibm-plex-sans text-[#7B82A8]">unread messages</p>
       </article>
 
       <article className={cardClassName()}>
-        <p className="flex items-center gap-2 text-lg font-phudu text-[#245B4E]">
+        <p className="flex items-center gap-2 text-xs font-ibm-plex-sans font-medium text-[#245B4E]">
           <CalendarDays className="size-4 text-[#7B82A8]" aria-hidden />
           Client Since
         </p>
-        <p className="mt-2 text-4xl font-bold leading-none text-black">{clientSince.dateLabel}</p>
+        <p className="mt-2 text-2xl font-semibold leading-none text-black">{clientSince.dateLabel}</p>
         <p className="mt-2 text-sm font-ibm-plex-sans text-[#7B82A8]">{clientSince.daysLabel}</p>
       </article>
     </div>
