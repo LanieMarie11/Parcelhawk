@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Eye, Mail, MapPin, Phone, Search, Star, UserRound, Zap } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
 import { LastActiveText } from "./last-active-text";
@@ -70,6 +71,8 @@ type BuyerDetailMainProps = {
 };
 
 export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetailMainProps) {
+  const router = useRouter();
+
   return (
     <main className="min-h-0 min-w-0 flex-1 space-y-6 overflow-y-auto">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -147,7 +150,8 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
         <div className="mt-5 grid gap-3">
           <button
             type="button"
-            className="rounded-xl bg-[#2D4A31] px-4 py-3 text-md font-ibm-plex-sans font-medium text-white transition-colors hover:bg-[#253e2a]"
+            onClick={() => router.push("/realtor-portal/messages")}
+            className="rounded-xl bg-[#2D5A36] px-4 py-3 text-md font-ibm-plex-sans font-medium text-white transition-colors hover:bg-[#244b30]"
           >
             Message
           </button>
@@ -156,17 +160,21 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
 
       <section>
         <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">
-          Active search filters
+          Buyer's Preference
         </h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          {selected.filters.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]"
-            >
-              {tag}
-            </span>
-          ))}
+          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+            Acres range: {selected.preferenceAcreage || "-"}
+          </span>
+          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+            Budget range: {selected.preferenceBudget || "-"}
+          </span>
+          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+            Timeframe: {selected.preferenceTimeframe || "-"}
+          </span>
+          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+            Buy for: {selected.preferencePurpose || "-"}
+          </span>
         </div>
       </section>
 
@@ -190,7 +198,18 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
                     <p className="truncate text-xs font-ibm-plex-sans text-[#64748B]">{row.subtitle}</p>
                     <p className="mt-1 flex items-start gap-1 text-sm text-[#373940]">
                       <MapPin className="mt-0.5 size-3 shrink-0 text-zinc-400" aria-hidden />
-                      <span>{row.address}</span>
+                      {row.url ? (
+                        <a
+                          href={row.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline"
+                        >
+                          {row.address}
+                        </a>
+                      ) : (
+                        <span>{row.address}</span>
+                      )}
                     </p>
                   </div>
                 </div>

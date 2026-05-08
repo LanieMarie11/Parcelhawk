@@ -4,6 +4,7 @@ export type SavedPropertyViewRequest = "none" | "pending" | "scheduled" | "compl
 export type SavedPropertyRow = {
   id: string;
   thumbnailSrc: string;
+  url?: string;
   price: string;
   subtitle: string;
   address: string;
@@ -27,6 +28,10 @@ export type BuyerDetail = {
   email: string;
   phone: string;
   location: string;
+  preferenceBudget: string;
+  preferenceAcreage: string;
+  preferencePurpose: string;
+  preferenceTimeframe: string;
   priority: number;
   unreadMessages: number;
   savedPropertiesCount: number;
