@@ -10,7 +10,8 @@ export interface SavedSearchFilters {
   maxPrice?: number | null
   minAcres?: number | null
   maxAcres?: number | null
-  location?: string | null
+  state?: string | null
+  county?: string | null
   propertyType?: string | null
   landType?: string | null
   activities?: string[] | null
@@ -50,6 +51,8 @@ export function SavePropertySearchModal({
     if (filters != null) {
       setSaving(true)
       try {
+        console.log("state", filters?.state)
+        console.log("county", filters?.county)
         const res = await fetch("/api/saved-searches", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -60,7 +63,8 @@ export function SavePropertySearchModal({
             maxPrice: filters.maxPrice ?? undefined,
             minAcres: filters.minAcres ?? undefined,
             maxAcres: filters.maxAcres ?? undefined,
-            location: filters.location ?? undefined,
+            state: filters.state ?? undefined,
+            county: filters.county ?? undefined,
             propertyType: filters.propertyType ?? undefined,
             landType: filters.landType ?? undefined,
             activities: filters.activities ?? undefined,

@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
     const maxPrice = body.maxPrice != null ? String(body.maxPrice) : null
     const minAcres = body.minAcres != null ? String(body.minAcres) : null
     const maxAcres = body.maxAcres != null ? String(body.maxAcres) : null
-    const location = typeof body.location === "string" ? body.location.trim() || null : null
+    const state = typeof body.state === "string" ? body.state.trim() || null : null
+    const county = typeof body.county === "string" ? body.county.trim() || null : null
     const prompt = typeof body.prompt === "string" ? body.prompt.trim() || null : null
     const propertyType = typeof body.propertyType === "string" ? body.propertyType.trim() || null : null
     const landType = typeof body.landType === "string" ? body.landType.trim() || null : null
@@ -66,7 +67,8 @@ export async function POST(request: NextRequest) {
         maxPrice: maxPrice || undefined,
         minAcres: minAcres || undefined,
         maxAcres: maxAcres || undefined,
-        location: location ?? undefined,
+        state: state ?? undefined,
+        county: county ?? undefined,
         prompt: prompt ?? undefined,
         propertyType: propertyType ?? undefined,
         landType: landType ?? undefined,

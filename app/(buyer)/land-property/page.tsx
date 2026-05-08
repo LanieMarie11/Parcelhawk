@@ -89,6 +89,8 @@ function LandPropertyPageContent() {
   const maxAcresFromUrl = searchParams.get("maxAcres")
   const minPriceFromUrl = searchParams.get("minPrice")
   const maxPriceFromUrl = searchParams.get("maxPrice")
+  const stateFromUrl = searchParams.get("state")
+  const countyFromUrl = searchParams.get("county")
   const [listingsData, setListingsData] = useState<any[]>([])
   const [priceRange, setPriceRange] = useState<{
     min: number | null
@@ -120,11 +122,31 @@ function LandPropertyPageContent() {
     const maxFromUrl = maxPriceFromUrl != null && maxPriceFromUrl !== "" ? Number(maxPriceFromUrl) : null
     const minAcresFromUrlNum = minAcresFromUrl != null && minAcresFromUrl !== "" ? Number(minAcresFromUrl) : null
     const maxAcresFromUrlNum = maxAcresFromUrl != null && maxAcresFromUrl !== "" ? Number(maxAcresFromUrl) : null
+    const normalizedStateFromUrl = stateFromUrl ? normalizeText(stateFromUrl) : null
+    const nextState =
+      normalizedStateFromUrl == null
+        ? null
+        : (usStates as { code: string; name: string }[]).find(
+            (s) =>
+              normalizeText(s.code) === normalizedStateFromUrl ||
+              normalizeText(s.name) === normalizedStateFromUrl
+          ) ?? null
+
+    const normalizedCountyFromUrl = countyFromUrl ? normalizeText(countyFromUrl) : null
+    const nextCounty =
+      normalizedCountyFromUrl == null || !nextState
+        ? null
+        : ((countiesByState as Record<string, string[]>)[nextState.code] ?? []).find(
+            (name) => normalizeText(name) === normalizedCountyFromUrl
+          ) ?? null
+
     if (minFromUrl != null && Number.isFinite(minFromUrl)) setPriceRange((p) => ({ ...p, min: minFromUrl }))
     if (maxFromUrl != null && Number.isFinite(maxFromUrl)) setPriceRange((p) => ({ ...p, max: maxFromUrl }))
     if (minAcresFromUrlNum != null && Number.isFinite(minAcresFromUrlNum)) setSizeRange((s) => ({ ...s, min: minAcresFromUrlNum }))
     if (maxAcresFromUrlNum != null && Number.isFinite(maxAcresFromUrlNum)) setSizeRange((s) => ({ ...s, max: maxAcresFromUrlNum }))
-  }, [minAcresFromUrl, maxAcresFromUrl, minPriceFromUrl, maxPriceFromUrl])
+    setStateFilter(nextState)
+    setCountyFilter(nextCounty && nextState ? { stateCode: nextState.code, name: nextCounty } : null)
+  }, [minAcresFromUrl, maxAcresFromUrl, minPriceFromUrl, maxPriceFromUrl, stateFromUrl, countyFromUrl])
 
   useEffect(() => {
     let cancelled = false
@@ -284,7 +306,8 @@ function LandPropertyPageContent() {
     maxPrice: priceRange.max,
     minAcres: sizeRange.min,
     maxAcres: sizeRange.max,
-    location: locationFromUrl || null,
+    state: stateFilter?.name ?? null,
+    county: countyFilter?.name ?? null,
     propertyType: typeFromUrl || null,
     landType: typeFromUrl || null,
     activities: activitiesFromUrl.length > 0 ? activitiesFromUrl : null,
