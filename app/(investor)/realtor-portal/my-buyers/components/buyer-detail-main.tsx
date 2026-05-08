@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Eye, MapPin, Search, Star, UserRound, Zap } from "lucide-react";
+import { Eye, Mail, MapPin, Phone, Search, Star, UserRound, Zap } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
+import { LastActiveText } from "./last-active-text";
+import { BuyerSummaryCards } from "./buyer-summary-cards";
 
 import type { ActivityRow, BuyerDetail, SavedPropertyRow, SavedPropertyViewRequest } from "./types";
 
@@ -111,15 +113,24 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
                     <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-40" />
                     <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
                   </span>
-                  <span className="whitespace-nowrap">{selected.lastActiveAt || "-"}</span>
+                  <span className="whitespace-nowrap">
+                    <LastActiveText value={selected.lastActiveAt} />
+                  </span>
                 </span>
               </div>
-              <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600">
-                <span>{selected.email}</span>
-                <span className="text-zinc-300">·</span>
-                <span>{selected.phone}</span>
-                <span className="text-zinc-300">·</span>
-                <span>{selected.location}</span>
+              <p className="mt-2 flex flex-col flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600">
+                <span className="inline-flex items-center gap-1">
+                  <Mail className="size-3.5 text-zinc-400" aria-hidden />
+                  <span>{selected.email}</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Phone className="size-3.5 text-zinc-400" aria-hidden />
+                  <span>{selected.phone}</span>
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="size-3.5 text-zinc-400" aria-hidden />
+                  <span>{selected.location}</span>
+                </span>
               </p>
             </div>
           </div>
@@ -131,22 +142,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "Searches", value: selected.stats.searches },
-            { label: "Searches", value: selected.stats.searches },
-            { label: "Scheduled", value: selected.stats.scheduled },
-            { label: "Unread", value: selected.stats.unread },
-          ].map(({ label, value }, i) => (
-            <div
-              key={`${label}-${i}`}
-              className="rounded-xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 text-center shadow-sm"
-            >
-              <p className="text-2xl font-bold font-ibm-plex-sans tabular-nums text-zinc-900">{value}</p>
-              <p className="mt-1 text-[12px] font-medium font-ibm-plex-sans uppercase text-zinc-500">{label}</p>
-            </div>
-          ))}
-        </div>
+        <BuyerSummaryCards selected={selected} />
 
         <div className="mt-5 grid gap-3">
           <button

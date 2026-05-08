@@ -2,6 +2,7 @@
 
 import { ArrowUpDown, Users } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
+import { LastActiveText } from "./last-active-text";
 import type { BuyerDetail } from "./types";
 
 function initials(name: string) {
@@ -9,25 +10,6 @@ function initials(name: string) {
   const a = parts[0]?.[0] ?? "?";
   const b = parts[1]?.[0] ?? "";
   return `${a}${b}`.toUpperCase();
-}
-
-function formatLastActive(value: string): string {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-
-  const diffMs = Date.now() - date.getTime();
-  const minuteMs = 60 * 1000;
-  const hourMs = 60 * minuteMs;
-  const dayMs = 24 * hourMs;
-
-  if (diffMs < hourMs) {
-    return `${Math.max(1, Math.floor(diffMs / minuteMs))}m ago`;
-  }
-  if (diffMs < dayMs) {
-    return `${Math.max(1, Math.floor(diffMs / hourMs))}h ago`;
-  }
-  return `${Math.max(1, Math.floor(diffMs / dayMs))}d ago`;
 }
 
 type BuyersListSidebarProps = {
@@ -85,7 +67,7 @@ export function BuyersListSidebar({
                   {b.name}
                 </p>
                 <p className="truncate text-[11px] leading-4 text-zinc-500">
-                  {(b.location || "unkown") + " · " + formatLastActive(b.lastActiveAt)}
+                  {b.location || "unkown"} · <LastActiveText value={b.lastActiveAt} />
                 </p>
               </div>
               <span className="flex h-7 shrink-0 items-center justify-center rounded-full border border-[#002C58] px-4 text-[10px] font-semibold text-[#002850]">
