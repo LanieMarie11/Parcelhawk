@@ -18,6 +18,25 @@ type BuyersListSidebarProps = {
   onSelectId: (id: string) => void;
 };
 
+function scoreBadge(buyer: BuyerDetail): "hot" | "warm" | "cold" {
+  const hasViewingRequest =
+    (buyer.viewingRequests?.pending ?? 0) +
+      (buyer.viewingRequests?.scheduled ?? 0) +
+      (buyer.viewingRequests?.completed ?? 0) >
+    0;
+
+  if (hasViewingRequest) return "hot";
+
+  const timestamp = Date.parse(buyer.lastActiveAt);
+  if (!Number.isFinite(timestamp)) return "cold";
+
+  const diffMs = Date.now() - timestamp;
+  const day = 86_400_000;
+  if (diffMs <= day) return "hot";
+  if (diffMs <= 7 * day) return "warm";
+  return "cold";
+}
+
 export function BuyersListSidebar({
   buyers,
   selectedId,
@@ -41,14 +60,23 @@ export function BuyersListSidebar({
       <div className="-mx-1 min-h-0 flex-1 space-y-1 overflow-y-auto pb-2">
         {buyers.map((b) => {
           const active = b.id === selectedId;
+          const score = scoreBadge(b);
+          const rowClassName = [
+            "flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
+            active ? "bg-zinc-100" : "hover:bg-zinc-50",
+          ].join(" ");
+          const badgeColorClass =
+            score === "hot"
+              ? "border-rose-500 text-rose-600 bg-[#FDEAEA]"
+              : score === "warm"
+                ? "border-amber-500 text-amber-600 bg-[#FDF7E6]"
+                : "border-[#00A6E8] text-[#00A6E8] bg-[#E6F6FD]";
           return (
             <button
               key={b.id}
               type="button"
               onClick={() => onSelectId(b.id)}
-              className={`flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors ${
-                active ? "bg-zinc-100" : "hover:bg-zinc-50"
-              }`}
+              className={rowClassName}
             >
               {b.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -70,8 +98,10 @@ export function BuyersListSidebar({
                   {b.location || "unkown"} · <LastActiveText value={b.lastActiveAt} />
                 </p>
               </div>
-              <span className="flex h-7 shrink-0 items-center justify-center rounded-full border border-[#002C58] px-4 text-[10px] font-semibold text-[#002850]">
-                New
+              <span
+                className={`flex h-7 shrink-0 items-center justify-center rounded-full border px-4 text-xs font-medium ${badgeColorClass}`}
+              >
+                {score}
               </span>
             </button>
           );
