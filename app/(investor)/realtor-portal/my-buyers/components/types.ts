@@ -28,6 +28,10 @@ export type BuyerDetail = {
   phone: string;
   location: string;
   priority: number;
+  unreadMessages: number;
+  savedPropertiesCount: number;
+  savedSearches: number;
+  viewingRequests: { pending: number; scheduled: number; completed: number };
   stats: { searches: number; scheduled: number; unread: number };
   filters: string[];
   savedProperties: SavedPropertyRow[];
