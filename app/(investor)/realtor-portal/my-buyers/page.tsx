@@ -1,187 +1,198 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BuyerDetailMain } from "./components/buyer-detail-main";
 import { BuyersListSidebar } from "./components/buyers-list-sidebar";
-import type { ActivityRow, BuyerDetail, SavedPropertyRow } from "./components/types";
+import type { BuyerDetail } from "./components/types";
 
-const BUYERS: BuyerDetail[] = [
-  {
-    id: "marcus-chen",
-    name: "Marcus Chen",
-    locationSubtitle: "California · 12 min ago",
-    lastSeen: "12 min ago",
-    email: "marcus.chen@email.com",
-    phone: "(415) 555-0192",
-    location: "San Francisco Bay Area",
-    priority: 94,
-    stats: { searches: 47, scheduled: 47, unread: 47 },
-    filters: ["$500K - $900K", "Henry County, Weakley County", "20+ ac"],
-    savedProperties: [
-      {
-        id: "1",
-        thumbnailSrc: "/images/Land-Type-Images/Residential-Property.png",
-        price: "$450,000",
-        subtitle: "California · 4h ago",
-        address: "1495 Highway 140 West, Puryear, Henry County",
-        acreageLabel: "40.5 ac",
-        viewingRequest: "pending",
-      },
-      {
-        id: "2",
-        thumbnailSrc: "/images/Land-Type-Images/Undeveloped-Land.png",
-        price: "$510,000",
-        subtitle: "Weakley County, TN · 1d ago",
-        address: "Highway 1495 West parcel, Dresden",
-        acreageLabel: "22 ac",
-        viewingRequest: "scheduled",
-      },
-      {
-        id: "3",
-        thumbnailSrc: "/images/Land-Type-Images/Timberland.png",
-        price: "$680,000",
-        subtitle: "Henry County, TN · 2d ago",
-        address: "Brushy Creek Rd, Brushy Creek",
-        acreageLabel: "118 ac",
-        viewingRequest: "completed",
-      },
-    ],
-    activity: [
-      {
-        id: "a1",
-        kind: "viewed",
-        text: "Requested viewing for 1495 Highway 140 West",
-        when: "12 min ago",
-      },
-      {
-        id: "a2",
-        kind: "saved",
-        text: "Saved listing — Oak Ridge Acreage, 52 ac",
-        when: "2h ago",
-      },
-      {
-        id: "a3",
-        kind: "searched",
-        text: "Ran search · Henry County · 500K budget",
-        when: "5h ago",
-      },
-      {
-        id: "a4",
-        kind: "viewed",
-        text: "Viewed curated parcel invite from realtor",
-        when: "1d ago",
-      },
-    ],
-  },
-  {
-    id: "sofia-martinez",
-    name: "Sofia Martinez",
-    locationSubtitle: "Texas · 42 min ago",
-    lastSeen: "42 min ago",
-    email: "sofia.m@email.com",
-    phone: "(512) 555-0148",
-    location: "Austin Metro",
-    priority: 88,
-    stats: { searches: 32, scheduled: 12, unread: 5 },
-    filters: ["$300K - $650K", "Travis County", "12+ ac"],
-    savedProperties: [
-      {
-        id: "sp1",
-        thumbnailSrc: "/images/Land-Type-Images/Lakefront-Property.png",
-        price: "$395,000",
-        subtitle: "Travis County · 8h ago",
-        address: "Hill Country Lot, Marble Falls",
-        acreageLabel: "12 ac",
-        viewingRequest: "none",
-      },
-    ],
-    activity: [
-      {
-        id: "b1",
-        kind: "searched",
-        text: "Ran search · river access · wooded",
-        when: "1h ago",
-      },
-    ],
-  },
-  {
-    id: "aisha-patel",
-    name: "Aisha Patel",
-    locationSubtitle: "Georgia · 1h ago",
-    lastSeen: "1h ago",
-    email: "aisha.p@gmail.com",
-    phone: "(404) 555-0109",
-    location: "Atlanta Region",
-    priority: 71,
-    stats: { searches: 61, scheduled: 8, unread: 12 },
-    filters: ["$400K+", "Metro Atlanta", "Any acreage"],
-    savedProperties: [],
-    activity: [
-      {
-        id: "c1",
-        kind: "saved",
-        text: "Saved 2 parcels north of Canton",
-        when: "45 min ago",
-      },
-    ],
-  },
-  ...[
-    ["Liam O'Connor", "Colorado · 3h ago", 65],
-    ["Noah Kim", "Washington · 30 min ago", 82],
-    ["Emma Dubois", "Louisiana · 6h ago", 58],
-    ["Carlos Gomez", "Florida · 55 min ago", 76],
-    ["Nia Johnson", "Ohio · 90 min ago", 69],
-    ["Yuki Tanaka", "Oregon · 4h ago", 73],
-  ].map(([name, sub, prio], idx) => {
-    const slug = String(name)
-      .toLowerCase()
-      .replace(/[^a-z]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    return {
-      id: `${slug}-${idx}`,
-      name: String(name),
-      locationSubtitle: String(sub),
-      lastSeen: String(sub).split("·")[1]?.trim() ?? "",
-      email: `${slug}@example.com`,
-      phone: "(555) 555-0100",
-      location: "United States",
-      priority: prio as number,
-      stats: { searches: 20 + idx * 3, scheduled: 5 + idx, unread: 2 + idx },
-      filters: ["$250K - $750K", "Multi-county"],
-      savedProperties: [] as SavedPropertyRow[],
-      activity: [] as ActivityRow[],
-    } satisfies BuyerDetail;
-  }),
-];
+type MyBuyersApiResponse = {
+  buyers?: Array<{
+    id: string;
+    name: string;
+    lastActiveAt: string;
+    email: string;
+    phone: string;
+    location: string;
+    avatarUrl: string;
+    preferenceBudget: string;
+    preferenceAcreage: string;
+    preferencePurpose: string;
+    preferenceTimeframe: string;
+    savedProperties: null;
+    activity: null;
+  }>;
+  error?: string;
+};
+
+type BuyerDetailApiResponse = {
+  buyer?: {
+    id: string;
+    name: string;
+    lastActiveAt: string;
+    email: string;
+    phone: string;
+    location: string;
+    preferenceBudget: string;
+    preferenceAcreage: string;
+    preferencePurpose: string;
+    preferenceTimeframe: string;
+    savedProperties: BuyerDetail["savedProperties"];
+    activity: BuyerDetail["activity"];
+  };
+  error?: string;
+};
 
 export default function MyBuyersPage() {
-  const [selectedId, setSelectedId] = useState(BUYERS[0]!.id);
+  const [buyers, setBuyers] = useState<BuyerDetail[]>([]);
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [selectedDetail, setSelectedDetail] = useState<BuyerDetail | null>(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [search, setSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBuyers() {
+      try {
+        const response = await fetch("/api/realtor-portal/my-buyers", { cache: "no-store" });
+        const data = (await response.json()) as MyBuyersApiResponse;
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to load buyers");
+        }
+
+        const mapped: BuyerDetail[] = (data.buyers ?? []).map((buyer, index) => ({
+          id: buyer.id,
+          name: buyer.name,
+          locationSubtitle: buyer.location || "Unknown location",
+          lastActiveAt: buyer.lastActiveAt || "",
+          email: buyer.email,
+          avatarUrl: buyer.avatarUrl,
+          phone: buyer.phone || "",
+          location: buyer.location || "",
+          priority: Math.max(50, 100 - index * 3),
+          stats: { searches: 0, scheduled: 0, unread: 0 },
+          filters: [
+            buyer.preferenceBudget || "No budget",
+            buyer.preferenceAcreage || "No acreage",
+            buyer.preferencePurpose || buyer.preferenceTimeframe || "No preference",
+          ],
+          savedProperties: [],
+          activity: [],
+        }));
+
+        if (!isMounted) return;
+        setBuyers(mapped);
+        setSelectedId((current) => (current && mapped.some((buyer) => buyer.id === current) ? current : ""));
+      } catch {
+        if (!isMounted) return;
+        setBuyers([]);
+        setSelectedId("");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    void loadBuyers();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredBuyers = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return BUYERS;
-    return BUYERS.filter(
+    if (!q) return buyers;
+    return buyers.filter(
       (b) =>
         b.name.toLowerCase().includes(q) ||
         b.email.toLowerCase().includes(q) ||
         b.location.toLowerCase().includes(q),
     );
-  }, [search]);
+  }, [buyers, search]);
 
-  const selected =
-    filteredBuyers.find((b) => b.id === selectedId) ?? filteredBuyers[0] ?? BUYERS[0]!;
+  const selected = filteredBuyers.find((b) => b.id === selectedId);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadSelectedBuyerDetail() {
+      if (!selectedId) {
+        if (isMounted) {
+          setSelectedDetail(null);
+          setIsLoadingDetail(false);
+        }
+        return;
+      }
+
+      const selectedSummary = buyers.find((buyer) => buyer.id === selectedId);
+      if (!selectedSummary) {
+        if (isMounted) setSelectedDetail(null);
+        return;
+      }
+
+      setIsLoadingDetail(true);
+      try {
+        const response = await fetch(`/api/realtor-portal/my-buyers/${encodeURIComponent(selectedId)}`, {
+          cache: "no-store",
+        });
+        const data = (await response.json()) as BuyerDetailApiResponse;
+        if (!response.ok || !data.buyer) {
+          throw new Error(data.error ?? "Failed to load buyer details");
+        }
+
+        const detail: BuyerDetail = {
+          ...selectedSummary,
+          savedProperties: data.buyer.savedProperties ?? [],
+          activity: data.buyer.activity ?? [],
+        };
+        if (isMounted) setSelectedDetail(detail);
+      } catch {
+        if (!isMounted) return;
+        setSelectedDetail({
+          ...selectedSummary,
+          savedProperties: [],
+          activity: [],
+        });
+      } finally {
+        if (isMounted) setIsLoadingDetail(false);
+      }
+    }
+
+    void loadSelectedBuyerDetail();
+    return () => {
+      isMounted = false;
+    };
+  }, [buyers, selectedId]);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-10 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-[1400px] gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:p-6">
-        <BuyersListSidebar
-          buyers={filteredBuyers}
-          selectedId={selected.id}
-          onSelectId={setSelectedId}
-        />
-        <BuyerDetailMain selected={selected} search={search} onSearchChange={setSearch} />
+    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-h-[calc(100vh-120px)] min-h-[calc(100vh-150px)] w-full max-w-[1400px] gap-4 overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:p-6">
+        {isLoading ? (
+          <div className="p-4 text-sm text-zinc-500">Loading buyers...</div>
+        ) : filteredBuyers.length === 0 ? (
+          <div className="p-4 text-sm text-zinc-500">No connected buyers found.</div>
+        ) : (
+          <>
+            <BuyersListSidebar
+              buyers={filteredBuyers}
+              selectedId={selectedId}
+              onSelectId={setSelectedId}
+            />
+            {selected ? (
+              isLoadingDetail || !selectedDetail ? (
+                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
+                  Loading buyer details...
+                </div>
+              ) : (
+                <BuyerDetailMain selected={selectedDetail} search={search} onSearchChange={setSearch} />
+              )
+            ) : (
+              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
+                Select a buyer to view details.
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
