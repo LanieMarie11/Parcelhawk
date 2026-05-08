@@ -97,7 +97,9 @@ export default function RealtorMessagesPage() {
 
         if (!isMounted) return;
         setBuyerThreads(threads);
-        setSelectedBuyerId((current) => current ?? threads[0]?.id ?? null);
+        setSelectedBuyerId((current) =>
+          current && threads.some((thread) => thread.id === current) ? current : null,
+        );
       } catch {
         if (!isMounted) return;
         setBuyerThreads([]);
@@ -289,12 +291,13 @@ export default function RealtorMessagesPage() {
             </div>
             <div className="border-t border-zinc-200 p-4">
               <div className="flex items-center gap-2">
-                <input
+                <textarea
                   value={draftMessage}
                   onChange={(e) => setDraftMessage(e.target.value)}
                   placeholder="Type a message..."
                   disabled={isLoadingMessages}
-                  className="h-10 flex-1 rounded-lg border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
+                  rows={4}
+                  className="max-h-24 min-h-10 flex-1 resize-none overflow-y-auto rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
                 />
                 <button
                   type="button"

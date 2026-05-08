@@ -21,8 +21,9 @@ export type ActivityRow = {
 export type BuyerDetail = {
   id: string;
   name: string;
+  avatarUrl?: string;
   locationSubtitle: string;
-  lastSeen: string;
+  lastActiveAt: string;
   email: string;
   phone: string;
   location: string;
