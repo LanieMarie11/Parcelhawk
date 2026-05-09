@@ -64,11 +64,12 @@ function buildSubtitle(city: string | null, state: string | null): string {
   return [city, state].filter(Boolean).join(", ") || "Location unavailable";
 }
 
-export async function GET(_: Request, { params }: { params: Promise<{ buyerId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ buyerId: string }> }) {
   const session = await getServerSession(authOptions);
   const sessionUser = (session?.user as SessionUser | undefined) ?? {};
   const investorId = sessionUser.id;
   const { buyerId } = await params;
+  const detailLevel = new URL(request.url).searchParams.get("detailLevel") === "core" ? "core" : "full";
 
   if (!investorId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -112,6 +113,96 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       return NextResponse.json({ error: "Buyer not found" }, { status: 404 });
     }
 
+    const [messageUnreadResult, viewingRequestUnreadResult, viewingRequestRows] = await Promise.all([
+      db
+        .select({
+          unreadCount: sql<number>`count(*)`,
+        })
+        .from(messages)
+        .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+        .where(
+          and(
+            eq(messageThreads.investorId, investorId),
+            eq(messageThreads.buyerUserId, buyerId),
+            eq(messages.senderRole, "buyer"),
+            or(isNull(messageThreads.investorLastReadAt), gt(messages.createdAt, messageThreads.investorLastReadAt)),
+          ),
+        ),
+      db
+        .select({
+          unreadCount: sql<number>`count(*)`,
+        })
+        .from(viewingRequests)
+        .innerJoin(
+          messageThreads,
+          and(eq(messageThreads.investorId, investorId), eq(viewingRequests.buyerId, messageThreads.buyerUserId)),
+        )
+        .where(
+          and(
+            eq(viewingRequests.realtorId, investorId),
+            eq(viewingRequests.buyerId, buyerId),
+            or(isNull(messageThreads.investorLastReadAt), gt(viewingRequests.createdAt, messageThreads.investorLastReadAt)),
+          ),
+        ),
+      db
+        .select({
+          status: viewingRequests.status,
+          count: sql<number>`count(*)`,
+        })
+        .from(viewingRequests)
+        .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
+        .groupBy(viewingRequests.status),
+    ]);
+
+    const unreadMessages =
+      Number(messageUnreadResult?.[0]?.unreadCount ?? 0) + Number(viewingRequestUnreadResult?.[0]?.unreadCount ?? 0);
+
+    const viewingRequestSummary = { pending: 0, scheduled: 0, completed: 0 };
+    for (const row of viewingRequestRows) {
+      const count = Number(row.count ?? 0);
+      if (row.status === "pending") viewingRequestSummary.pending = count;
+      if (row.status === "scheduled") viewingRequestSummary.scheduled = count;
+      if (row.status === "completed") viewingRequestSummary.completed = count;
+    }
+
+    if (detailLevel === "core") {
+      const [savedPropertiesCountResult, savedSearchesCountResult] = await Promise.all([
+        db
+          .select({
+            count: sql<number>`count(*)`,
+          })
+          .from(favorites)
+          .where(eq(favorites.userId, buyerId)),
+        db
+          .select({
+            count: sql<number>`count(*)`,
+          })
+          .from(savedSearches)
+          .where(eq(savedSearches.userId, buyerId)),
+      ]);
+
+      const buyer = {
+        id: row.id,
+        name: [row.firstName, row.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
+        email: row.email,
+        phone: row.phone ?? "",
+        location: row.location ?? "",
+        lastActiveAt: row.lastActiveAt ? row.lastActiveAt.toISOString() : "",
+        preferenceBudget: row.preferenceBudget ?? "",
+        preferenceAcreage: row.preferenceAcreage ?? "",
+        preferencePurpose: row.preferencePurpose ?? "",
+        preferenceTimeframe: row.preferenceTimeframe ?? "",
+        unreadMessages,
+        viewingRequests: viewingRequestSummary,
+        savedPropertiesCount: Number(savedPropertiesCountResult?.[0]?.count ?? 0),
+        savedSearches: Number(savedSearchesCountResult?.[0]?.count ?? 0),
+        savedProperties: [],
+        activity: [],
+      };
+
+      return NextResponse.json({ buyer, detailLevel });
+    }
+
     const favoriteRows = await db
       .select({
         favoriteId: favorites.id,
@@ -132,26 +223,35 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       .where(eq(favorites.userId, buyerId))
       .orderBy(desc(favorites.createdAt));
 
-    const viewingRequestRowsForSavedProperties = await db
-      .select({
-        listingId: viewingRequests.listingId,
-        status: viewingRequests.status,
-        updatedAt: viewingRequests.updatedAt,
-      })
-      .from(viewingRequests)
-      .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
-      .orderBy(desc(viewingRequests.updatedAt));
-
-    const viewingRequestActivityRows = await db
-      .select({
-        id: viewingRequests.id,
-        listingId: viewingRequests.listingId,
-        status: viewingRequests.status,
-        createdAt: viewingRequests.createdAt,
-      })
-      .from(viewingRequests)
-      .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
-      .orderBy(desc(viewingRequests.createdAt));
+    const [viewingRequestRowsForSavedProperties, viewingRequestActivityRows, savedSearchRows] = await Promise.all([
+      db
+        .select({
+          listingId: viewingRequests.listingId,
+          status: viewingRequests.status,
+          updatedAt: viewingRequests.updatedAt,
+        })
+        .from(viewingRequests)
+        .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
+        .orderBy(desc(viewingRequests.updatedAt)),
+      db
+        .select({
+          id: viewingRequests.id,
+          listingId: viewingRequests.listingId,
+          status: viewingRequests.status,
+          createdAt: viewingRequests.createdAt,
+        })
+        .from(viewingRequests)
+        .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
+        .orderBy(desc(viewingRequests.createdAt)),
+      db
+        .select({
+          id: savedSearches.id,
+          name: savedSearches.name,
+          createdAt: savedSearches.createdAt,
+        })
+        .from(savedSearches)
+        .where(eq(savedSearches.userId, buyerId)),
+    ]);
 
     const viewingStatusByListingId = new Map<number, "pending" | "scheduled" | "completed" | "none">();
     for (const row of viewingRequestRowsForSavedProperties) {
@@ -187,71 +287,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       };
     });
     const savedPropertiesCount = savedProperties.length;
-
-    const savedSearchRows = await db
-      .select({
-        id: savedSearches.id,
-        name: savedSearches.name,
-        createdAt: savedSearches.createdAt,
-      })
-      .from(savedSearches)
-      .where(eq(savedSearches.userId, buyerId));
     const savedSearchesCount = savedSearchRows.length;
-
-    const [messageUnreadResult] = await db
-      .select({
-        unreadCount: sql<number>`count(*)`,
-      })
-      .from(messages)
-      .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
-      .where(
-        and(
-          eq(messageThreads.investorId, investorId),
-          eq(messageThreads.buyerUserId, buyerId),
-          eq(messages.senderRole, "buyer"),
-          or(isNull(messageThreads.investorLastReadAt), gt(messages.createdAt, messageThreads.investorLastReadAt)),
-        ),
-      );
-
-    const [viewingRequestUnreadResult] = await db
-      .select({
-        unreadCount: sql<number>`count(*)`,
-      })
-      .from(viewingRequests)
-      .innerJoin(
-        messageThreads,
-        and(eq(messageThreads.investorId, investorId), eq(viewingRequests.buyerId, messageThreads.buyerUserId)),
-      )
-      .where(
-        and(
-          eq(viewingRequests.realtorId, investorId),
-          eq(viewingRequests.buyerId, buyerId),
-          or(
-            isNull(messageThreads.investorLastReadAt),
-            gt(viewingRequests.createdAt, messageThreads.investorLastReadAt),
-          ),
-        ),
-      );
-
-    const unreadMessages =
-      Number(messageUnreadResult?.unreadCount ?? 0) + Number(viewingRequestUnreadResult?.unreadCount ?? 0);
-
-    const viewingRequestRows = await db
-      .select({
-        status: viewingRequests.status,
-        count: sql<number>`count(*)`,
-      })
-      .from(viewingRequests)
-      .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
-      .groupBy(viewingRequests.status);
-
-    const viewingRequestSummary = { pending: 0, scheduled: 0, completed: 0 };
-    for (const row of viewingRequestRows) {
-      const count = Number(row.count ?? 0);
-      if (row.status === "pending") viewingRequestSummary.pending = count;
-      if (row.status === "scheduled") viewingRequestSummary.scheduled = count;
-      if (row.status === "completed") viewingRequestSummary.completed = count;
-    }
 
     const activity = [
       ...favoriteRows.map((fav) => ({
@@ -304,7 +340,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       activity,
     };
 
-    return NextResponse.json({ buyer });
+    return NextResponse.json({ buyer, detailLevel: "full" });
   } catch (error) {
     console.error("Realtor my-buyers detail fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch buyer detail" }, { status: 500 });

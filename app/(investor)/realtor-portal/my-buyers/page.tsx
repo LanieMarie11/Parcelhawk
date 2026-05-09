@@ -52,6 +52,7 @@ export default function MyBuyersPage() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [selectedDetail, setSelectedDetail] = useState<BuyerDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isLoadingHeavyDetail, setIsLoadingHeavyDetail] = useState(false);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -133,40 +134,78 @@ export default function MyBuyersPage() {
         if (isMounted) {
           setSelectedDetail(null);
           setIsLoadingDetail(false);
+          setIsLoadingHeavyDetail(false);
         }
         return;
       }
 
       const selectedSummary = buyers.find((buyer) => buyer.id === selectedId);
       if (!selectedSummary) {
-        if (isMounted) setSelectedDetail(null);
+        if (isMounted) {
+          setSelectedDetail(null);
+          setIsLoadingDetail(false);
+          setIsLoadingHeavyDetail(false);
+        }
         return;
       }
 
       setIsLoadingDetail(true);
+      setIsLoadingHeavyDetail(true);
       try {
-        const response = await fetch(`/api/realtor-portal/my-buyers/${encodeURIComponent(selectedId)}`, {
-          cache: "no-store",
-        });
-        const data = (await response.json()) as BuyerDetailApiResponse;
-        if (!response.ok || !data.buyer) {
-          throw new Error(data.error ?? "Failed to load buyer details");
+        const coreResponse = await fetch(
+          `/api/realtor-portal/my-buyers/${encodeURIComponent(selectedId)}?detailLevel=core`,
+          {
+            cache: "no-store",
+          },
+        );
+        const coreData = (await coreResponse.json()) as BuyerDetailApiResponse;
+        if (!coreResponse.ok || !coreData.buyer) {
+          throw new Error(coreData.error ?? "Failed to load buyer details");
         }
 
-        const detail: BuyerDetail = {
+        const coreDetail: BuyerDetail = {
           ...selectedSummary,
-          preferenceBudget: data.buyer.preferenceBudget ?? selectedSummary.preferenceBudget,
-          preferenceAcreage: data.buyer.preferenceAcreage ?? selectedSummary.preferenceAcreage,
-          preferencePurpose: data.buyer.preferencePurpose ?? selectedSummary.preferencePurpose,
-          preferenceTimeframe: data.buyer.preferenceTimeframe ?? selectedSummary.preferenceTimeframe,
-          unreadMessages: data.buyer.unreadMessages ?? 0,
-          savedPropertiesCount: data.buyer.savedPropertiesCount ?? 0,
-          savedSearches: data.buyer.savedSearches ?? 0,
-          viewingRequests: data.buyer.viewingRequests ?? { pending: 0, scheduled: 0, completed: 0 },
-          savedProperties: data.buyer.savedProperties ?? [],
-          activity: data.buyer.activity ?? [],
+          preferenceBudget: coreData.buyer.preferenceBudget ?? selectedSummary.preferenceBudget,
+          preferenceAcreage: coreData.buyer.preferenceAcreage ?? selectedSummary.preferenceAcreage,
+          preferencePurpose: coreData.buyer.preferencePurpose ?? selectedSummary.preferencePurpose,
+          preferenceTimeframe: coreData.buyer.preferenceTimeframe ?? selectedSummary.preferenceTimeframe,
+          unreadMessages: coreData.buyer.unreadMessages ?? 0,
+          savedPropertiesCount: coreData.buyer.savedPropertiesCount ?? 0,
+          savedSearches: coreData.buyer.savedSearches ?? 0,
+          viewingRequests: coreData.buyer.viewingRequests ?? { pending: 0, scheduled: 0, completed: 0 },
+          savedProperties: coreData.buyer.savedProperties ?? [],
+          activity: coreData.buyer.activity ?? [],
         };
-        if (isMounted) setSelectedDetail(detail);
+        if (!isMounted) return;
+        setSelectedDetail(coreDetail);
+        setIsLoadingDetail(false);
+
+        try {
+          const fullResponse = await fetch(`/api/realtor-portal/my-buyers/${encodeURIComponent(selectedId)}`, {
+            cache: "no-store",
+          });
+          const fullData = (await fullResponse.json()) as BuyerDetailApiResponse;
+          if (!fullResponse.ok || !fullData.buyer) {
+            throw new Error(fullData.error ?? "Failed to load buyer details");
+          }
+
+          const fullDetail: BuyerDetail = {
+            ...selectedSummary,
+            preferenceBudget: fullData.buyer.preferenceBudget ?? selectedSummary.preferenceBudget,
+            preferenceAcreage: fullData.buyer.preferenceAcreage ?? selectedSummary.preferenceAcreage,
+            preferencePurpose: fullData.buyer.preferencePurpose ?? selectedSummary.preferencePurpose,
+            preferenceTimeframe: fullData.buyer.preferenceTimeframe ?? selectedSummary.preferenceTimeframe,
+            unreadMessages: fullData.buyer.unreadMessages ?? 0,
+            savedPropertiesCount: fullData.buyer.savedPropertiesCount ?? 0,
+            savedSearches: fullData.buyer.savedSearches ?? 0,
+            viewingRequests: fullData.buyer.viewingRequests ?? { pending: 0, scheduled: 0, completed: 0 },
+            savedProperties: fullData.buyer.savedProperties ?? [],
+            activity: fullData.buyer.activity ?? [],
+          };
+          if (isMounted) setSelectedDetail(fullDetail);
+        } catch {
+          // Keep core details rendered even if heavy detail hydration fails.
+        }
       } catch {
         if (!isMounted) return;
         setSelectedDetail({
@@ -177,8 +216,11 @@ export default function MyBuyersPage() {
           activity: [],
         });
       } finally {
-        if (isMounted) setIsLoadingDetail(false);
+        if (isMounted) setIsLoadingHeavyDetail(false);
       }
+
+      if (!isMounted) return;
+      setIsLoadingDetail(false);
     }
 
     void loadSelectedBuyerDetail();
@@ -207,7 +249,12 @@ export default function MyBuyersPage() {
                   Loading buyer details...
                 </div>
               ) : (
-                <BuyerDetailMain selected={selectedDetail} search={search} onSearchChange={setSearch} />
+                <BuyerDetailMain
+                  selected={selectedDetail}
+                  search={search}
+                  onSearchChange={setSearch}
+                  isLoadingHeavy={isLoadingHeavyDetail}
+                />
               )
             ) : (
               <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">

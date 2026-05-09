@@ -75,9 +75,10 @@ type BuyerDetailMainProps = {
   selected: BuyerDetail;
   search: string;
   onSearchChange: (value: string) => void;
+  isLoadingHeavy?: boolean;
 };
 
-export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetailMainProps) {
+export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHeavy = false }: BuyerDetailMainProps) {
   const router = useRouter();
   const [showAllActivity, setShowAllActivity] = useState(false);
   const hasMoreActivity = selected.activity.length > 5;
@@ -197,7 +198,11 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
           Saved property
         </h3>
         {selected.savedProperties.length === 0 ? (
+          isLoadingHeavy ? (
+            <p className="mt-4 py-8 text-center text-sm text-zinc-500">Fetching saved properties...</p>
+          ) : (
           <p className="mt-4 py-8 text-center text-sm text-zinc-500">No saved properties yet.</p>
+          )
         ) : (
           <ul className="mt-3 divide-y divide-zinc-100">
             {selected.savedProperties.map((row) => (
@@ -259,7 +264,11 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
           ) : null}
         </div>
         {selected.activity.length === 0 ? (
+          isLoadingHeavy ? (
+            <p className="mt-4 py-6 text-center text-sm text-zinc-500">Fetching recent activity...</p>
+          ) : (
           <p className="mt-4 py-6 text-center text-sm text-zinc-500">No recent activity.</p>
+          )
         ) : (
           <ul className="mt-4 space-y-4">
             {visibleActivity.map((row) => (
