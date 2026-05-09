@@ -5,6 +5,13 @@ type SelectedBuyerCardProps = {
   buyer: BuyerRow;
 };
 
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  const a = parts[0]?.[0] ?? "?";
+  const b = parts[1]?.[0] ?? "";
+  return `${a}${b}`.toUpperCase();
+}
+
 export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
   const scoreClassName =
     buyer.score === "Hot"
@@ -21,7 +28,18 @@ export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
       </h2>
       <div className="mt-3 rounded-xl border border-zinc-200 p-3">
         <div className="flex items-center gap-3">
-          <div className="h-12 w-12 rounded-full bg-zinc-200" />
+          {buyer.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={buyer.avatarUrl}
+              alt={buyer.name}
+              className="size-11 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-zinc-200 to-zinc-300 text-xs font-semibold text-zinc-700">
+              {initials(buyer.name)}
+            </span>
+          )}
           <div>
             <p className="text-sm font-medium font-phudu text-zinc-800">{buyer.name.toUpperCase()}</p>
             <p className="text-xs text-zinc-500">Active {buyer.lastActive}</p>

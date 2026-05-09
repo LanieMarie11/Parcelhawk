@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, Mail, MapPin, Phone, Search, Star, UserRound, Zap } from "lucide-react";
@@ -44,24 +45,30 @@ function initials(name: string) {
 
 function ActivityIcon({ kind }: { kind: ActivityRow["kind"] }) {
   const base =
-    "flex size-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-zinc-600";
+    "flex size-8 shrink-0 items-center justify-center rounded-full border text-zinc-600";
   if (kind === "viewed")
     return (
-      <span className={base}>
-        <Eye className="size-3.5" />
+      <span className={`${base} bg-[#E6EAEE]`}>
+        <Eye className="size-3.5 text-[#002C58]" />
       </span>
     );
   if (kind === "saved")
     return (
-      <span className={base}>
-        <Star className="size-3.5" />
+      <span className={`${base} bg-[#E9F7EE]`}>
+        <Star className="size-3.5 text-[#166534]" />
       </span>
     );
   return (
-    <span className={base}>
-      <Search className="size-3.5" />
+    <span className={`${base}  bg-[#F8F9FB]`}>
+      <Search className="size-3.5 text-[#64748B]" />
     </span>
   );
+}
+
+function activityKindLabel(kind: ActivityRow["kind"]) {
+  if (kind === "saved") return "Saved Property";
+  if (kind === "searched") return "Saved Search";
+  return "Viewing Request";
 }
 
 type BuyerDetailMainProps = {
@@ -72,6 +79,13 @@ type BuyerDetailMainProps = {
 
 export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetailMainProps) {
   const router = useRouter();
+  const [showAllActivity, setShowAllActivity] = useState(false);
+  const hasMoreActivity = selected.activity.length > 5;
+  const visibleActivity = showAllActivity ? selected.activity : selected.activity.slice(0, 5);
+
+  useEffect(() => {
+    setShowAllActivity(false);
+  }, [selected.id]);
 
   return (
     <main className="min-h-0 min-w-0 flex-1 space-y-6 overflow-y-auto">
@@ -234,17 +248,31 @@ export function BuyerDetailMain({ selected, search, onSearchChange }: BuyerDetai
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">Recent activity</h3>
+          {hasMoreActivity ? (
+            <button
+              type="button"
+              onClick={() => setShowAllActivity((current) => !current)}
+              className="text-xs font-semibold text-[#2D5A36] hover:underline"
+            >
+              {showAllActivity ? "Show less" : "Show all"}
+            </button>
+          ) : null}
         </div>
         {selected.activity.length === 0 ? (
           <p className="mt-4 py-6 text-center text-sm text-zinc-500">No recent activity.</p>
         ) : (
           <ul className="mt-4 space-y-4">
-            {selected.activity.map((row) => (
-              <li key={row.id} className="flex gap-3">
+            {visibleActivity.map((row) => (
+              <li key={row.id} className="flex gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2">
                 <ActivityIcon kind={row.kind} />
                 <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                    {activityKindLabel(row.kind)}
+                  </p>
                   <p className="text-sm text-zinc-800">{row.text}</p>
-                  <p className="mt-1 text-xs text-zinc-500">{row.when}</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {row.when ? <LastActiveText value={row.when} /> : "Recently"}
+                  </p>
                 </div>
               </li>
             ))}
