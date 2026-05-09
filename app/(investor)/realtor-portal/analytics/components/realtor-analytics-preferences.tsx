@@ -66,8 +66,8 @@ export function RealtorAnalyticsPreferences() {
   return (
     <section className="mt-3 space-y-3">
       <article className="rounded-xl border border-zinc-200 bg-white p-4">
-        <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Buyer Preference Insights</h3>
-        <p className="text-xs text-zinc-500">
+        <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Buyer Preference Insights</h3>
+        <p className="text-xs font-ibm-plex-sans font-regular text-zinc-500">
           Explore buyer intent and engagement insights to support smarter decisions.
         </p>
 
@@ -75,12 +75,15 @@ export function RealtorAnalyticsPreferences() {
           {preferenceGroups.map((group) => {
             const Icon = group.icon;
             return (
-              <div key={group.title} className="rounded-lg border border-zinc-200 bg-[#f4fbff] p-3">
+              <div
+                key={group.title}
+                className="rounded-lg border border-zinc-200 bg-linear-to-b from-[#E6F6FD] to-[#FFFFFF] p-3"
+              >
                 <div className="flex items-center gap-2 border-b border-zinc-200 pb-2">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-zinc-100 text-zinc-500">
-                    <Icon className="h-3 w-3" />
+                  <span className="inline-flex h-9 w-9 items-center justify-center rounded bg-[#FFFFFF] text-[#484A54]">
+                    <Icon className="h-4 w-4" />
                   </span>
-                  <p className="text-sm font-medium text-zinc-700">{group.title}</p>
+                  <p className="text-lg font-ibm-plex-sans font-medium text-zinc-700">{group.title}</p>
                 </div>
 
                 <div className="mt-3 space-y-3">
@@ -104,14 +107,14 @@ export function RealtorAnalyticsPreferences() {
 
       <div className="grid gap-3 xl:grid-cols-12">
         <article className="rounded-xl border border-zinc-200 bg-white p-4 xl:col-span-9">
-          <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Highest Intent Buyers</h3>
-          <p className="text-xs text-zinc-500">
+          <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Highest Intent Buyers</h3>
+          <p className="text-xs font-ibm-plex-sans font-regular text-zinc-500">
             Analyze buyer intent signals to focus on the most valuable opportunities.
           </p>
 
           <div className="mt-3 overflow-x-auto">
             <table className="min-w-full text-left text-xs">
-              <thead className="border-b border-zinc-200 text-zinc-600">
+              <thead className="border-b border-t border-zinc-200 bg-[#FAFBFC] text-[#030303]">
                 <tr>
                   <th className="py-2 pr-3 font-semibold">Buyer</th>
                   <th className="py-2 pr-3 font-semibold">Last active</th>
@@ -155,7 +158,7 @@ export function RealtorAnalyticsPreferences() {
         </article>
 
         <article className="rounded-xl border border-zinc-200 bg-white p-4 xl:col-span-3">
-          <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Invite & Referral Analytics</h3>
+          <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#0F172A]">Invite & Referral Analytics</h3>
 
           <div className="mt-3 space-y-3 rounded-lg border border-zinc-200 p-3">
             {inviteStats.map((item) => {
@@ -166,8 +169,8 @@ export function RealtorAnalyticsPreferences() {
                     <Icon className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-xs text-zinc-500">{item.label}</p>
-                    <p className="text-[28px] font-medium font-phudu leading-none text-zinc-900">{item.value}</p>
+                    <p className="text-sm font-ibm-plex-sans font-regular text-zinc-500">{item.label}</p>
+                    <p className="text-[20px] font-medium font-phudu leading-none text-zinc-900">{item.value}</p>
                   </div>
                 </div>
               );

@@ -27,10 +27,10 @@ export function RealtorAnalyticsDetails() {
     <section className="mt-3 grid gap-3 xl:grid-cols-12">
       <div className="space-y-3 xl:col-span-9">
         <article className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">
+          <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">
             Buyer Engagement Trends
           </h3>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs font-ibm-plex-sans text-zinc-500">
             Analyze buyer activity trends to understand interest and conversion patterns.
           </p>
 
@@ -90,20 +90,21 @@ export function RealtorAnalyticsDetails() {
             {trendLegend.map((item) => (
               <div key={item.label} className="flex items-center gap-2 text-zinc-600">
                 <span className={`h-2 w-2 rounded-full ${item.color}`} />
-                <span>{item.label}</span>
+                <span className="text-[16px] font-ibm-plex-sans">{item.label}</span>
               </div>
             ))}
           </div>
         </article>
 
         <article className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Parcel Push Funnel</h3>
-          <p className="text-xs text-zinc-500">This month pushed parcel</p>
+          <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Parcel Push Funnel</h3>
+          <p className="text-xs font-regular font-ibm-plex-sans text-zinc-500">This month pushed parcel</p>
+          <hr className="mt-3 -mx-4 w-[calc(100%+2rem)] max-w-none border-0 border-t border-zinc-200" />
 
           <div className="mt-4 space-y-4">
             {funnelRows.map((row) => (
               <div key={row.label} className="grid grid-cols-[84px_1fr_42px] items-center gap-3 text-xs">
-                <span className="font-medium text-zinc-700">{row.label}</span>
+                <span className="text-xs font-medium text-[#0F172A]">{row.label}</span>
                 <div className="relative h-5 rounded bg-zinc-100">
                   <div className={`h-5 rounded ${row.color}`} style={{ width: `${row.width}%` }}>
                     {row.percent !== null ? (
@@ -144,7 +145,7 @@ export function RealtorAnalyticsDetails() {
         </article>
 
         <article className="rounded-xl border border-zinc-200 bg-white p-4">
-          <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Outreach Performance</h3>
+          <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Outreach Performance</h3>
 
           <div className="mt-3 rounded-lg border border-zinc-200 p-3">
             <div className="grid grid-cols-2 gap-4">
@@ -153,28 +154,28 @@ export function RealtorAnalyticsDetails() {
                   <MessageCircle className="h-3.5 w-3.5" />
                   Messages Sent
                 </p>
-                <p className="text-xl font-semibold text-zinc-900">152</p>
+                <p className="text-md font-medium text-zinc-900">152</p>
               </div>
               <div className="space-y-1">
                 <p className="flex items-center gap-2 text-xs text-zinc-500">
                   <Target className="h-3.5 w-3.5" />
                   Reply Rate
                 </p>
-                <p className="text-xl font-semibold text-zinc-900">64%</p>
+                <p className="text-md font-medium text-zinc-900">64%</p>
               </div>
               <div className="space-y-1">
                 <p className="flex items-center gap-2 text-xs text-zinc-500">
                   <Clock3 className="h-3.5 w-3.5" />
                   Avg Response Time
                 </p>
-                <p className="text-xl font-semibold text-zinc-900">2.3 HRS</p>
+                <p className="text-md font-medium text-zinc-900">2.3 HRS</p>
               </div>
               <div className="space-y-1">
                 <p className="flex items-center gap-2 text-xs text-zinc-500">
                   <PhoneCall className="h-3.5 w-3.5" />
                   Best Contact Window
                 </p>
-                <p className="text-xl font-semibold text-zinc-900">SUN 07:05 PM</p>
+                <p className="text-md font-medium text-zinc-900">SUN 07:05 PM</p>
               </div>
             </div>
           </div>
