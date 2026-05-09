@@ -116,6 +116,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       .select({
         favoriteId: favorites.id,
         listingId: landListings.id,
+        createdAt: favorites.createdAt,
         photo: landListings.photos,
         url: landListings.url,
         price: landListings.price,
@@ -140,6 +141,17 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       .from(viewingRequests)
       .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
       .orderBy(desc(viewingRequests.updatedAt));
+
+    const viewingRequestActivityRows = await db
+      .select({
+        id: viewingRequests.id,
+        listingId: viewingRequests.listingId,
+        status: viewingRequests.status,
+        createdAt: viewingRequests.createdAt,
+      })
+      .from(viewingRequests)
+      .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
+      .orderBy(desc(viewingRequests.createdAt));
 
     const viewingStatusByListingId = new Map<number, "pending" | "scheduled" | "completed" | "none">();
     for (const row of viewingRequestRowsForSavedProperties) {
@@ -176,13 +188,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
     });
     const savedPropertiesCount = savedProperties.length;
 
-    const [savedSearchesResult] = await db
+    const savedSearchRows = await db
       .select({
-        count: sql<number>`count(*)`,
+        id: savedSearches.id,
+        name: savedSearches.name,
+        createdAt: savedSearches.createdAt,
       })
       .from(savedSearches)
       .where(eq(savedSearches.userId, buyerId));
-    const savedSearchesCount = Number(savedSearchesResult?.count ?? 0);
+    const savedSearchesCount = savedSearchRows.length;
 
     const [messageUnreadResult] = await db
       .select({
@@ -239,6 +253,38 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       if (row.status === "completed") viewingRequestSummary.completed = count;
     }
 
+    const activity = [
+      ...favoriteRows.map((fav) => ({
+        id: `favorite:${fav.favoriteId}`,
+        kind: "saved" as const,
+        text: `Saved property in ${buildSubtitle(fav.city, fav.state)}`,
+        createdAt: fav.createdAt,
+      })),
+      ...savedSearchRows.map((savedSearch) => ({
+        id: `search:${savedSearch.id}`,
+        kind: "searched" as const,
+        text: `Saved search: ${savedSearch.name}`,
+        createdAt: savedSearch.createdAt,
+      })),
+      ...viewingRequestActivityRows.map((request) => ({
+        id: `viewing-request:${request.id}`,
+        kind: "viewed" as const,
+        text: `Viewing request ${request.status} for listing #${request.listingId}`,
+        createdAt: request.createdAt,
+      })),
+    ]
+      .sort((a, b) => {
+        const aTime = a.createdAt ? a.createdAt.getTime() : 0;
+        const bTime = b.createdAt ? b.createdAt.getTime() : 0;
+        return bTime - aTime;
+      })
+      .map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        text: item.text,
+        when: item.createdAt?.toISOString() ?? "",
+      }));
+
     const buyer = {
       id: row.id,
       name: [row.firstName, row.lastName].filter(Boolean).join(" ").trim() || "Unknown buyer",
@@ -255,7 +301,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ buyerId: s
       savedPropertiesCount,
       savedSearches: savedSearchesCount,
       savedProperties,
-      activity: [],
+      activity,
     };
 
     return NextResponse.json({ buyer });

@@ -57,20 +57,20 @@ export function BuyersListSidebar({
           Sort by
         </button>
       </header>
-      <div className="-mx-1 min-h-0 flex-1 space-y-1 overflow-y-auto pb-2">
+      <div className="-mx-2 min-h-0 flex-1 overflow-y-auto pb-2">
         {buyers.map((b) => {
           const active = b.id === selectedId;
           const score = scoreBadge(b);
           const rowClassName = [
-            "flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors",
-            active ? "bg-zinc-100" : "hover:bg-zinc-50",
+            "flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-3 text-left transition-colors",
+            active ? "bg-zinc-50" : "hover:bg-zinc-50",
           ].join(" ");
           const badgeColorClass =
             score === "hot"
-              ? "border-rose-500 text-rose-600 bg-[#FDEAEA]"
+              ? "border-rose-500 text-rose-500 bg-white"
               : score === "warm"
-                ? "border-amber-500 text-amber-600 bg-[#FDF7E6]"
-                : "border-[#00A6E8] text-[#00A6E8] bg-[#E6F6FD]";
+                ? "border-amber-500 text-amber-500 bg-white"
+                : "border-[#19A0FF] text-[#19A0FF] bg-white";
           return (
             <button
               key={b.id}
@@ -91,15 +91,15 @@ export function BuyersListSidebar({
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-bold uppercase tracking-tight leading-5 text-[#1d2630]">
+                <p className="truncate text-[16px] font-phudu font-medium uppercase tracking-tight leading-5 text-[#1d2630]">
                   {b.name}
                 </p>
-                <p className="truncate text-[11px] leading-4 text-zinc-500">
-                  {b.location || "unkown"} · <LastActiveText value={b.lastActiveAt} />
+                <p className="truncate text-[12px] leading-4 text-[#6577A0]">
+                  {b.location || "unknown"} · <LastActiveText value={b.lastActiveAt} />
                 </p>
               </div>
               <span
-                className={`flex h-7 shrink-0 items-center justify-center rounded-full border px-4 text-xs font-medium ${badgeColorClass}`}
+                className={`flex h-8 min-w-[72px] shrink-0 items-center justify-center rounded-full border px-4 text-xs font-medium capitalize ${badgeColorClass}`}
               >
                 {score}
               </span>
