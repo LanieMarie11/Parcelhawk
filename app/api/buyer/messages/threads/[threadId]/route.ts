@@ -4,6 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { messages, messageThreads } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import { normalizeChatMessageText } from "@/lib/normalize-chat-message-text";
 import { mergeThreadTimeline } from "@/lib/thread-timeline";
 import { fetchViewingRowsWithListingsForThread } from "@/lib/thread-viewing-requests-query";
 
@@ -89,7 +90,7 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const body = (await request.json().catch(() => null)) as { text?: string } | null;
-  const text = body?.text?.trim() ?? "";
+  const text = normalizeChatMessageText(body?.text);
   if (!text) {
     return NextResponse.json({ error: "Message text is required" }, { status: 400 });
   }

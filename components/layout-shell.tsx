@@ -32,6 +32,13 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const mainShellClass = isInvestor
+    ? "box-border flex h-[100dvh] min-h-0 flex-col overflow-hidden pt-[73px]"
+    : "flex min-h-screen flex-col pt-[73px]";
+  const mainInnerClass = isInvestor
+    ? "flex min-h-0 flex-1 flex-col overflow-y-auto"
+    : "flex min-h-0 flex-1 flex-col";
+
   return (
     <>
       {isInvestor ? (
@@ -39,8 +46,8 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       ) : (
         <LandingHeader />
       )}
-      <div className="flex min-h-screen flex-col pt-[73px]">
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <div className={mainShellClass}>
+        <div className={mainInnerClass}>{children}</div>
       </div>
     </>
   );

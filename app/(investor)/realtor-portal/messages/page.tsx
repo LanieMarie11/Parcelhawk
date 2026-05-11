@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BuyerInformation } from "../components/buyer-information";
 import { LinkedBuyersPanel, type BuyerThread } from "./components/linked-buyers-panel";
+import { MessageComposer } from "@/components/message-composer";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
 import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 
@@ -165,8 +166,8 @@ export default function RealtorMessagesPage() {
   }, [conversation, isLoadingMessages, selectedThread?.threadId]);
 
   async function sendMessage() {
-    const text = draftMessage.trim();
-    if (!text || !selectedThread?.threadId) return;
+    if (!draftMessage.trim() || !selectedThread?.threadId) return;
+    const text = draftMessage;
     setIsSending(true);
     try {
       const response = await fetch(`/api/realtor-portal/messages/threads/${selectedThread.threadId}`, {
@@ -192,7 +193,7 @@ export default function RealtorMessagesPage() {
       ]);
       setBuyerThreads((prev) =>
         prev.map((thread) =>
-          thread.id === selectedThread.id ? { ...thread, preview: text, unread: false } : thread,
+          thread.id === selectedThread.id ? { ...thread, preview: data.message!.text, unread: false } : thread,
         ),
       );
       setDraftMessage("");
@@ -202,10 +203,10 @@ export default function RealtorMessagesPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
-      <div className="mx-auto max-h-[calc(100vh-90px)] w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div className="box-border flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#f4f6f8] px-3 pb-4 pt-3 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div
-          className={`grid min-h-[calc(100vh-150px)] grid-cols-1 ${
+          className={`grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-rows-1 lg:overflow-hidden ${
             showDetailInformation
               ? "lg:grid-cols-[285px_minmax(0,1fr)_380px]"
               : "lg:grid-cols-[285px_minmax(0,1fr)]"
@@ -218,8 +219,8 @@ export default function RealtorMessagesPage() {
             onSelectBuyer={setSelectedBuyerId}
           />
 
-          <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
-            <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[#fcfcfd]">
+            <header className="shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3">
               <button
                 type="button"
                 onClick={() => setShowDetailInformation((prev) => !prev)}
@@ -259,7 +260,7 @@ export default function RealtorMessagesPage() {
 
             <div
               ref={messageScrollRef}
-              className="max-h-[calc(100vh-280px)] flex-1 space-y-6 overflow-y-auto px-6 py-6"
+              className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6"
             >
               {isLoadingMessages ? (
                 <p className="text-sm text-zinc-500">Loading messages...</p>
@@ -289,29 +290,17 @@ export default function RealtorMessagesPage() {
                 />
               )}
             </div>
-            <div className="border-t border-zinc-200 p-4">
-              <div className="flex items-center gap-2">
-                <textarea
-                  value={draftMessage}
-                  onChange={(e) => setDraftMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  disabled={isLoadingMessages}
-                  rows={4}
-                  className="max-h-24 min-h-10 flex-1 resize-none overflow-y-auto rounded-lg border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => void sendMessage()}
-                  disabled={isSending || !selectedThread || isLoadingMessages}
-                  className="rounded-lg bg-[#3f6f39] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345f30] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Send
-                </button>
-              </div>
-            </div>
+            <MessageComposer
+              value={draftMessage}
+              onChange={setDraftMessage}
+              onSend={() => void sendMessage()}
+              inputDisabled={isLoadingMessages}
+              controlsDisabled={isLoadingMessages || !selectedThread}
+              sendDisabled={isSending || !selectedThread || isLoadingMessages}
+            />
           </section>
           {showDetailInformation ? (
-            <div className="border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
+            <div className="h-full min-h-0 overflow-y-auto border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
               <BuyerInformation
                 name={selectedThread?.name ?? "No Buyer Selected"}
                 avatarUrl={selectedThread?.avatarUrl}

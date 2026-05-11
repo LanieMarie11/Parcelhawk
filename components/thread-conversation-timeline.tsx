@@ -1,4 +1,5 @@
 import { MapPin } from "lucide-react";
+import type { ReactNode } from "react";
 import type { ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 import {
   formatChatMessageTime,
@@ -28,6 +29,37 @@ function formatViewingCardAcres(raw: string): string | null {
   return `${formatted} ${label}`;
 }
 
+/** Local calendar day key for grouping (messages + viewing requests). */
+function localDayKey(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** e.g. "4/28/2026" — date separator pill label */
+function formatDayDividerLabel(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "numeric" });
+}
+
+function DateDividerRow({ iso }: { iso: string }) {
+  const label = formatDayDividerLabel(iso);
+  const d = new Date(iso);
+  const dateTime = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return (
+    <div className="flex justify-center py-2" role="separator" aria-label={`Messages from ${label}`}>
+      <time
+        dateTime={dateTime}
+        className="rounded-full bg-zinc-500/95 px-3 py-1 text-[11px] font-medium tabular-nums text-white shadow-sm"
+      >
+        {label}
+      </time>
+    </div>
+  );
+}
+
 export type ThreadConversationTimelineItem =
   | {
       kind: "message";
@@ -46,17 +78,31 @@ type ThreadConversationTimelineProps = {
 };
 
 export function ThreadConversationTimeline({ variant, items }: ThreadConversationTimelineProps) {
+  let previousDayKey: string | undefined;
+
   return (
     <>
-      {items.map((item) =>
-        item.kind === "viewing_request" ? (
-          <ViewingRequestRow key={item.id} item={item} variant={variant} />
-        ) : item.direction === "incoming" ? (
-          <IncomingMessageRow key={item.id} item={item} />
-        ) : (
-          <OutgoingMessageRow key={item.id} item={item} />
-        ),
-      )}
+      {items.flatMap((item) => {
+        const dayKey = localDayKey(item.createdAt);
+        const chunk: ReactNode[] = [];
+
+        if (previousDayKey !== dayKey) {
+          previousDayKey = dayKey;
+          chunk.push(<DateDividerRow key={`day-divider-${item.id}`} iso={item.createdAt} />);
+        }
+
+        chunk.push(
+          item.kind === "viewing_request" ? (
+            <ViewingRequestRow key={item.id} item={item} variant={variant} />
+          ) : item.direction === "incoming" ? (
+            <IncomingMessageRow key={item.id} item={item} />
+          ) : (
+            <OutgoingMessageRow key={item.id} item={item} />
+          ),
+        );
+
+        return chunk;
+      })}
     </>
   );
 }
@@ -235,7 +281,7 @@ function IncomingMessageRow({ item }: { item: MessageRowItem }) {
         </div>
       )}
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <div className="max-w-full rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700 wrap-break-word">
+        <div className="max-w-full whitespace-pre-wrap wrap-break-word rounded-2xl bg-[#f2f4f7] px-4 py-2.5 text-sm leading-relaxed text-zinc-700 [tab-size:4]">
           {item.text}
         </div>
         <span className="shrink-0 text-zinc-400" aria-hidden>
@@ -259,7 +305,7 @@ function OutgoingMessageRow({ item }: { item: MessageRowItem }) {
         <span className="shrink-0 text-zinc-400" aria-hidden>
           ·
         </span>
-        <div className="max-w-full rounded-2xl bg-[#3f6f39] px-4 py-2.5 text-sm leading-relaxed text-white wrap-break-word">
+        <div className="max-w-full whitespace-pre-wrap wrap-break-word rounded-2xl bg-[#3f6f39] px-4 py-2.5 text-sm leading-relaxed text-white [tab-size:4]">
           {item.text}
         </div>
       </div>
