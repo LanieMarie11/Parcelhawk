@@ -5,7 +5,7 @@ import { ChevronDown, Loader2 } from "lucide-react"
 import { PropertyCard } from "@/app/(buyer)/components/property-card"
 import { MarketplaceMap } from "@/app/(buyer)/components/marketplace-map"
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 20
 
 /** Shared by list column and fixed map: width, flex stack, shrink, background */
 const HALF_PANE_SHELL = "flex w-1/2 min-w-0 shrink-0 flex-col bg-background"
@@ -57,6 +57,8 @@ export interface ListingItem {
 
 interface PropertyMapListProps {
   listings: ListingItem[]
+  /** Total rows matching filters (may exceed `listings.length` when API caps page size). */
+  totalListingsNumber?: number
   title?: string
   /** When provided, sort is controlled by parent (e.g. to refetch API with sort param). */
   sortId?: SortId
@@ -66,6 +68,7 @@ interface PropertyMapListProps {
 
 export function PropertyMapList({
   listings,
+  totalListingsNumber,
   title = "Acreage",
   sortId: controlledSortId,
   onSortChange,
@@ -83,7 +86,8 @@ export function PropertyMapList({
     else setInternalSortId(id)
   }
 
-  const totalPages = Math.max(1, Math.ceil(listings.length / PAGE_SIZE))
+  const matchCount = totalListingsNumber ?? listings.length
+  const totalPages = Math.max(1, Math.ceil(matchCount / PAGE_SIZE))
   const paginatedListings = listings.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
@@ -105,16 +109,19 @@ export function PropertyMapList({
   }, [sortOpen])
 
   const currentSortLabel = SORT_OPTIONS.find((o) => o.id === sortId)?.label ?? "Default"
+  const hasNextLocalPage = currentPage * PAGE_SIZE < listings.length
 
   return (
     <div className="flex min-w-0 w-full max-w-full overflow-x-hidden">
       {/* List (left) */}
-      <div className={`${HALF_PANE_SHELL} min-h-[calc(100vh-73px)] border-r border-border`}>
-        <div className="shrink-0 border-b border-border px-6 pb-4 pt-5">
+      <div
+        className={`${HALF_PANE_SHELL} h-[calc(100vh-210px)] min-h-0 border-r border-border`}
+      >
+        <div className="shrink-0 border-b border-border bg-background px-6 pb-4 pt-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{listings.length}</span> parcels match your search
+                <span className="font-semibold text-foreground">20/{matchCount}</span> parcels match your search
               </p>
             </div>
             <div className="relative shrink-0" ref={sortRef}>
@@ -155,7 +162,7 @@ export function PropertyMapList({
           </div>
         </div>
 
-        <div className="px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-6 py-4">
           <div className="flex flex-col gap-4">
             {isLoading ? (
               <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-6 text-sm text-muted-foreground">
@@ -193,7 +200,7 @@ export function PropertyMapList({
           </div>
         </div>
 
-        <div className="mt-auto shrink-0 border-t border-border px-6 py-4">
+        <div className="shrink-0 border-t border-border bg-background px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
@@ -209,7 +216,7 @@ export function PropertyMapList({
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={isLoading || currentPage >= totalPages}
+              disabled={isLoading || currentPage >= totalPages || !hasNextLocalPage}
               className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
             >
               Next

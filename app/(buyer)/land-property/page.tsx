@@ -92,6 +92,7 @@ function LandPropertyPageContent() {
   const stateFromUrl = searchParams.get("state")
   const countyFromUrl = searchParams.get("county")
   const [listingsData, setListingsData] = useState<any[]>([])
+  const [totalListingsNumber, setTotalListingsNumber] = useState(0)
   const [priceRange, setPriceRange] = useState<{
     min: number | null
     max: number | null
@@ -186,8 +187,19 @@ function LandPropertyPageContent() {
         if (!res.ok) return
         const contentType = res.headers.get("content-type") ?? ""
         if (!contentType.includes("application/json")) return
-        const listing = await res.json()
-        if (cancelled || !Array.isArray(listing)) return
+        const payload = await res.json()
+        if (cancelled) return
+        const listing = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.listings)
+            ? payload.listings
+            : null
+        if (!Array.isArray(listing)) return
+        const total =
+          typeof payload?.totalListingsNumber === "number" && !Array.isArray(payload)
+            ? payload.totalListingsNumber
+            : listing.length
+        setTotalListingsNumber(total)
         const mapped = listing
           .map(mapLandListingRow)
           .sort((a, b) => (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1))
@@ -195,6 +207,7 @@ function LandPropertyPageContent() {
         console.log("mapped", mapped)
       } catch {
         setListingsData(properties)
+        setTotalListingsNumber(properties.length)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -257,6 +270,7 @@ function LandPropertyPageContent() {
             (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1)
         )
       setListingsData(mapped)
+      setTotalListingsNumber(mapped.length)
       return true
     } finally {
       setIsLoading(false)
@@ -346,6 +360,7 @@ function LandPropertyPageContent() {
 
       <PropertyMapList
         listings={listingsData}
+        totalListingsNumber={totalListingsNumber}
         title="Acreage"
         sortId={sortId}
         onSortChange={setSortId}
