@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RealtorInformation } from "../components/realtor-information";
 import MessageBoxIcon from "@/components/icons/message-box";
+import { MessageComposer } from "@/components/message-composer";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
 import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 
@@ -217,16 +218,16 @@ export default function BuyerMessagePage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-[#f4f6f8] px-3 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
-      <div className="mx-auto max-h-[calc(100vh-90px)] w-full max-w-[1500px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+    <div className="box-border flex h-[calc(100dvh-73px)] min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8] px-3 pb-4 pt-3 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div
-          className={`grid min-h-[calc(100vh-150px)] grid-cols-1 ${
+          className={`grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-rows-1 lg:overflow-hidden ${
             showDetailInformation
               ? "lg:grid-cols-[280px_minmax(0,1fr)_380px]"
               : "lg:grid-cols-[280px_minmax(0,1fr)]"
           }`}
         >
-          <aside className="flex max-h-[calc(100vh-150px)] flex-col overflow-hidden border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
+          <aside className="flex h-full min-h-0 max-h-full flex-col overflow-hidden border-b border-zinc-200 bg-[#f6f8fa] lg:border-b-0 lg:border-r">
             <div className="border-b border-zinc-200 px-4 py-3">
               <div className="flex items-center gap-2 text-[#141f2f] align-middle">
                 <MessageBoxIcon />
@@ -276,8 +277,8 @@ export default function BuyerMessagePage() {
             </div>
           </aside>
 
-          <section className="flex min-h-[520px] flex-col bg-[#fcfcfd]">
-            <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-3">
+          <section className="flex h-full min-h-0 flex-col overflow-hidden bg-[#fcfcfd]">
+            <header className="shrink-0 flex items-center justify-between border-b border-zinc-200 px-5 py-3">
               <button
                 type="button"
                 onClick={() => setShowDetailInformation((prev) => !prev)}
@@ -317,7 +318,7 @@ export default function BuyerMessagePage() {
 
             <div
               ref={messageScrollRef}
-              className="max-h-[calc(100vh-280px)] flex-1 space-y-6 overflow-y-auto px-6 py-6"
+              className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6"
             >
               {isLoadingMessages ? (
                 <p className="text-sm text-zinc-500">Loading messages...</p>
@@ -348,34 +349,17 @@ export default function BuyerMessagePage() {
                 />
               )}
             </div>
-            <div className="border-t border-zinc-200 p-4">
-              <div className="flex items-center gap-2">
-                <input
-                  value={draftMessage}
-                  onChange={(e) => setDraftMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void sendMessage();
-                    }
-                  }}
-                  placeholder="Type a message..."
-                  disabled={isLoadingMessages || !selectedThread}
-                  className="h-10 flex-1 rounded-lg border border-zinc-300 px-3 text-sm outline-none focus:border-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-400"
-                />
-                <button
-                  type="button"
-                  onClick={() => void sendMessage()}
-                  disabled={isSending || !selectedThread || isLoadingMessages || !draftMessage.trim()}
-                  className="rounded-lg bg-[#3f6f39] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345f30] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Send
-                </button>
-              </div>
-            </div>
+            <MessageComposer
+              value={draftMessage}
+              onChange={setDraftMessage}
+              onSend={() => void sendMessage()}
+              inputDisabled={isLoadingMessages}
+              controlsDisabled={isLoadingMessages || !selectedThread}
+              sendDisabled={isSending || !selectedThread || isLoadingMessages}
+            />
           </section>
           {showDetailInformation ? (
-            <div className="max-h-[calc(100vh-150px)] overflow-y-auto border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
+            <div className="h-full min-h-0 overflow-y-auto border-t border-zinc-200 bg-[#f3f4f6] p-3 lg:border-l lg:border-t-0">
               <RealtorInformation
                 name={selectedThread?.name ?? "No Realtor Selected"}
                 avatarUrl={selectedThread?.avatarUrl}
