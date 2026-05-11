@@ -5,12 +5,20 @@ import { MapPin, Plus, Search, Sparkles, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
 import { ViewRequestModal } from "../components/view-request-modal"
 
-const SORT_OPTIONS = ["Newest", "Oldest", "Price: Low to High", "Price: High to Low"] as const
+const SORT_OPTIONS = [
+  "Newest",
+  "Oldest",
+  "Price: Low to High",
+  "Price: High to Low",
+  "Price per Acre: Low to High",
+  "Price per Acre: High to Low",
+] as const
 
 function formatPrice(price: string): string {
   const num = Number(String(price).replace(/[^0-9.]/g, ""))
@@ -32,17 +40,64 @@ function getFavoriteCardImageSrc(listing: ListingItem): string {
   return getImageSrc(first)
 }
 
+function formatSavedRelativeLabel(iso: string | null | undefined): string {
+  if (!iso?.trim()) return "Saved recently"
+  const saved = new Date(iso)
+  const t = saved.getTime()
+  if (Number.isNaN(t)) return "Saved recently"
+
+  const diffMs = Math.max(0, Date.now() - t)
+  const minutes = Math.floor(diffMs / 60_000)
+  if (minutes < 1) return "Saved just now"
+  if (minutes < 60) return `Saved ${minutes}m ago`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Saved ${hours}h ago`
+
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `Saved ${days}d ago`
+
+  const weeks = Math.floor(days / 7)
+  if (weeks < 8) return `Saved ${weeks}w ago`
+
+  const months = Math.floor(days / 30)
+  if (months < 12) return `Saved ${months}mo ago`
+
+  const years = Math.floor(days / 365)
+  return `Saved ${years}y ago`
+}
+
+/** `favorites.created_at` from API (ISO); used for default sort order. */
+function favoriteSavedAtMs(listing: ListingItem): number {
+  const raw = listing.createdAt?.trim()
+  if (!raw) return 0
+  const t = new Date(raw).getTime()
+  return Number.isNaN(t) ? 0 : t
+}
+
+function pricePerAcre(listing: ListingItem): number | null {
+  const acres = Number(String(listing.acreage).replace(/[^0-9.]/g, ""))
+  const price = Number(String(listing.price).replace(/[^0-9.]/g, ""))
+  if (!Number.isFinite(acres) || acres <= 0 || !Number.isFinite(price)) return null
+  return price / acres
+}
+
 function FavoritePropertyCard({
   listing,
   selectedForCompare,
   onToggleCompare,
+  onRemoveFavorite,
+  isRemovingFavorite,
 }: {
   listing: ListingItem
   selectedForCompare: boolean
   onToggleCompare: () => void
+  onRemoveFavorite: () => void
+  isRemovingFavorite: boolean
 }) {
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
+  const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false)
   const satelliteUrl = listing.parcelSatelliteMapDataUrl ?? null
   const cardImageSrc = getFavoriteCardImageSrc(listing)
   const priceText = formatPrice(listing.price)
@@ -59,6 +114,7 @@ function FavoritePropertyCard({
   })
 
   const linkUrl = listing.url?.trim() ? listing.url : `/property?id=${listing.id}`
+  const savedLabel = formatSavedRelativeLabel(listing.createdAt)
 
   return (
     <>
@@ -78,9 +134,8 @@ function FavoritePropertyCard({
             Compare
           </button>
         </div>
-        {/* TODO : Update this to show the date the property was saved */}
         <div className="absolute bottom-2 right-2 z-10 rounded-full bg-black/55 px-2 py-1 text-xs font-medium text-white">
-          Saved 2d ago
+          {savedLabel}
         </div>
         <div className="group relative h-[156px] w-full bg-muted">
           {satelliteUrl ? (
@@ -170,6 +225,8 @@ function FavoritePropertyCard({
           </button>
           <button
             type="button"
+            onClick={() => setIsRemoveConfirmOpen(true)}
+            disabled={isRemovingFavorite}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#EE5A5A] transition-colors hover:bg-red-50"
             aria-label="Remove from favorites"
           >
@@ -209,6 +266,47 @@ function FavoritePropertyCard({
       </div>
     ) : null}
 
+    {isRemoveConfirmOpen ? (
+      <div
+        className="fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4"
+        onClick={() => {
+          if (isRemovingFavorite) return
+          setIsRemoveConfirmOpen(false)
+        }}
+      >
+        <div
+          className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg font-semibold text-foreground">Remove Favorite</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Are you sure you want to remove this property from your favorites?
+          </p>
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              type="button"
+              disabled={isRemovingFavorite}
+              onClick={() => setIsRemoveConfirmOpen(false)}
+              className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={isRemovingFavorite}
+              onClick={() => {
+                setIsRemoveConfirmOpen(false)
+                onRemoveFavorite()
+              }}
+              className="flex-1 rounded-lg bg-[#EE5A5A] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#d94b4b] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRemovingFavorite ? "Removing..." : "Remove"}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+
     <ViewRequestModal
       open={isViewRequestOpen}
       listingId={listing.id}
@@ -228,6 +326,7 @@ function FavoritePageContent() {
   const [selectedCompareIds, setSelectedCompareIds] = useState<number[]>([])
   const [isComparing, setIsComparing] = useState(false)
   const [compareError, setCompareError] = useState("")
+  const [removingFavoriteIds, setRemovingFavoriteIds] = useState<number[]>([])
 
   useEffect(() => {
     if (status !== "authenticated") {
@@ -268,8 +367,40 @@ function FavoritePageContent() {
       items.sort((a, b) => Number(a.price) - Number(b.price))
     } else if (sortBy === "Price: High to Low") {
       items.sort((a, b) => Number(b.price) - Number(a.price))
+    } else if (sortBy === "Price per Acre: Low to High") {
+      items.sort((a, b) => {
+        const pa = pricePerAcre(a)
+        const pb = pricePerAcre(b)
+        if (pa == null && pb == null) return a.id - b.id
+        if (pa == null) return 1
+        if (pb == null) return -1
+        const diff = pa - pb
+        if (diff !== 0) return diff
+        return a.id - b.id
+      })
+    } else if (sortBy === "Price per Acre: High to Low") {
+      items.sort((a, b) => {
+        const pa = pricePerAcre(a)
+        const pb = pricePerAcre(b)
+        if (pa == null && pb == null) return a.id - b.id
+        if (pa == null) return 1
+        if (pb == null) return -1
+        const diff = pb - pa
+        if (diff !== 0) return diff
+        return a.id - b.id
+      })
     } else if (sortBy === "Oldest") {
-      items.reverse()
+      items.sort((a, b) => {
+        const diff = favoriteSavedAtMs(a) - favoriteSavedAtMs(b)
+        if (diff !== 0) return diff
+        return a.id - b.id
+      })
+    } else if (sortBy === "Newest") {
+      items.sort((a, b) => {
+        const diff = favoriteSavedAtMs(b) - favoriteSavedAtMs(a)
+        if (diff !== 0) return diff
+        return b.id - a.id
+      })
     }
     return items
   }, [listingsData, searchTerm, sortBy])
@@ -316,6 +447,32 @@ function FavoritePageContent() {
     }
   }
 
+  const handleRemoveFavorite = async (listingId: number) => {
+    if (removingFavoriteIds.includes(listingId)) return
+    setRemovingFavoriteIds((prev) => [...prev, listingId])
+
+    try {
+      const res = await fetch("/api/favorites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ landListingIds: [listingId] }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to remove favorite")
+      }
+
+      setListingsData((prev) => prev.filter((item) => item.id !== listingId))
+      setSelectedCompareIds((prev) => prev.filter((id) => id !== listingId))
+      toast.success("Removed from favorites")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to remove favorite")
+    } finally {
+      setRemovingFavoriteIds((prev) => prev.filter((id) => id !== listingId))
+    }
+  }
+
   if (status === "loading" || loading) {
     return (
       <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
@@ -350,11 +507,11 @@ function FavoritePageContent() {
             />
           </div>
           <div className="flex items-center gap-4 text-sm">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-[#373940]">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-[#373940]">
               <span className="text-muted-foreground">Sort:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as (typeof SORT_OPTIONS)[number])}
+                onChange={(event) => setSortBy(event.target.value as (typeof SORT_OPTIONS)[number])}
                 className="bg-transparent text-sm outline-none"
               >
                 {SORT_OPTIONS.map((option) => (
@@ -363,12 +520,15 @@ function FavoritePageContent() {
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
             {userProfileLocation ? (
-              <span className="flex min-w-0 max-w-[240px] items-center gap-1 text-muted-foreground" title={userProfileLocation}>
+              <div
+                className="flex min-w-0 max-w-[240px] items-center gap-1 text-muted-foreground"
+                title={userProfileLocation}
+              >
                 <MapPin className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{userProfileLocation}</span>
-              </span>
+              </div>
             ) : null}
           </div>
         </div>
@@ -398,6 +558,8 @@ function FavoritePageContent() {
                     listing={listing}
                     selectedForCompare={selectedCompareIds.includes(listing.id)}
                     onToggleCompare={() => toggleCompare(listing.id)}
+                    onRemoveFavorite={() => void handleRemoveFavorite(listing.id)}
+                    isRemovingFavorite={removingFavoriteIds.includes(listing.id)}
                   />
                 ))}
               </div>

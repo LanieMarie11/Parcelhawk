@@ -51,6 +51,8 @@ export interface ListingItem {
   parcelSatelliteMapDataUrl?: string | null
   /** ISO string from `land_listings.updated_at` */
   updatedAt?: string | null
+  /** ISO string from `favorites.created_at` when loaded from favorites API */
+  createdAt?: string | null
 }
 
 interface PropertyMapListProps {

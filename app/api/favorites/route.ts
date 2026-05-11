@@ -63,6 +63,7 @@ export async function GET() {
         url: landListings.url,
         description: landListings.description,
         updatedAt: landListings.updatedAt,
+        createdAt : favorites.createdAt,
       })
       .from(favorites)
       .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
@@ -93,6 +94,12 @@ export async function GET() {
           ? row.updatedAt instanceof Date
             ? row.updatedAt.toISOString()
             : String(row.updatedAt)
+          : null,
+      createdAt:
+        row.createdAt != null
+          ? row.createdAt instanceof Date
+            ? row.createdAt.toISOString()
+            : String(row.createdAt)
           : null,
     }));
 
