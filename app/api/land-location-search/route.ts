@@ -166,11 +166,23 @@ export async function GET(request: NextRequest) {
                   ? pricePerAcreDesc
                   : desc(landListings.listingDate);
 
-    const baseQuery =
+    const filteredSelect =
       conditions.length > 0
         ? db.select().from(landListings).where(and(...conditions))
         : db.select().from(landListings);
-    const rows = await baseQuery.orderBy(orderBy).limit(20);
+    const countSelect =
+      conditions.length > 0
+        ? db
+            .select({ totalListingsNumber: sql<number>`count(*)::int` })
+            .from(landListings)
+            .where(and(...conditions))
+        : db.select({ totalListingsNumber: sql<number>`count(*)::int` }).from(landListings);
+
+    const [rows, countRows] = await Promise.all([
+      filteredSelect.orderBy(orderBy).limit(20),
+      countSelect,
+    ]);
+    const totalListingsNumber = Number(countRows[0]?.totalListingsNumber ?? 0);
 
     let favoriteIds = new Set<number>();
     if (userId) {
@@ -199,7 +211,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(list);
+    return NextResponse.json({ listings: list, totalListingsNumber });
   } catch (error) {
     console.error("Land location search API error:", error);
     return NextResponse.json(
