@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { ChevronDown, Loader2 } from "lucide-react"
 import { PropertyCard } from "@/app/(buyer)/components/property-card"
 import { MarketplaceMap } from "@/app/(buyer)/components/marketplace-map"
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
 
 const PAGE_SIZE = 20
 
@@ -47,7 +48,11 @@ export interface ListingItem {
   url?: string | null
   /** Description from landListings.description (array of strings) */
   description?: string[] | string | null
-  /** Satellite Static Map PNG as data URL (parcel boundary on aerial), from land-location-search */
+  /**
+   * Satellite preview for list cards: built on the client from latitude/longitude and
+   * `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (Static Maps). Optional server-provided URL/data URL
+   * when another API sets this (e.g. favorites).
+   */
   parcelSatelliteMapDataUrl?: string | null
   /** ISO string from `land_listings.updated_at` */
   updatedAt?: string | null
@@ -190,7 +195,7 @@ export function PropertyMapList({
                 aiMatchingScore={listing.aiMatchingScore}
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
-                parcelSatelliteMapDataUrl={listing.parcelSatelliteMapDataUrl ?? undefined}
+                parcelSatelliteMapDataUrl={resolveListingSatellitePreviewUrl(listing)}
                 updatedAt={listing.updatedAt ?? undefined}
                 variant="list"
                 onMouseEnter={() => setHoveredListingId(listing.id)}

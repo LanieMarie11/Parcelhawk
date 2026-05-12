@@ -7,7 +7,6 @@ import { favorites, landListings } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
 import { summarizeComparedListingsWithLlm } from "@/lib/ai-description-summary"
-import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map"
 
 type LandListing = InferSelectModel<typeof landListings>
 type CompareListingRow = Pick<
@@ -42,16 +41,6 @@ function toNumber(value: unknown): number | null {
   if (value == null) return null
   const num = Number(value)
   return Number.isFinite(num) ? num : null
-}
-
-function parseLatLon(value: unknown): number | null {
-  if (value == null) return null
-  if (typeof value === "number") return Number.isFinite(value) ? value : null
-  if (typeof value === "string") {
-    const n = Number(value.replace(/[^0-9.-]/g, ""))
-    return Number.isFinite(n) ? n : null
-  }
-  return null
 }
 
 export async function POST(request: Request) {
@@ -108,8 +97,6 @@ export async function POST(request: Request) {
     .map((id) => rowById.get(id))
     .filter((r): r is CompareListingRow => r != null)
 
-  const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim()
-
   const comparedProperties = await Promise.all(
     orderedRows.map(async (row, index) => {
       const price = toNumber(row.price)
@@ -132,18 +119,8 @@ export async function POST(request: Request) {
             )
           : null
 
-      const lat = parseLatLon(row.latitude)
-      const lon = parseLatLon(row.longitude)
-      const satellitePromise =
-        mapsApiKey && lat != null && lon != null
-          ? fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey)
-          : Promise.resolve(null as string | null)
       const descriptionText = descriptionToText(row.description)
-
-      const [inferredFeatures, satelliteImage] = await Promise.all([
-        inferFeaturesFromDescriptionWithLlm(descriptionText),
-        satellitePromise,
-      ])
+      const inferredFeatures = await inferFeaturesFromDescriptionWithLlm(descriptionText)
 
       const photoFallback = row.photos?.[0] ?? "/placeholder.svg"
 
@@ -151,7 +128,9 @@ export async function POST(request: Request) {
         id: row.id,
         name: row.title ?? `Property ${index + 1}`,
         url: row.url ?? null,
-        image: satelliteImage ?? photoFallback,
+        latitude: toNumber(row.latitude),
+        longitude: toNumber(row.longitude),
+        image: photoFallback,
         price: price != null ? formatCurrency(price) : "N/A",
         pricePerAcre: pricePerAcre != null ? `${formatCurrency(pricePerAcre)}/ac` : "N/A",
         acreage: acres != null ? `${acres} acres` : "N/A",

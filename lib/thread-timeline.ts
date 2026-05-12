@@ -22,6 +22,7 @@ export type ThreadViewingRowForMerge = {
   url: string | null
   latitude: number | null
   longitude: number | null
+  /** Legacy server data URL; usually null — client builds Static Maps URL from lat/lng. */
   parcelSatelliteMapDataUrl: string | null
 }
 

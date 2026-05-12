@@ -6,6 +6,7 @@ import MessageBoxIcon from "@/components/icons/message-box";
 import { MessageComposer } from "@/components/message-composer";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
 import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client";
 
 type Thread = {
   id: string;
@@ -70,7 +71,11 @@ function mapTimelineForBuyer(items: ThreadTimelineItem[]): ConversationItem[] {
           text: item.text,
           createdAt: item.createdAt,
         }
-      : item
+      : {
+          ...item,
+          parcelSatelliteMapDataUrl:
+            resolveListingSatellitePreviewUrl(item) ?? item.parcelSatelliteMapDataUrl ?? null,
+        },
   );
 }
 

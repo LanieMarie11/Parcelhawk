@@ -8,38 +8,11 @@ import {
   PREFERENCE_ACREAGE_TO_RANGE,
   PREFERENCE_BUDGET_TO_RANGE,
 } from "@/lib/land-preference-buckets";
-import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map";
-
-const STATIC_MAP_FETCH_CONCURRENCY = 4;
 
 function parseNumParam(value: string | null): number | null {
   if (value == null || value.trim() === "") return null;
   const num = Number(value.replace(/[^0-9.]/g, ""));
   return Number.isFinite(num) && num >= 0 ? num : null;
-}
-
-function parseLatLon(value: unknown): number | null {
-  if (value == null) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string") {
-    const n = Number(value.replace(/[^0-9.-]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      out[i] = await fn(items[i]!, i);
-    }
-  }
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
-  await Promise.all(workers);
-  return out;
 }
 
 export async function GET(request: NextRequest) {
@@ -193,23 +166,10 @@ export async function GET(request: NextRequest) {
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
     }
 
-    let list = rows.map((row) => ({
+    const list = rows.map((row) => ({
       ...row,
       isFavorite: favoriteIds.has(row.id),
     }));
-
-    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
-    if (mapsApiKey) {
-      list = await mapPool(list, STATIC_MAP_FETCH_CONCURRENCY, async (row) => {
-        const lat = parseLatLon(row.latitude);
-        const lon = parseLatLon(row.longitude);
-        if (lat == null || lon == null) {
-          return { ...row, parcelSatelliteMapDataUrl: null };
-        }
-        const dataUrl = await fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey);
-        return { ...row, parcelSatelliteMapDataUrl: dataUrl };
-      });
-    }
 
     return NextResponse.json({ listings: list, totalListingsNumber });
   } catch (error) {
