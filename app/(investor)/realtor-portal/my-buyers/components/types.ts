@@ -3,7 +3,10 @@ export type SavedPropertyViewRequest = "none" | "pending" | "scheduled" | "compl
 
 export type SavedPropertyRow = {
   id: string;
+  /** Listing photo from API; satellite uses lat/lng on the client when available. */
   thumbnailSrc: string;
+  latitude?: number | null;
+  longitude?: number | null;
   url?: string;
   price: string;
   subtitle: string;

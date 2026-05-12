@@ -13,37 +13,16 @@ import {
   viewingRequests,
 } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
-import { fetchCenterSatelliteMapDataUrl } from "@/lib/parcel-aerial-map";
 
 type SessionUser = {
   id?: string;
   role?: string;
 };
 
-const STATIC_MAP_FETCH_CONCURRENCY = 4;
-
-function parseLatLon(value: unknown): number | null {
-  if (value == null) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  if (typeof value === "string") {
-    const n = Number(value.replace(/[^0-9.-]/g, ""));
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-async function mapPool<T, R>(items: T[], concurrency: number, fn: (item: T, i: number) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(items.length);
-  let next = 0;
-  async function worker() {
-    while (next < items.length) {
-      const i = next++;
-      out[i] = await fn(items[i]!, i);
-    }
-  }
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
-  await Promise.all(workers);
-  return out;
+function coords(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 function formatPrice(value: string | null): string {
@@ -264,28 +243,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
       }
     }
 
-    const mapsApiKey = process.env.GOOGLE_MAPS_API_KEY?.trim();
-    const savedProperties = await mapPool(favoriteRows, STATIC_MAP_FETCH_CONCURRENCY, async (fav) => {
-      let thumbnailSrc = fav.photo?.[0] ?? "";
-      if (mapsApiKey) {
-        const lat = parseLatLon(fav.latitude);
-        const lon = parseLatLon(fav.longitude);
-        if (lat != null && lon != null) {
-          const dataUrl = await fetchCenterSatelliteMapDataUrl(lat, lon, mapsApiKey);
-          if (dataUrl) thumbnailSrc = dataUrl;
-        }
-      }
-      return {
-        id: fav.favoriteId,
-        thumbnailSrc,
-        url: fav.url ?? undefined,
-        price: formatPrice(fav.price),
-        subtitle: buildSubtitle(fav.city, fav.state),
-        address: fav.address ?? `Listing #${fav.listingId}`,
-        acreageLabel: formatAcreage(fav.acreage),
-        viewingRequest: viewingStatusByListingId.get(fav.listingId) ?? "none",
-      };
-    });
+    const savedProperties = favoriteRows.map((fav) => ({
+      id: String(fav.favoriteId),
+      thumbnailSrc: fav.photo?.[0] ?? "",
+      url: fav.url ?? undefined,
+      price: formatPrice(fav.price),
+      subtitle: buildSubtitle(fav.city, fav.state),
+      address: fav.address ?? `Listing #${fav.listingId}`,
+      acreageLabel: formatAcreage(fav.acreage),
+      viewingRequest: viewingStatusByListingId.get(fav.listingId) ?? "none",
+      latitude: coords(fav.latitude),
+      longitude: coords(fav.longitude),
+    }));
     const savedPropertiesCount = savedProperties.length;
     const savedSearchesCount = savedSearchRows.length;
 

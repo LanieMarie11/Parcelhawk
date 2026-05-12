@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, Mail, MapPin, Phone, Search, Star, UserRound, Zap } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client";
 import { LastActiveText } from "./last-active-text";
 import { BuyerSummaryCards } from "./buyer-summary-cards";
 
@@ -22,15 +23,29 @@ function viewingRequestLabel(kind: Exclude<SavedPropertyViewRequest, "none">) {
   return "Viewing Request Completed";
 }
 
+function savedPropertyThumbnailSrc(row: SavedPropertyRow): string {
+  const satellite = resolveListingSatellitePreviewUrl({
+    latitude: row.latitude,
+    longitude: row.longitude,
+    parcelSatelliteMapDataUrl: null,
+  });
+  if (satellite) return satellite;
+  const photo = row.thumbnailSrc?.trim();
+  if (photo) return photo;
+  return "/placeholder.svg";
+}
+
 function SavedPropertyThumbnail({ row }: { row: SavedPropertyRow }) {
+  const src = savedPropertyThumbnailSrc(row);
   return (
     <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-zinc-200">
       <Image
-        src={row.thumbnailSrc}
+        src={src}
         alt="Property thumbnail"
         fill
         className="object-cover"
         sizes="56px"
+        unoptimized={src.startsWith("data:") || src.includes("maps.googleapis.com")}
       />
     </div>
   );

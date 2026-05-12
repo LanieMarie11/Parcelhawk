@@ -7,6 +7,7 @@ import {
   formatViewingRequestScheduledTime,
   formatViewingStatus,
 } from "@/lib/format-thread-message";
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client";
 
 function formatViewingCardPrice(raw: string): string | null {
   const s = raw.trim();
@@ -118,7 +119,8 @@ function ViewingRequestCard({
   const accentClass = "text-[#3f6f39]";
   const heroListingCaption =
     item.fullAddress.trim() || formatViewingRequestHeroListingLine(item.listingId);
-  const heroImageUrl = item.parcelSatelliteMapDataUrl ?? null;
+  const heroImageUrl =
+    item.parcelSatelliteMapDataUrl ?? resolveListingSatellitePreviewUrl(item) ?? null;
   const priceLine = formatViewingCardPrice(item.price);
   const acresLine = formatViewingCardAcres(item.acres);
 

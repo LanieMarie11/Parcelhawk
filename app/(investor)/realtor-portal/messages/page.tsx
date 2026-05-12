@@ -5,6 +5,7 @@ import { BuyerInformation } from "../components/buyer-information";
 import { LinkedBuyersPanel, type BuyerThread } from "./components/linked-buyers-panel";
 import { MessageComposer } from "@/components/message-composer";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client";
 import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 
 type ChatItem =
@@ -53,7 +54,11 @@ function mapTimelineForRealtor(items: ThreadTimelineItem[], buyerAvatarUrl: stri
           createdAt: item.createdAt,
           avatarUrl: item.sender === "buyer" ? buyerAvatarUrl : undefined,
         }
-      : item
+      : {
+          ...item,
+          parcelSatelliteMapDataUrl:
+            resolveListingSatellitePreviewUrl(item) ?? item.parcelSatelliteMapDataUrl ?? null,
+        },
   );
 }
 

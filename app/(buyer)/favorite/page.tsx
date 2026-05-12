@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
 import { ViewRequestModal } from "../components/view-request-modal"
 
 const SORT_OPTIONS = [
@@ -35,7 +36,8 @@ function getImageSrc(url?: string): string {
 }
 
 function getFavoriteCardImageSrc(listing: ListingItem): string {
-  if (listing.parcelSatelliteMapDataUrl) return listing.parcelSatelliteMapDataUrl
+  const satellite = resolveListingSatellitePreviewUrl(listing)
+  if (satellite) return satellite
   const first = Array.isArray(listing.images) && listing.images.length > 0 ? listing.images[0] : undefined
   return getImageSrc(first)
 }
@@ -98,7 +100,7 @@ function FavoritePropertyCard({
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false)
-  const satelliteUrl = listing.parcelSatelliteMapDataUrl ?? null
+  const satelliteUrl = resolveListingSatellitePreviewUrl(listing) ?? null
   const cardImageSrc = getFavoriteCardImageSrc(listing)
   const priceText = formatPrice(listing.price)
   const acresValue = Number(String(listing.acreage).replace(/[^0-9.]/g, ""))

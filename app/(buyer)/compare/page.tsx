@@ -4,13 +4,17 @@ import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ShieldCheck, Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
+import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
 
 type PropertyOption = {
   id: number
   name: string
   /** Listing detail URL when present; otherwise compare UI falls back to `/property?id=`. */
   url?: string | null
+  /** Photo or placeholder from API; satellite preview is derived on the client when lat/lng exist. */
   image: string
+  latitude?: number | null
+  longitude?: number | null
   aiMatchScore: number
   isVerifiedBest?: boolean
   price: string
@@ -35,6 +39,17 @@ type CompareApiPayload = {
 function listingLinkUrl(url: string | undefined | null, id: number): string {
   const trimmed = typeof url === "string" ? url.trim() : ""
   return trimmed ? trimmed : `/property?id=${id}`
+}
+
+/** Static Maps from coordinates + `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, else listing photo/placeholder. */
+function compareColumnHeroSrc(p: PropertyOption): string {
+  return (
+    resolveListingSatellitePreviewUrl({
+      latitude: p.latitude,
+      longitude: p.longitude,
+      parcelSatelliteMapDataUrl: null,
+    }) ?? p.image
+  )
 }
 
 const COMPARISON_ROWS: Array<{ label: string; key: keyof PropertyOption }> = [
@@ -152,6 +167,7 @@ export default function ComparePage() {
                 </div>
                 {propertyOptions.map((property, index) => {
                   const isBest = Boolean(property.isVerifiedBest)
+                  const heroSrc = compareColumnHeroSrc(property)
                   return (
                     <div
                       key={`${property.id}-${index}`}
@@ -166,24 +182,26 @@ export default function ComparePage() {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            setImagePreview({ src: property.image, name: property.name })
+                            setImagePreview({ src: heroSrc, name: property.name })
                           }}
                           onKeyDown={(e) => {
                             if (e.key !== "Enter" && e.key !== " ") return
                             e.preventDefault()
                             e.stopPropagation()
-                            setImagePreview({ src: property.image, name: property.name })
+                            setImagePreview({ src: heroSrc, name: property.name })
                           }}
                           className="relative h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-full outline-none ring-[#04C0AF] focus-visible:ring-2"
                           title="Open detailed image preview"
                           aria-label="Open detailed image preview"
                         >
                           <Image
-                            src={property.image}
+                            src={heroSrc}
                             alt={property.name}
                             width={32}
                             height={32}
-                            unoptimized={property.image.startsWith("data:")}
+                            unoptimized={
+                              heroSrc.startsWith("data:") || heroSrc.includes("maps.googleapis.com")
+                            }
                             className="h-8 w-8 object-cover transition-opacity hover:opacity-90"
                           />
                         </div>
@@ -251,7 +269,10 @@ export default function ComparePage() {
                       src={imagePreview.src}
                       alt={`${imagePreview.name} — detailed preview`}
                       fill
-                      unoptimized={imagePreview.src.startsWith("data:")}
+                      unoptimized={
+                        imagePreview.src.startsWith("data:") ||
+                        imagePreview.src.includes("maps.googleapis.com")
+                      }
                       className="object-contain bg-black"
                       sizes="100vw"
                     />
