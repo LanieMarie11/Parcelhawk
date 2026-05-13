@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
 import { buyerInvestorLinks, investors, messageThreads, users } from "@/db/schema";
+import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-connected-notification";
 import { generateReferralCode } from "@/lib/referral-code";
 import { eq } from "drizzle-orm";
 
@@ -70,7 +71,12 @@ export async function POST(request: Request) {
       const refToken = typeof ref === "string" ? ref.trim() : "";
       if (refToken) {
         const [referrer] = await db
-          .select({ id: investors.id })
+          .select({
+            id: investors.id,
+            firstName: investors.firstName,
+            lastName: investors.lastName,
+            email: investors.email,
+          })
           .from(investors)
           .where(eq(investors.referralUrl, refToken))
           .limit(1);
@@ -96,6 +102,17 @@ export async function POST(request: Request) {
             .onConflictDoNothing({
               target: [messageThreads.investorId, messageThreads.buyerUserId],
             });
+
+          const buyerDisplayName =
+            `${normalizedFirstName} ${normalizedLastName}`.trim() || "(unknown buyer)";
+          const realtorDisplayName =
+            `${referrer.firstName} ${referrer.lastName}`.trim() || "there";
+
+          await sendBuyerConnectedToRealtorNotification({
+            buyerName: buyerDisplayName,
+            realtorName: realtorDisplayName,
+            realtorEmail: referrer.email.trim(),
+          });
         }
       }
     } else {

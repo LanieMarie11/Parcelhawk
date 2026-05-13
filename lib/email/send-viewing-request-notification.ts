@@ -1,12 +1,4 @@
-import { Resend } from "resend"
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-}
+import { escapeHtml, sendToRealtorInbox } from "@/lib/email/resend-realtor-inbox"
 
 export type ViewingRequestNotificationPayload = {
   viewingRequestId: string
@@ -27,21 +19,6 @@ export type ViewingRequestNotificationPayload = {
 export async function sendViewingRequestCreatedNotification(
   payload: ViewingRequestNotificationPayload
 ): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.RESEND_FROM_EMAIL ?? process.env.RESEND_FROM
-  if (!apiKey?.trim() || !from?.trim()) {
-    console.warn(
-      "[viewing-request-email] RESEND_API_KEY or RESEND_FROM_EMAIL is missing; skipping notification"
-    )
-    return
-  }
-
-  const to = payload.realtorEmail.trim()
-  if (!to) {
-    console.warn("[viewing-request-email] realtorEmail is empty; skipping notification")
-    return
-  }
-
   const location =
     payload.listingLocation?.trim() ||
     (payload.listingTitle?.trim() ? null : `Listing #${payload.listingId}`)
@@ -51,6 +28,8 @@ export async function sendViewingRequestCreatedNotification(
   const textLines = [
     "A new land viewing request was created.",
     "",
+    `Request ID: ${payload.viewingRequestId}`,
+    `Listing ID: ${payload.listingId}`,
     `Title: ${titleLine}`,
     `Location: ${locationLine}`,
     `Buyer: ${payload.buyerName}`,
@@ -89,21 +68,11 @@ export async function sendViewingRequestCreatedNotification(
   </body>
 </html>`.trim()
 
-  const resend = new Resend(apiKey)
-  const { data, error } = await resend.emails.send({
-    from: from.trim(),
-    to,
+  await sendToRealtorInbox({
+    realtorEmail: payload.realtorEmail,
     subject: `New viewing request from ${payload.buyerName} — listing #${payload.listingId}`,
     text: textLines.join("\n"),
     html,
+    logTag: "viewing-request-email",
   })
-
-  if (error) {
-    console.error("[viewing-request-email] Resend error:", error)
-    return
-  }
-
-  if (data?.id) {
-    console.info("[viewing-request-email] sent", { resendEmailId: data.id })
-  }
 }
