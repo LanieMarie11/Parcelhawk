@@ -15,6 +15,18 @@ function parseNumParam(value: string | null): number | null {
   return Number.isFinite(num) && num >= 0 ? num : null;
 }
 
+function parsePositiveIntParam(
+  value: string | null,
+  fallback: number,
+  { min = 1, max }: { min?: number; max?: number } = {}
+): number {
+  if (value == null || value.trim() === "") return fallback;
+  const num = Number(value);
+  if (!Number.isInteger(num) || num < min) return fallback;
+  if (max != null && num > max) return max;
+  return num;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
@@ -29,6 +41,9 @@ export async function GET(request: NextRequest) {
     const stateAbbrev = searchParams.get("state")?.trim().toUpperCase() ?? null;
     const county = searchParams.get("county")?.trim() ?? null;
     const sort = (searchParams.get("sort") ?? "default").trim().toLowerCase();
+    const page = parsePositiveIntParam(searchParams.get("page"), 1);
+    const limit = parsePositiveIntParam(searchParams.get("limit"), 20, { max: 100 });
+    const offset = (page - 1) * limit;
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
@@ -152,7 +167,7 @@ export async function GET(request: NextRequest) {
         : db.select({ totalListingsNumber: sql<number>`count(*)::int` }).from(landListings);
 
     const [rows, countRows] = await Promise.all([
-      filteredSelect.orderBy(orderBy).limit(20),
+      filteredSelect.orderBy(orderBy).limit(limit).offset(offset),
       countSelect,
     ]);
     const totalListingsNumber = Number(countRows[0]?.totalListingsNumber ?? 0);

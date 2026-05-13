@@ -64,6 +64,9 @@ interface PropertyMapListProps {
   listings: ListingItem[]
   /** Total rows matching filters (may exceed `listings.length` when API caps page size). */
   totalListingsNumber?: number
+  pageSize?: number
+  currentPage?: number
+  onPageChange?: (page: number) => void
   title?: string
   /** When provided, sort is controlled by parent (e.g. to refetch API with sort param). */
   sortId?: SortId
@@ -74,33 +77,45 @@ interface PropertyMapListProps {
 export function PropertyMapList({
   listings,
   totalListingsNumber,
+  pageSize = PAGE_SIZE,
+  currentPage: controlledCurrentPage,
+  onPageChange,
   title = "Acreage",
   sortId: controlledSortId,
   onSortChange,
   isLoading = false,
 }: PropertyMapListProps) {
-  const [currentPage, setCurrentPage] = useState(1)
+  const [localCurrentPage, setLocalCurrentPage] = useState(1)
   const [sortOpen, setSortOpen] = useState(false)
   const [internalSortId, setInternalSortId] = useState<SortId>("default")
   const [hoveredListingId, setHoveredListingId] = useState<number | null>(null)
   const sortRef = useRef<HTMLDivElement>(null)
 
   const sortId = controlledSortId ?? internalSortId
+  const isPaginationControlled =
+    typeof controlledCurrentPage === "number" && typeof onPageChange === "function"
+  const currentPage = isPaginationControlled ? controlledCurrentPage : localCurrentPage
   const setSortId = (id: SortId) => {
     if (onSortChange) onSortChange(id)
     else setInternalSortId(id)
   }
 
   const matchCount = totalListingsNumber ?? listings.length
-  const totalPages = Math.max(1, Math.ceil(matchCount / PAGE_SIZE))
-  const paginatedListings = listings.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  )
+  const totalPages = Math.max(1, Math.ceil(matchCount / pageSize))
+  const paginatedListings = isPaginationControlled
+    ? listings
+    : listings.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const setCurrentPage = (nextPage: number | ((prev: number) => number)) => {
+    const resolvedPage = typeof nextPage === "function" ? nextPage(currentPage) : nextPage
+    const boundedPage = Math.min(totalPages, Math.max(1, resolvedPage))
+    if (isPaginationControlled) onPageChange(boundedPage)
+    else setLocalCurrentPage(boundedPage)
+  }
 
   useEffect(() => {
+    if (isPaginationControlled) return
     setCurrentPage(1)
-  }, [listings.length, sortId])
+  }, [isPaginationControlled, listings.length, sortId])
 
   useEffect(() => {
     if (!sortOpen) return
@@ -114,7 +129,9 @@ export function PropertyMapList({
   }, [sortOpen])
 
   const currentSortLabel = SORT_OPTIONS.find((o) => o.id === sortId)?.label ?? "Default"
-  const hasNextLocalPage = currentPage * PAGE_SIZE < listings.length
+  const hasNextPage = isPaginationControlled
+    ? currentPage < totalPages
+    : currentPage * pageSize < listings.length
 
   return (
     <div className="flex min-w-0 w-full max-w-full overflow-x-hidden">
@@ -126,7 +143,10 @@ export function PropertyMapList({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">20/{matchCount}</span> parcels match your search
+                <span className="font-semibold text-foreground">
+                  {paginatedListings.length}/{matchCount}
+                </span>{" "}
+                parcels match your search
               </p>
             </div>
             <div className="relative shrink-0" ref={sortRef}>
@@ -221,7 +241,7 @@ export function PropertyMapList({
             <button
               type="button"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={isLoading || currentPage >= totalPages || !hasNextLocalPage}
+              disabled={isLoading || currentPage >= totalPages || !hasNextPage}
               className="rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-50"
             >
               Next

@@ -22,6 +22,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Investment: "#c77c32",
   Farm: "#6b7b6b",
 }
+const PAGE_SIZE = 20
 
 // Fallback when API fails; no lat/lng so map will show default view
 const properties = [
@@ -104,6 +105,8 @@ function LandPropertyPageContent() {
   const [landFeatureFilters, setLandFeatureFilters] =
     useState<LandFeatureFilters>(DEFAULT_LAND_FEATURE_FILTERS)
   const [sortId, setSortId] = useState<SortId>("default")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isServerPaginated, setIsServerPaginated] = useState(true)
   const [stateFilter, setStateFilter] = useState<StateFilterValue>(null)
   const [countyFilter, setCountyFilter] = useState<CountyFilterValue>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -150,6 +153,26 @@ function LandPropertyPageContent() {
   }, [minAcresFromUrl, maxAcresFromUrl, minPriceFromUrl, maxPriceFromUrl, stateFromUrl, countyFromUrl])
 
   useEffect(() => {
+    setCurrentPage(1)
+  }, [
+    typeFromUrl,
+    activitiesFromUrl.join(","),
+    locationFromUrl,
+    minAcresFromUrl,
+    maxAcresFromUrl,
+    minPriceFromUrl,
+    maxPriceFromUrl,
+    priceRange.min,
+    priceRange.max,
+    sizeRange.min,
+    sizeRange.max,
+    sortId,
+    stateFilter?.code,
+    countyFilter?.stateCode,
+    countyFilter?.name,
+  ])
+
+  useEffect(() => {
     let cancelled = false
     async function load() {
       setIsLoading(true)
@@ -161,6 +184,7 @@ function LandPropertyPageContent() {
           pendingLandLocationFetchSkipsRef.current = 0
           return
         }
+        setIsServerPaginated(true)
         const useLocationSearch = locationFromUrl.length > 0 || typeFromUrl.length > 0 || activitiesFromUrl.length > 0
         // const base = useLocationSearch ? `${getBaseUrl()}/api/land-location-search` : `${getBaseUrl()}/api/land-property`
         const base = `${getBaseUrl()}/api/land-location-search` 
@@ -175,6 +199,8 @@ function LandPropertyPageContent() {
         if (stateFilter) params.set("state", stateFilter.code)
         if (countyFilter) params.set("county", countyFilter.name)
         if (sortId && sortId !== "default") params.set("sort", sortId)
+        params.set("page", String(currentPage))
+        params.set("limit", String(PAGE_SIZE))
         if (useLocationSearch) {
           if (minPriceFromUrl != null && minPriceFromUrl !== "") params.set("minPrice", minPriceFromUrl)
           if (maxPriceFromUrl != null && maxPriceFromUrl !== "") params.set("maxPrice", maxPriceFromUrl)
@@ -199,6 +225,7 @@ function LandPropertyPageContent() {
           typeof payload?.totalListingsNumber === "number" && !Array.isArray(payload)
             ? payload.totalListingsNumber
             : listing.length
+        setIsServerPaginated(true)
         setTotalListingsNumber(total)
         const mapped = listing
           .map(mapLandListingRow)
@@ -206,6 +233,7 @@ function LandPropertyPageContent() {
         setListingsData(mapped)
         console.log("mapped", mapped)
       } catch {
+        setIsServerPaginated(true)
         setListingsData(properties)
         setTotalListingsNumber(properties.length)
       } finally {
@@ -231,6 +259,7 @@ function LandPropertyPageContent() {
     countyFilter?.stateCode,
     countyFilter?.name,
     pendingSearchPrompt,
+    currentPage,
   ])
 
   const handleEmbeddingSearch = useCallback(async (prompt: string): Promise<boolean> => {
@@ -269,6 +298,8 @@ function LandPropertyPageContent() {
           (a: ListingItem, b: ListingItem) =>
             (b.aiMatchingScore ?? -1) - (a.aiMatchingScore ?? -1)
         )
+      setIsServerPaginated(false)
+      setCurrentPage(1)
       setListingsData(mapped)
       setTotalListingsNumber(mapped.length)
       return true
@@ -361,6 +392,9 @@ function LandPropertyPageContent() {
       <PropertyMapList
         listings={listingsData}
         totalListingsNumber={totalListingsNumber}
+        pageSize={PAGE_SIZE}
+        currentPage={isServerPaginated ? currentPage : undefined}
+        onPageChange={isServerPaginated ? setCurrentPage : undefined}
         title="Acreage"
         sortId={sortId}
         onSortChange={setSortId}
