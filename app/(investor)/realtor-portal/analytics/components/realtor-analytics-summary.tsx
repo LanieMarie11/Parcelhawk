@@ -1,16 +1,6 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  CalendarDays,
-  Clock3,
-  Download,
-  Eye,
-  FileText,
-  Flame,
-  Lightbulb,
-  SendHorizontal,
-  Users,
-} from "lucide-react";
+"use client";
+
+import { ArrowDown, ArrowUp, CalendarDays, Download, Eye, Flame, Lightbulb, Users } from "lucide-react";
 import type { ComponentType } from "react";
 
 type StatCard = {
@@ -22,54 +12,54 @@ type StatCard = {
   icon: ComponentType<{ className?: string }>;
 };
 
-const statCards: StatCard[] = [
-  {
-    label: "Active Buyers",
-    value: "152",
-    trend: "+12%",
-    trendDirection: "up",
-    icon: Users,
-  },
-  {
-    label: "Hot Buyers",
-    value: "42",
-    trend: "+8",
-    trendDirection: "up",
-    icon: Flame,
-  },
-  {
-    label: "Viewing Requests",
-    value: "152",
-    trend: "+12.4% vs last month",
-    trendDirection: "up",
-    icon: Eye,
-  },
-  {
-    label: "Avg Response Time",
-    value: "2.3",
-    suffix: "HRS",
-    trend: "-15%",
-    trendDirection: "down",
-    icon: Clock3,
-  },
-  {
-    label: "Parcels Pushed",
-    value: "245",
-    trend: "This month",
-    trendDirection: "up",
-    icon: FileText,
-  },
-  {
-    label: "Push -> View Rate",
-    value: "23",
-    suffix: "%",
-    trend: "+3%",
-    trendDirection: "up",
-    icon: SendHorizontal,
-  },
-];
+type AnalyticsBuyer = {
+  id: string;
+  lastActiveAt: string;
+  viewingRequestCount: number;
+};
 
-export function RealtorAnalyticsSummary() {
+const HOT_BUYER_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function isHotBuyer(lastActiveAtIso: string, viewingRequestCount: number) {
+  const lastActiveMs = new Date(lastActiveAtIso).getTime();
+  if (!Number.isFinite(lastActiveMs)) return viewingRequestCount > 0;
+  return Date.now() - lastActiveMs <= HOT_BUYER_WINDOW_MS || viewingRequestCount > 0;
+}
+
+type RealtorAnalyticsSummaryProps = {
+  buyers: AnalyticsBuyer[];
+  totalViewingRequests: number;
+  isLoading: boolean;
+};
+
+export function RealtorAnalyticsSummary({ buyers, totalViewingRequests, isLoading }: RealtorAnalyticsSummaryProps) {
+  const activeBuyers = buyers.length;
+  const hotBuyers = buyers.filter((buyer) => isHotBuyer(buyer.lastActiveAt, buyer.viewingRequestCount)).length;
+
+  const statCards: StatCard[] = [
+    {
+      label: "Active Buyers",
+      value: isLoading ? "-" : activeBuyers.toString(),
+      trend: "Connected buyers",
+      trendDirection: "neutral",
+      icon: Users,
+    },
+    {
+      label: "Hot Buyers",
+      value: isLoading ? "-" : hotBuyers.toString(),
+      trend: "Active in 24h or requested viewing",
+      trendDirection: "neutral",
+      icon: Flame,
+    },
+    {
+      label: "Viewing Requests",
+      value: isLoading ? "-" : totalViewingRequests.toString(),
+      trend: "From connected buyers",
+      trendDirection: "neutral",
+      icon: Eye,
+    },
+  ];
+
   return (
     <>
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 pb-3">

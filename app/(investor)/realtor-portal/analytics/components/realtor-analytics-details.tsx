@@ -1,4 +1,18 @@
 import { Clock3, MessageCircle, PhoneCall, Target } from "lucide-react";
+import {
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import { buyerIntentScore } from "@/lib/buyer-intent-score";
 
 const trendLegend = [
   { label: "Searches", color: "bg-zinc-600" },
@@ -7,12 +21,26 @@ const trendLegend = [
   { label: "Messages", color: "bg-emerald-500" },
 ];
 
-const intentItems = [
-  { label: "Hot", value: 42, color: "bg-red-500" },
-  { label: "Warm", value: 42, color: "bg-amber-500" },
-  { label: "Cold", value: 42, color: "bg-sky-500" },
-  { label: "Viewing Request", value: 42, color: "bg-emerald-500" },
-];
+type AnalyticsSummaryBuyer = {
+  id: string;
+  lastActiveAt: string;
+  viewingRequestCount: number;
+};
+
+type RealtorAnalyticsDetailsProps = {
+  buyers: AnalyticsSummaryBuyer[];
+  isLoading: boolean;
+  viewingRequestCount: number;
+  trendData: WeeklyTrendPoint[];
+};
+
+type WeeklyTrendPoint = {
+  week: string;
+  searches: number;
+  saves: number;
+  viewingRequests: number;
+  messages: number;
+};
 
 const funnelRows = [
   { label: "Pushed", value: 245, width: 100, color: "bg-teal-700", percent: null },
@@ -21,8 +49,70 @@ const funnelRows = [
   { label: "Viewing Requested", value: 56, width: 47, color: "bg-teal-300", percent: 47 },
   { label: "No Response", value: 189, width: 33, color: "bg-teal-200", percent: 33 },
 ];
+export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount, trendData }: RealtorAnalyticsDetailsProps) {
+  let hot = 0;
+  let warm = 0;
+  let cold = 0;
 
-export function RealtorAnalyticsDetails() {
+  for (const buyer of buyers) {
+    const score = buyerIntentScore({
+      lastActiveAt: buyer.lastActiveAt,
+      hasViewingRequest: viewingRequestCount > 0,
+    });
+    if (score === "hot") hot += 1;
+    else if (score === "warm") warm += 1;
+    else cold += 1;
+  }
+
+  const display = (n: number) => (isLoading ? "-" : n.toString());
+
+  const intentDefinition = [
+    { label: "Hot", count: hot, dotClass: "bg-red-500", hex: "#ef4444" },
+    { label: "Warm", count: warm, dotClass: "bg-amber-500", hex: "#f59e0b" },
+    { label: "Cold", count: cold, dotClass: "bg-sky-500", hex: "#0ea5e9" },
+    {
+      label: "Viewing Request",
+      count: viewingRequestCount,
+      dotClass: "bg-emerald-500",
+      hex: "#10b981",
+    },
+  ] as const;
+
+  const intentItems = intentDefinition.map((row) => ({
+    label: row.label,
+    value: display(row.count),
+    color: row.dotClass,
+  }));
+
+  /** Same logic as former conic-gradient: loading / zero total → zinc ring; else positive slices only. */
+  const intentDonutPieData = (() => {
+    if (isLoading) {
+      return [{ name: "loading", count: 1, fill: "#e4e4e7" }];
+    }
+    const total = intentDefinition.reduce((sum, row) => sum + row.count, 0);
+    if (total === 0) {
+      return [{ name: "empty", count: 1, fill: "#e4e4e7" }];
+    }
+    const positive = intentDefinition.filter((row) => row.count > 0);
+    if (positive.length === 0) {
+      return [{ name: "empty", count: 1, fill: "#e4e4e7" }];
+    }
+    return positive.map((row) => ({
+      name: row.label,
+      count: row.count,
+      fill: row.hex,
+    }));
+  })();
+
+  const chartData = trendData.length > 0
+    ? trendData
+    : [
+        { week: "Week 1", searches: 0, saves: 0, viewingRequests: 0, messages: 0 },
+        { week: "Week 2", searches: 0, saves: 0, viewingRequests: 0, messages: 0 },
+        { week: "Week 3", searches: 0, saves: 0, viewingRequests: 0, messages: 0 },
+        { week: "Week 4", searches: 0, saves: 0, viewingRequests: 0, messages: 0 },
+      ];
+
   return (
     <section className="mt-3 grid gap-3 xl:grid-cols-12">
       <div className="space-y-3 xl:col-span-9">
@@ -35,55 +125,37 @@ export function RealtorAnalyticsDetails() {
           </p>
 
           <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-            <svg viewBox="0 0 760 230" className="h-[210px] w-full text-zinc-300">
-              <line x1="40" y1="15" x2="40" y2="190" stroke="currentColor" strokeWidth="1" />
-              <line x1="40" y1="190" x2="735" y2="190" stroke="currentColor" strokeWidth="1" />
-
-              <line x1="40" y1="145" x2="735" y2="145" stroke="currentColor" strokeWidth="0.8" />
-              <line x1="40" y1="100" x2="735" y2="100" stroke="currentColor" strokeWidth="0.8" />
-              <line x1="40" y1="55" x2="735" y2="55" stroke="currentColor" strokeWidth="0.8" />
-
-              <line x1="270" y1="15" x2="270" y2="190" stroke="#d4d4d8" strokeDasharray="4 4" />
-
-              <polyline fill="none" stroke="#52525b" strokeWidth="2" points="40,165 270,140 500,145 735,135" />
-              <polyline fill="none" stroke="#84cc16" strokeWidth="2" points="40,130 270,105 500,110 735,80" />
-              <polyline fill="none" stroke="#0ea5e9" strokeWidth="2" points="40,95 270,90 500,85 735,78" />
-              <polyline fill="none" stroke="#22c55e" strokeWidth="2" points="40,60 270,40 500,55 735,45" />
-
-              <circle cx="270" cy="140" r="3" fill="#52525b" />
-              <circle cx="270" cy="105" r="3" fill="#84cc16" />
-              <circle cx="270" cy="90" r="3" fill="#0ea5e9" />
-              <circle cx="270" cy="40" r="3" fill="#22c55e" />
-
-              <text x="24" y="191" fontSize="11" fill="#71717a">
-                0
-              </text>
-              <text x="16" y="148" fontSize="11" fill="#71717a">
-                90
-              </text>
-              <text x="12" y="103" fontSize="11" fill="#71717a">
-                180
-              </text>
-              <text x="12" y="58" fontSize="11" fill="#71717a">
-                270
-              </text>
-              <text x="8" y="18" fontSize="11" fill="#71717a">
-                360
-              </text>
-
-              <text x="22" y="210" fontSize="11" fill="#71717a">
-                Week 1
-              </text>
-              <text x="252" y="210" fontSize="11" fill="#71717a">
-                Week 2
-              </text>
-              <text x="482" y="210" fontSize="11" fill="#71717a">
-                Week 3
-              </text>
-              <text x="712" y="210" fontSize="11" textAnchor="end" fill="#71717a">
-                Week 4
-              </text>
-            </svg>
+            <div className="h-[210px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+                  <CartesianGrid stroke="#d4d4d8" strokeDasharray="4 4" vertical={false} />
+                  <XAxis
+                    dataKey="week"
+                    tick={{ fill: "#71717a", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "#71717a", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={34}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 8,
+                      borderColor: "#e4e4e7",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Line type="monotone" dataKey="searches" stroke="#52525b" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="saves" stroke="#84cc16" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="viewingRequests" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="messages" stroke="#22c55e" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
           <div className="mt-3 flex flex-wrap items-center justify-center gap-5 text-sm">
@@ -126,15 +198,33 @@ export function RealtorAnalyticsDetails() {
           <h3 className="text-[22px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Buyer Intent Breakdown</h3>
 
           <div className="mt-3 flex justify-center">
-            <div className="relative h-48 w-48 rounded-full bg-[conic-gradient(#ef4444_0deg_140deg,#eab308_140deg_215deg,#0ea5e9_215deg_300deg,#22c55e_300deg_360deg)]">
-              <div className="absolute inset-4 rounded-full bg-white" />
+            <div className="h-48 w-48">
+              <PieChart width={192} height={192} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                <Pie
+                  data={intentDonutPieData}
+                  dataKey="count"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={96}
+                  startAngle={90}
+                  endAngle={-270}
+                  strokeWidth={0}
+                  isAnimationActive={!isLoading}
+                >
+                  {intentDonutPieData.map((entry, index) => (
+                    <Cell key={`intent-slice-${entry.name}-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 p-3 text-sm">
             {intentItems.map((item) => (
               <div key={item.label} className="flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1.5 text-zinc-600">
+                <span className="flex items-center text-xs font-medium font-ibm-plex-sans gap-1.5 text-zinc-600">
                   <span className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
                   {item.label}
                 </span>
