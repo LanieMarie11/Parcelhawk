@@ -5,10 +5,13 @@ import { db } from "@/db"
 import {
   buyerInvestorLinks,
   favorites,
+  investors,
   landListings,
+  users,
   viewingRequests,
 } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
+import { sendViewingRequestCreatedNotification } from "@/lib/email/send-viewing-request-notification"
 
 type SessionUser = {
   id?: string
@@ -99,7 +102,13 @@ export async function POST(request: Request) {
     // }
 
     const [listingRow] = await db
-      .select({ id: landListings.id })
+      .select({
+        id: landListings.id,
+        title: landListings.title,
+        address1: landListings.address1,
+        city: landListings.city,
+        stateAbbreviation: landListings.stateAbbreviation,
+      })
       .from(landListings)
       .where(eq(landListings.id, listingId))
       .limit(1)
@@ -121,6 +130,52 @@ export async function POST(request: Request) {
     if (!inserted) {
       return NextResponse.json({ error: "Failed to create viewing request" }, { status: 500 })
     }
+
+    const locationParts = [
+      listingRow.address1,
+      listingRow.city,
+      listingRow.stateAbbreviation,
+    ].filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+    const listingLocation =
+      locationParts.length > 0 ? locationParts.map((p) => p.trim()).join(", ") : null
+
+    const [[buyerNameRow], [realtorNameRow]] = await Promise.all([
+      db
+        .select({ firstName: users.firstName, lastName: users.lastName })
+        .from(users)
+        .where(eq(users.id, buyerId))
+        .limit(1),
+      db
+        .select({
+          firstName: investors.firstName,
+          lastName: investors.lastName,
+          email: investors.email,
+        })
+        .from(investors)
+        .where(eq(investors.id, linkRow.investorId))
+        .limit(1),
+    ])
+
+    const formatPersonName = (
+      row: { firstName: string; lastName: string } | undefined
+    ) => {
+      if (!row) return "(unknown)"
+      const name = `${row.firstName} ${row.lastName}`.trim()
+      return name.length > 0 ? name : "(unknown)"
+    }
+
+    const realtorEmail = realtorNameRow?.email?.trim() ?? ""
+
+    await sendViewingRequestCreatedNotification({
+      viewingRequestId: inserted.id,
+      listingId,
+      listingTitle: listingRow.title,
+      listingLocation,
+      buyerName: formatPersonName(buyerNameRow),
+      realtorName: formatPersonName(realtorNameRow),
+      realtorEmail,
+      buyerNote,
+    })
 
     return NextResponse.json({ id: inserted.id })
   } catch (err) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
@@ -37,8 +37,15 @@ const isValidEmail = (value: string) => {
 
 export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   const router = useRouter()
+  const hasReferralRef = Boolean(referralRef?.trim())
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRole, setSelectedRole] = useState<Role>("buyer")
+
+  useEffect(() => {
+    if (hasReferralRef) {
+      setSelectedRole("buyer")
+    }
+  }, [hasReferralRef])
   const [showPassword, setShowPassword] = useState(false)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -210,7 +217,9 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
           </p>
 
           <div className="mt-6">
-            <div className="grid grid-cols-2 gap-3">
+            <div
+              className={`grid gap-3 ${hasReferralRef ? "grid-cols-1" : "grid-cols-2"}`}
+            >
               <button
                 type="button"
                 onClick={() => setSelectedRole("buyer")}
@@ -223,18 +232,20 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                 <BuyerIcon active={selectedRole === "buyer"} />
                 Buyer
               </button>
-              <button
-                type="button"
-                onClick={() => setSelectedRole("investor")}
-                className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
-                  selectedRole === "investor"
-                    ? "border-[#04C0AF] bg-[#E4FFFD] text-[#096D64]"
-                    : "border-border bg-card text-muted-foreground hover:border-border"
-                }`}
-              >
-                <InvestorIcon active={selectedRole === "investor"} />
-                Investor
-              </button>
+              {!hasReferralRef && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole("investor")}
+                  className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
+                    selectedRole === "investor"
+                      ? "border-[#04C0AF] bg-[#E4FFFD] text-[#096D64]"
+                      : "border-border bg-card text-muted-foreground hover:border-border"
+                  }`}
+                >
+                  <InvestorIcon active={selectedRole === "investor"} />
+                  Realtor/Investor
+                </button>
+              )}
             </div>
           </div>
 

@@ -108,7 +108,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
               }`}
             >
               <InvestorIcon active={selectedRole === "investor"} />
-              Investor
+              Realtor/Investor
             </button>
           </div>
         </div>
