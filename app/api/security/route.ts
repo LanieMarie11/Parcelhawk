@@ -3,8 +3,16 @@ import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
 import { compare, hash } from "bcryptjs"
 import { db } from "@/db"
-import { favorites, savedSearches, users } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import {
+  buyerInvestorLinks,
+  favorites,
+  messageThreads,
+  messages,
+  savedSearches,
+  users,
+  viewingRequests,
+} from "@/db/schema"
+import { eq, inArray } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
 
 function getUserId(session: Session | null): string | null {
@@ -106,6 +114,19 @@ export async function DELETE() {
   }
 
   await db.transaction(async (tx) => {
+    const buyerThreadRows = await tx
+      .select({ id: messageThreads.id })
+      .from(messageThreads)
+      .where(eq(messageThreads.buyerUserId, userId))
+    const buyerThreadIds = buyerThreadRows.map((row) => row.id)
+    if (buyerThreadIds.length > 0) {
+      await tx.delete(messages).where(inArray(messages.threadId, buyerThreadIds))
+    }
+    await tx.delete(messageThreads).where(eq(messageThreads.buyerUserId, userId))
+
+    await tx.delete(viewingRequests).where(eq(viewingRequests.buyerId, userId))
+    await tx.delete(buyerInvestorLinks).where(eq(buyerInvestorLinks.buyerId, userId))
+
     await tx.delete(favorites).where(eq(favorites.userId, userId))
     await tx.delete(savedSearches).where(eq(savedSearches.userId, userId))
     await tx.delete(users).where(eq(users.id, userId))

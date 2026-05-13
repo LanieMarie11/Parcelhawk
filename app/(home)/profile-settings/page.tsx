@@ -6,6 +6,8 @@ import NotificationPreferences from "../components/notification-preferences"
 import ProfileSettingsSidebar from "../components/profile-settings-sidebar"
 import SavedSearchAlerts from "../components/saved-search-alerts"
 import Security from "../components/security"
+import AccountDangerZone from "../components/account-danger-zone"
+import RealtorConnectionSetting from "../components/realtor-connection-setting"
 
 export default async function ProfileSettingsPage() {
   const session = await getServerSession(authOptions)
@@ -54,6 +56,12 @@ export default async function ProfileSettingsPage() {
             </section>
             <section id="security">
               <Security />
+            </section>
+            <section id="realtor-connection">
+              <RealtorConnectionSetting />
+            </section>
+            <section id="account-danger-zone">
+              <AccountDangerZone />
             </section>
           </main>
         </div>

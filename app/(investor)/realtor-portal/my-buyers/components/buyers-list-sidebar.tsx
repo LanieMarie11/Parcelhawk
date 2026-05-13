@@ -2,6 +2,7 @@
 
 import { ArrowUpDown, Users } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
+import { buyerIntentScore } from "@/lib/buyer-intent-score";
 import { LastActiveText } from "./last-active-text";
 import type { BuyerDetail } from "./types";
 
@@ -25,16 +26,7 @@ function scoreBadge(buyer: BuyerDetail): "hot" | "warm" | "cold" {
       (buyer.viewingRequests?.completed ?? 0) >
     0;
 
-  if (hasViewingRequest) return "hot";
-
-  const timestamp = Date.parse(buyer.lastActiveAt);
-  if (!Number.isFinite(timestamp)) return "cold";
-
-  const diffMs = Date.now() - timestamp;
-  const day = 86_400_000;
-  if (diffMs <= day) return "hot";
-  if (diffMs <= 7 * day) return "warm";
-  return "cold";
+  return buyerIntentScore({ lastActiveAt: buyer.lastActiveAt, hasViewingRequest });
 }
 
 export function BuyersListSidebar({
