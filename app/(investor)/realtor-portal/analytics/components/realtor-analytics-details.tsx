@@ -168,7 +168,7 @@ export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount
           </div>
         </article>
 
-        <article className="rounded-xl border border-zinc-200 bg-white p-4">
+        {/* <article className="rounded-xl border border-zinc-200 bg-white p-4">
           <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Parcel Push Funnel</h3>
           <p className="text-xs font-regular font-ibm-plex-sans text-zinc-500">This month pushed parcel</p>
           <hr className="mt-3 -mx-4 w-[calc(100%+2rem)] max-w-none border-0 border-t border-zinc-200" />
@@ -190,7 +190,7 @@ export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount
               </div>
             ))}
           </div>
-        </article>
+        </article> */}
       </div>
 
       <aside className="space-y-3 xl:col-span-3">
@@ -234,7 +234,7 @@ export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount
           </div>
         </article>
 
-        <article className="rounded-xl border border-zinc-200 bg-white p-4">
+        {/* <article className="rounded-xl border border-zinc-200 bg-white p-4">
           <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Outreach Performance</h3>
 
           <div className="mt-3 rounded-lg border border-zinc-200 p-3">
@@ -269,7 +269,7 @@ export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount
               </div>
             </div>
           </div>
-        </article>
+        </article> */}
       </aside>
     </section>
   );
