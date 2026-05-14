@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RealtorAnalyticsDetails } from "./realtor-analytics-details";
-import { RealtorAnalyticsPreferences } from "./realtor-analytics-preferences";
+import { RealtorAnalyticsPreferences, type HighestIntentBuyer, type PreferenceInsights } from "./realtor-analytics-preferences";
 import { RealtorAnalyticsSummary } from "./realtor-analytics-summary";
 
 type AnalyticsBuyer = {
@@ -23,13 +23,23 @@ type AnalyticsSummaryResponse = {
   buyers?: AnalyticsBuyer[];
   totalViewingRequests?: number;
   trendData?: WeeklyTrendPoint[];
+  preferenceInsights?: PreferenceInsights;
+  highestIntentBuyers?: HighestIntentBuyer[];
   error?: string;
+};
+
+const emptyPreferenceInsights: PreferenceInsights = {
+  states: [],
+  acreage: [],
+  priceBands: [],
 };
 
 export function RealtorAnalyticsDashboard() {
   const [buyers, setBuyers] = useState<AnalyticsBuyer[]>([]);
   const [totalViewingRequests, setTotalViewingRequests] = useState(0);
   const [trendData, setTrendData] = useState<WeeklyTrendPoint[]>([]);
+  const [preferenceInsights, setPreferenceInsights] = useState<PreferenceInsights>(emptyPreferenceInsights);
+  const [highestIntentBuyers, setHighestIntentBuyers] = useState<HighestIntentBuyer[]>([]);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
 
   useEffect(() => {
@@ -47,11 +57,15 @@ export function RealtorAnalyticsDashboard() {
         setBuyers(data.buyers ?? []);
         setTotalViewingRequests(data.totalViewingRequests ?? 0);
         setTrendData(data.trendData ?? []);
+        setPreferenceInsights(data.preferenceInsights ?? emptyPreferenceInsights);
+        setHighestIntentBuyers(data.highestIntentBuyers ?? []);
       } catch {
         if (!isMounted) return;
         setBuyers([]);
         setTotalViewingRequests(0);
         setTrendData([]);
+        setPreferenceInsights(emptyPreferenceInsights);
+        setHighestIntentBuyers([]);
       } finally {
         if (isMounted) setIsLoadingSummary(false);
       }
@@ -77,7 +91,11 @@ export function RealtorAnalyticsDashboard() {
           viewingRequestCount={totalViewingRequests}
           trendData={trendData}
         />
-        <RealtorAnalyticsPreferences />
+        <RealtorAnalyticsPreferences
+          preferenceInsights={preferenceInsights}
+          highestIntentBuyers={highestIntentBuyers}
+          isLoading={isLoadingSummary}
+        />
       </div>
     </div>
   );

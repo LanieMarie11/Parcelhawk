@@ -1,54 +1,32 @@
-import { Clock3, DollarSign, FileText, Link2, LocateFixed, Maximize2, UserCheck, UserPlus } from "lucide-react";
+import { Clock3, DollarSign, Link2, LocateFixed, Maximize2, UserCheck, UserPlus } from "lucide-react";
 
-const preferenceGroups = [
-  {
-    title: "Top Searched States",
-    icon: LocateFixed,
-    rows: [
-      { label: "#1. Colorado", value: 245, width: 100 },
-      { label: "#2. Montana", value: 156, width: 64 },
-      { label: "#3. Wyoming", value: 122, width: 50 },
-      { label: "#4. Idaho", value: 101, width: 41 },
-    ],
-  },
-  {
-    title: "Top Acreage Ranges",
-    icon: Maximize2,
-    rows: [
-      { label: "20-50 acres", value: 245, width: 100 },
-      { label: "10-20 acres", value: 156, width: 64 },
-      { label: "0-10 acres", value: 122, width: 50 },
-      { label: "50-100 acres", value: 101, width: 41 },
-    ],
-  },
-  {
-    title: "Top Price Bands",
-    icon: DollarSign,
-    rows: [
-      { label: "$50k-$100k", value: 245, width: 100 },
-      { label: "$100k-$250k", value: 156, width: 64 },
-      { label: "Under $50k", value: 122, width: 50 },
-      { label: "$250k-$500k", value: 101, width: 41 },
-    ],
-  },
-  {
-    title: "Top Parcel Attributes",
-    icon: FileText,
-    rows: [
-      { label: "Road Access", value: "87%", width: 87 },
-      { label: "Recreational", value: "77%", width: 77 },
-      { label: "Utilities Nearby", value: "67%", width: 67 },
-      { label: "Mixed-Use", value: "47%", width: 47 },
-    ],
-  },
-];
+export type PreferenceInsightRow = {
+  label: string;
+  value: number;
+  width: number;
+};
 
-const highestIntentBuyers = [
-  { name: "Marcus Reed", joined: "Joined Mar 2026", lastActive: "12 min ago", searches: 47, saves: 47, requests: 47 },
-  { name: "Sarah Alcott", joined: "Joined Mar 2026", lastActive: "1h ago", searches: 47, saves: 31, requests: 47 },
-  { name: "Jen Larimore", joined: "Joined Mar 2026", lastActive: "4h ago", searches: 47, saves: 18, requests: 47 },
-  { name: "Hannah Weiss", joined: "Joined Mar 2026", lastActive: "Yesterday", searches: 47, saves: 12, requests: 47 },
-];
+export type PreferenceInsights = {
+  states: PreferenceInsightRow[];
+  acreage: PreferenceInsightRow[];
+  priceBands: PreferenceInsightRow[];
+};
+
+export type HighestIntentBuyer = {
+  id: string;
+  name: string;
+  joined: string;
+  lastActive: string;
+  searches: number;
+  saves: number;
+  requests: number;
+};
+
+const PREFERENCE_GROUP_META = [
+  { key: "states" as const, title: "Top Searched States", icon: LocateFixed },
+  { key: "acreage" as const, title: "Top Acreage Ranges", icon: Maximize2 },
+  { key: "priceBands" as const, title: "Top Price Bands", icon: DollarSign },
+] as const;
 
 const inviteStats = [
   { label: "Invite Link Clicks", value: 245, icon: Link2, color: "bg-sky-100 text-sky-600" },
@@ -62,7 +40,21 @@ function initials(name: string) {
   return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
 }
 
-export function RealtorAnalyticsPreferences() {
+export function RealtorAnalyticsPreferences({
+  preferenceInsights,
+  highestIntentBuyers,
+  isLoading,
+}: {
+  preferenceInsights: PreferenceInsights;
+  highestIntentBuyers: HighestIntentBuyer[];
+  isLoading: boolean;
+}) {
+  const preferenceGroups = PREFERENCE_GROUP_META.map((meta) => ({
+    title: meta.title,
+    icon: meta.icon,
+    rows: preferenceInsights[meta.key],
+  }));
+
   return (
     <section className="mt-3 space-y-3">
       <article className="rounded-xl border border-zinc-200 bg-white p-4">
@@ -87,17 +79,37 @@ export function RealtorAnalyticsPreferences() {
                 </div>
 
                 <div className="mt-3 space-y-3">
-                  {group.rows.map((row) => (
-                    <div key={row.label} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs text-zinc-700">
-                        <span>{row.label}</span>
-                        <span>{row.value}</span>
+                  {isLoading ? (
+                    <>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="h-3 w-28 animate-pulse rounded bg-zinc-200" />
+                            <div className="h-3 w-8 animate-pulse rounded bg-zinc-200" />
+                          </div>
+                          <div className="h-1.5 rounded bg-zinc-200">
+                            <div className="h-1.5 w-1/2 animate-pulse rounded bg-zinc-100" />
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  ) : group.rows.length === 0 ? (
+                    <p className="text-xs text-zinc-500">
+                      No saved search signals from linked buyers in the last 30 days.
+                    </p>
+                  ) : (
+                    group.rows.map((row) => (
+                      <div key={row.label} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs text-zinc-700">
+                          <span>{row.label}</span>
+                          <span>{row.value}</span>
+                        </div>
+                        <div className="h-1.5 rounded bg-zinc-200">
+                          <div className="h-1.5 rounded bg-sky-500" style={{ width: `${row.width}%` }} />
+                        </div>
                       </div>
-                      <div className="h-1.5 rounded bg-zinc-200">
-                        <div className="h-1.5 rounded bg-sky-500" style={{ width: `${row.width}%` }} />
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             );
@@ -125,33 +137,57 @@ export function RealtorAnalyticsPreferences() {
                 </tr>
               </thead>
               <tbody>
-                {highestIntentBuyers.map((buyer) => (
-                  <tr key={buyer.name} className="border-b border-zinc-100 last:border-0">
-                    <td className="py-2.5 pr-3">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-semibold text-zinc-700">
-                          {initials(buyer.name)}
-                        </span>
-                        <div>
-                          <p className="font-semibold text-zinc-800">{buyer.name}</p>
-                          <p className="text-[11px] text-zinc-500">{buyer.joined}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-2.5 pr-3 text-zinc-500">{buyer.lastActive}</td>
-                    <td className="py-2.5 pr-3 text-zinc-700">{buyer.searches}</td>
-                    <td className="py-2.5 pr-3 text-zinc-700">{buyer.saves}</td>
-                    <td className="py-2.5 pr-3 text-zinc-700">{buyer.requests}</td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        type="button"
-                        className="rounded-md bg-emerald-800 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-emerald-900"
-                      >
-                        Contact Now
-                      </button>
+                {isLoading ? (
+                  <>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i} className="border-b border-zinc-100 last:border-0">
+                        <td className="py-2.5 pr-3" colSpan={6}>
+                          <div className="flex items-center gap-2">
+                            <div className="h-7 w-7 animate-pulse rounded-full bg-zinc-200" />
+                            <div className="space-y-1.5">
+                              <div className="h-3 w-32 animate-pulse rounded bg-zinc-200" />
+                              <div className="h-2.5 w-24 animate-pulse rounded bg-zinc-100" />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                ) : highestIntentBuyers.length === 0 ? (
+                  <tr>
+                    <td className="py-6 text-center text-xs text-zinc-500" colSpan={6}>
+                      No active linked buyers. Invite buyers from your referral link to see intent signals here.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  highestIntentBuyers.map((buyer) => (
+                    <tr key={buyer.id} className="border-b border-zinc-100 last:border-0">
+                      <td className="py-2.5 pr-3">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-semibold text-zinc-700">
+                            {initials(buyer.name)}
+                          </span>
+                          <div>
+                            <p className="font-semibold text-zinc-800">{buyer.name}</p>
+                            <p className="text-[11px] text-zinc-500">{buyer.joined}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2.5 pr-3 text-zinc-500">{buyer.lastActive}</td>
+                      <td className="py-2.5 pr-3 text-zinc-700">{buyer.searches}</td>
+                      <td className="py-2.5 pr-3 text-zinc-700">{buyer.saves}</td>
+                      <td className="py-2.5 pr-3 text-zinc-700">{buyer.requests}</td>
+                      <td className="py-2.5 text-right">
+                        <button
+                          type="button"
+                          className="rounded-md bg-emerald-800 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-emerald-900"
+                        >
+                          Contact Now
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -165,7 +201,7 @@ export function RealtorAnalyticsPreferences() {
               const Icon = item.icon;
               return (
                 <div key={item.label} className="flex items-center gap-3">
-                  <span className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${item.color}`}>
+                  <span className={`inline-flex h-9 w-9 items-center justify-center rounded-md ${item.color}`}>
                     <Icon className="h-4 w-4" />
                   </span>
                   <div>
