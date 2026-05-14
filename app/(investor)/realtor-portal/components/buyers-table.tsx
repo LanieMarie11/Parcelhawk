@@ -1,5 +1,9 @@
 "use client";
 
+import { useMemo, useState } from "react";
+
+const DEFAULT_VISIBLE_ROWS = 4;
+
 export type BuyerRow = {
   id: string;
   name: string;
@@ -30,7 +34,15 @@ export function BuyersTable({
   selectedBuyerId,
   onSelectBuyer,
 }: BuyersTableProps) {
+  const [showAllRows, setShowAllRows] = useState(false);
   const activeBuyerCount = buyerRows.length;
+  const visibleBuyerRows = useMemo(() => {
+    if (showAllRows || buyerRows.length <= DEFAULT_VISIBLE_ROWS) {
+      return buyerRows;
+    }
+    return buyerRows.slice(0, DEFAULT_VISIBLE_ROWS);
+  }, [buyerRows, showAllRows]);
+  const hasMoreRows = buyerRows.length > DEFAULT_VISIBLE_ROWS;
   const scoreTextClass: Record<BuyerRow["score"], string> = {
     Hot: "text-rose-600",
     Warm: "text-amber-600",
@@ -46,7 +58,7 @@ export function BuyersTable({
     <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
       <header className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
         <div>
-          <h2 className="text-md font-phudu font-medium uppercase tracking-wide text-[#0F172A]">My Buyers - Colorado</h2>
+          <h2 className="text-md font-phudu font-medium uppercase tracking-wide text-[#0F172A]">My Buyers</h2>
           <p className="text-xs text-zinc-500">{activeBuyerCount} active buyers matched by referral URL</p>
         </div>
         <button className="text-sm font-medium text-zinc-600 hover:text-zinc-900">All States</button>
@@ -84,7 +96,7 @@ export function BuyersTable({
                 </td>
               </tr>
             ) : (
-              buyerRows.map((row) => (
+              visibleBuyerRows.map((row) => (
               <tr
                 key={row.id}
                 className="cursor-pointer border-t border-zinc-100 hover:bg-zinc-50"
@@ -152,6 +164,20 @@ export function BuyersTable({
           </tbody>
         </table>
       </div>
+
+      {!isLoading && !error && hasMoreRows ? (
+        <div className="border-t border-zinc-100 bg-zinc-50/80 px-4 py-2.5 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAllRows((prev) => !prev)}
+            className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+          >
+            {showAllRows
+              ? "Show less"
+              : `Show all (${activeBuyerCount})`}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

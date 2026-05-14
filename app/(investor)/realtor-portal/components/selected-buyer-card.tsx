@@ -1,4 +1,5 @@
 import { Eye, Search, Send, UserRound } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { BuyerRow } from "./buyers-table";
 
 type SelectedBuyerCardProps = {
@@ -13,6 +14,7 @@ function initials(name: string) {
 }
 
 export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
+  const router = useRouter();
   const scoreClassName =
     buyer.score === "Hot"
       ? "border-rose-200 bg-rose-50 text-rose-600"
@@ -46,7 +48,11 @@ export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
           </div>
           <span className={`ml-auto rounded-full border px-2 py-0.5 text-[10px] font-semibold ${scoreClassName}`}>{buyer.score}</span>
         </div>
-        <button className="mt-3 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50">
+        <button
+          type="button"
+          className="mt-3 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+          onClick={() => router.push("/realtor-portal/messages")}
+        >
           Send Message
         </button>
       </div>
@@ -67,7 +73,8 @@ export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
         </div>
       </div>
 
-      <div className="mt-4">
+{/* TODO : add recent activity */}
+      {/* <div className="mt-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-[#030303]">Recent Activity</h3>
         <ul className="mt-2 space-y-2 text-xs text-[#64748B]">
           <li className="flex items-start gap-2">
@@ -83,7 +90,7 @@ export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
             Searches recorded: {buyer.searches}
           </li>
         </ul>
-      </div>
+      </div> */}
     </section>
   );
 }

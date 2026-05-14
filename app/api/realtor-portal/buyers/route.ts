@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { and, desc, eq, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, sql } from "drizzle-orm"
 import { db } from "@/db"
-import { investors, users, viewingRequests } from "@/db/schema"
+import { investors, savedSearches, users, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -113,8 +113,25 @@ export async function GET() {
       .where(and(eq(users.role, "buyer"), eq(users.referralId, investor.referralUrl)))
       .orderBy(desc(users.updatedAt))
 
+    const buyerIds = buyerRows.map((row) => row.id)
+    const savedSearchCountRows =
+      buyerIds.length === 0
+        ? []
+        : await db
+            .select({
+              userId: savedSearches.userId,
+              count: sql<number>`count(*)::int`,
+            })
+            .from(savedSearches)
+            .where(inArray(savedSearches.userId, buyerIds))
+            .groupBy(savedSearches.userId)
+
+    const savedSearchCountByUserId = new Map(
+      savedSearchCountRows.map((row) => [row.userId, Number(row.count ?? 0)]),
+    )
+
     const buyers = buyerRows.map((buyer, index) => {
-      const searchesCount = Math.max(8, 40 - index * 4).toString()
+      const searchesCount = String(savedSearchCountByUserId.get(buyer.id) ?? 0)
       const score = calculateBuyerScore(buyer.lastActiveAt ?? buyer.updatedAt)
       return {
         id: buyer.id,

@@ -4,6 +4,14 @@ import type { NextFetchEvent } from "next/server";
 import type { NextRequest } from "next/server";
 import { attachLastActivePing } from "@/lib/last-active-middleware";
 
+/** Paths reachable without a session (sign-in lives on `/` per next-auth pages config). */
+function isGuestPublicPath(pathname: string): boolean {
+  if (pathname === "/") return true;
+  if (pathname === "/sign-up" || pathname.startsWith("/sign-up/")) return true;
+  if (pathname.startsWith("/api/auth/")) return true;
+  return false;
+}
+
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
   // NextAuth session is checked on every request (every URL change / navigation)
   const token = await getToken({
@@ -41,13 +49,9 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     );
   }
 
-  const protectedPaths = ["/profile-setting", "/land-property"];
-  const isProtected = protectedPaths.some((p) => path === p || path.startsWith(p + "/"));
-  if (isProtected && !token) {
+  if (!token && !isGuestPublicPath(path)) {
     const redirectUrl = new URL("/", request.url);
-    if (path === "/land-property" || path.startsWith("/land-property/")) {
-      redirectUrl.searchParams.set("auth", "login-required");
-    }
+    redirectUrl.searchParams.set("auth", "login-required");
     return NextResponse.redirect(redirectUrl);
   }
 

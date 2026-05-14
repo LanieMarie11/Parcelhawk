@@ -1,4 +1,9 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { Clock3, DollarSign, Link2, LocateFixed, Maximize2, UserCheck, UserPlus } from "lucide-react";
+
+const DEFAULT_VISIBLE_ROWS = 4;
 
 export type PreferenceInsightRow = {
   label: string;
@@ -28,12 +33,12 @@ const PREFERENCE_GROUP_META = [
   { key: "priceBands" as const, title: "Top Price Bands", icon: DollarSign },
 ] as const;
 
-const inviteStats = [
-  { label: "Invite Link Clicks", value: 245, icon: Link2, color: "bg-sky-100 text-sky-600" },
-  { label: "Active Invited Buyers", value: 68, icon: UserPlus, color: "bg-sky-100 text-sky-600" },
-  { label: "Buyers Joined", value: 87, icon: UserCheck, color: "bg-emerald-100 text-emerald-600" },
-  { label: "Pending Invites", value: 19, icon: Clock3, color: "bg-lime-100 text-lime-600" },
-];
+// const inviteStats = [
+//   { label: "Invite Link Clicks", value: 245, icon: Link2, color: "bg-sky-100 text-sky-600" },
+//   { label: "Active Invited Buyers", value: 68, icon: UserPlus, color: "bg-sky-100 text-sky-600" },
+//   { label: "Buyers Joined", value: 87, icon: UserCheck, color: "bg-emerald-100 text-emerald-600" },
+//   { label: "Pending Invites", value: 19, icon: Clock3, color: "bg-lime-100 text-lime-600" },
+// ];
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -54,6 +59,16 @@ export function RealtorAnalyticsPreferences({
     icon: meta.icon,
     rows: preferenceInsights[meta.key],
   }));
+
+  const [showAllRows, setShowAllRows] = useState(false);
+  const intentBuyerCount = highestIntentBuyers.length;
+  const visibleIntentBuyers = useMemo(() => {
+    if (showAllRows || intentBuyerCount <= DEFAULT_VISIBLE_ROWS) {
+      return highestIntentBuyers;
+    }
+    return highestIntentBuyers.slice(0, DEFAULT_VISIBLE_ROWS);
+  }, [highestIntentBuyers, intentBuyerCount, showAllRows]);
+  const hasMoreIntentBuyers = intentBuyerCount > DEFAULT_VISIBLE_ROWS;
 
   return (
     <section className="mt-3 space-y-3">
@@ -118,9 +133,9 @@ export function RealtorAnalyticsPreferences({
       </article>
 
       <div className="grid gap-3 xl:grid-cols-12">
-        <article className="rounded-xl border border-zinc-200 bg-white p-4 xl:col-span-9">
-          <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Highest Intent Buyers</h3>
-          <p className="text-xs font-ibm-plex-sans font-regular text-zinc-500">
+        <article className="rounded-xl border border-zinc-200 bg-white py-4 xl:col-span-9">
+          <h3 className="px-4 text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Highest Intent Buyers</h3>
+          <p className="px-4 text-xs font-ibm-plex-sans font-regular text-zinc-500">
             Analyze buyer intent signals to focus on the most valuable opportunities.
           </p>
 
@@ -128,12 +143,12 @@ export function RealtorAnalyticsPreferences({
             <table className="min-w-full text-left text-xs">
               <thead className="border-b border-t border-zinc-200 bg-[#FAFBFC] text-[#030303]">
                 <tr>
-                  <th className="py-2 pr-3 font-semibold">Buyer</th>
-                  <th className="py-2 pr-3 font-semibold">Last active</th>
-                  <th className="py-2 pr-3 font-semibold">Searches</th>
-                  <th className="py-2 pr-3 font-semibold">Saves Properties</th>
-                  <th className="py-2 pr-3 font-semibold">Viewing Requests</th>
-                  <th className="py-2 text-right font-semibold">Action</th>
+                  <th className="py-2 pr-3 text-center font-semibold">Buyer</th>
+                  <th className="py-2 pr-3 text-center font-semibold">Last active</th>
+                  <th className="py-2 pr-3 text-center font-semibold">Searches</th>
+                  <th className="py-2 pr-3 text-center font-semibold">Saves Properties</th>
+                  <th className="py-2 pr-3 text-center font-semibold">Viewing Requests</th>
+                  <th className="py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,10 +175,10 @@ export function RealtorAnalyticsPreferences({
                     </td>
                   </tr>
                 ) : (
-                  highestIntentBuyers.map((buyer) => (
+                  visibleIntentBuyers.map((buyer) => (
                     <tr key={buyer.id} className="border-b border-zinc-100 last:border-0">
                       <td className="py-2.5 pr-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-center">
                           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-semibold text-zinc-700">
                             {initials(buyer.name)}
                           </span>
@@ -173,11 +188,11 @@ export function RealtorAnalyticsPreferences({
                           </div>
                         </div>
                       </td>
-                      <td className="py-2.5 pr-3 text-zinc-500">{buyer.lastActive}</td>
-                      <td className="py-2.5 pr-3 text-zinc-700">{buyer.searches}</td>
-                      <td className="py-2.5 pr-3 text-zinc-700">{buyer.saves}</td>
-                      <td className="py-2.5 pr-3 text-zinc-700">{buyer.requests}</td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-2.5 pr-3 text-center text-zinc-500">{buyer.lastActive}</td>
+                      <td className="py-2.5 pr-3 text-center text-zinc-700">{buyer.searches}</td>
+                      <td className="py-2.5 pr-3 text-center text-zinc-700">{buyer.saves}</td>
+                      <td className="py-2.5 pr-3 text-center text-zinc-700">{buyer.requests}</td>
+                      <td className="py-2.5 text-center">
                         <button
                           type="button"
                           className="rounded-md bg-emerald-800 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-emerald-900"
@@ -191,9 +206,21 @@ export function RealtorAnalyticsPreferences({
               </tbody>
             </table>
           </div>
+
+          {!isLoading && hasMoreIntentBuyers ? (
+            <div className="mt-0 border-t border-zinc-100 bg-zinc-50/80 px-4 py-2.5 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAllRows((prev) => !prev)}
+                className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+              >
+                {showAllRows ? "Show less" : `Show all (${intentBuyerCount})`}
+              </button>
+            </div>
+          ) : null}
         </article>
 
-        <article className="rounded-xl border border-zinc-200 bg-white p-4 xl:col-span-3">
+        {/* <article className="rounded-xl border border-zinc-200 bg-white p-4 xl:col-span-3">
           <h3 className="text-[16px] font-medium font-phudu uppercase tracking-tight text-[#0F172A]">Invite & Referral Analytics</h3>
 
           <div className="mt-3 space-y-3 rounded-lg border border-zinc-200 p-3">
@@ -212,7 +239,7 @@ export function RealtorAnalyticsPreferences({
               );
             })}
           </div>
-        </article>
+        </article> */}
       </div>
     </section>
   );
