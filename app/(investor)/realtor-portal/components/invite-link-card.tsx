@@ -1,18 +1,34 @@
 "use client";
 
-import { Copy, Link2 } from "lucide-react";
+import { Check, Copy, Link2 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
 
 export function InviteLinkCard() {
   const { data: session } = useSession();
+  const [copied, setCopied] = useState(false);
+  const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const referralCode = session?.user?.referralUrl ?? null;
   const inviteLink = referralCode
     ? `parcelhawk.ai/sign-up?ref=${encodeURIComponent(referralCode)}`
     : null;
+
+  useEffect(() => {
+    return () => {
+      if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+    };
+  }, []);
+
   const handleCopy = async () => {
     if (!inviteLink) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
+      if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+      setCopied(true);
+      copiedResetRef.current = setTimeout(() => {
+        setCopied(false);
+        copiedResetRef.current = null;
+      }, 2000);
     } catch {
       // Clipboard can be unavailable in some browser contexts.
     }
@@ -35,8 +51,12 @@ export function InviteLinkCard() {
           disabled={!inviteLink}
           className="ml-auto inline-flex items-center gap-1 rounded-md bg-white/15 px-3 py-1.5 font-semibold text-white hover:bg-white/25"
         >
-          <Copy className="h-3.5 w-3.5" />
-          <span>Copy</span>
+          {copied ? (
+            <Check className="h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <Copy className="h-3.5 w-3.5" aria-hidden />
+          )}
+          <span>{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
       <p className="mt-4 text-[11px] text-blue-100">

@@ -1,4 +1,9 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import { Flame } from "lucide-react";
+
+const DEFAULT_VISIBLE_ROWS = 3;
 
 export type HotBuyerItem = {
   id: string;
@@ -18,6 +23,16 @@ type HotBuyersPanelProps = {
 };
 
 export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
+  const [showAllRows, setShowAllRows] = useState(false);
+  const hotBuyerCount = hotBuyers.length;
+  const visibleHotBuyers = useMemo(() => {
+    if (showAllRows || hotBuyers.length <= DEFAULT_VISIBLE_ROWS) {
+      return hotBuyers;
+    }
+    return hotBuyers.slice(0, DEFAULT_VISIBLE_ROWS);
+  }, [hotBuyers, showAllRows]);
+  const hasMoreRows = hotBuyers.length > DEFAULT_VISIBLE_ROWS;
+
   return (
     <section className="rounded-xl border border-zinc-200 bg-white shadow-sm">
       <header className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
@@ -36,7 +51,7 @@ export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
         ) : hotBuyers.length === 0 ? (
           <p className="px-3 py-3 text-sm text-zinc-500">No hot buyers right now.</p>
         ) : (
-          hotBuyers.map((buyer) => (
+          visibleHotBuyers.map((buyer) => (
           <div key={buyer.id} className="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50">
             <span className={`h-11 w-1 rounded-full ${buyer.accent}`} />
             {buyer.avatarUrl ? (
@@ -75,6 +90,18 @@ export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
           ))
         )}
       </div>
+
+      {!isLoading && hotBuyerCount > 0 && hasMoreRows ? (
+        <div className="border-t border-zinc-100 bg-zinc-50/80 px-4 py-2.5 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAllRows((prev) => !prev)}
+            className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+          >
+            {showAllRows ? "Show less" : `Show all (${hotBuyerCount})`}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
