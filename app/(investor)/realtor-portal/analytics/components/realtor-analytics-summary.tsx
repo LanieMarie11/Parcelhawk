@@ -20,10 +20,10 @@ type AnalyticsBuyer = {
 
 const HOT_BUYER_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-function isHotBuyer(lastActiveAtIso: string, viewingRequestCount: number) {
+function isLastActiveWithin24Hours(lastActiveAtIso: string): boolean {
   const lastActiveMs = new Date(lastActiveAtIso).getTime();
-  if (!Number.isFinite(lastActiveMs)) return viewingRequestCount > 0;
-  return Date.now() - lastActiveMs <= HOT_BUYER_WINDOW_MS || viewingRequestCount > 0;
+  if (!Number.isFinite(lastActiveMs)) return false;
+  return Date.now() - lastActiveMs <= HOT_BUYER_WINDOW_MS;
 }
 
 type RealtorAnalyticsSummaryProps = {
@@ -34,7 +34,7 @@ type RealtorAnalyticsSummaryProps = {
 
 export function RealtorAnalyticsSummary({ buyers, totalViewingRequests, isLoading }: RealtorAnalyticsSummaryProps) {
   const activeBuyers = buyers.length;
-  const hotBuyers = buyers.filter((buyer) => isHotBuyer(buyer.lastActiveAt, buyer.viewingRequestCount)).length;
+  const hotBuyers = buyers.filter((buyer) => isLastActiveWithin24Hours(buyer.lastActiveAt)).length;
 
   const statCards: StatCard[] = [
     {
@@ -47,7 +47,7 @@ export function RealtorAnalyticsSummary({ buyers, totalViewingRequests, isLoadin
     {
       label: "Hot Buyers",
       value: isLoading ? "-" : hotBuyers.toString(),
-      trend: "Active in 24h or requested viewing",
+      trend: "Last active within 24 hours",
       trendDirection: "neutral",
       icon: Flame,
     },
