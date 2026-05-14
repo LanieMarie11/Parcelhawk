@@ -93,19 +93,31 @@ type BuyerDetailMainProps = {
   isLoadingHeavy?: boolean;
 };
 
+/** Collapsed list length for saved properties & recent activity */
+const DEFAULT_VISIBLE_LIST_ITEMS = 3;
+
 export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHeavy = false }: BuyerDetailMainProps) {
   const router = useRouter();
   const [showAllActivity, setShowAllActivity] = useState(false);
-  const hasMoreActivity = selected.activity.length > 5;
-  const visibleActivity = showAllActivity ? selected.activity : selected.activity.slice(0, 5);
+  const [showAllSavedProperties, setShowAllSavedProperties] = useState(false);
+  const hasMoreActivity = selected.activity.length > DEFAULT_VISIBLE_LIST_ITEMS;
+  const visibleActivity = showAllActivity
+    ? selected.activity
+    : selected.activity.slice(0, DEFAULT_VISIBLE_LIST_ITEMS);
+
+  const hasMoreSavedProperties = selected.savedProperties.length > DEFAULT_VISIBLE_LIST_ITEMS;
+  const visibleSavedProperties = showAllSavedProperties
+    ? selected.savedProperties
+    : selected.savedProperties.slice(0, DEFAULT_VISIBLE_LIST_ITEMS);
 
   useEffect(() => {
     setShowAllActivity(false);
+    setShowAllSavedProperties(false);
   }, [selected.id]);
 
   return (
     <main className="min-h-0 min-w-0 flex-1 space-y-6 overflow-y-auto">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="flex items-center gap-2 text-[28px] font-phudu font-semibold uppercase tracking-wide text-[#0F172A]">
           <MessageMembersIcon />
           My buyers
@@ -120,7 +132,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
             className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-200"
           />
         </div>
-      </div>
+      </div> */}
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -154,15 +166,15 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
               <p className="mt-2 flex flex-col flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-600">
                 <span className="inline-flex items-center gap-1">
                   <Mail className="size-3.5 text-zinc-400" aria-hidden />
-                  <span>{selected.email}</span>
+                  <span>{selected.email ? selected.email : "-"}</span>
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <Phone className="size-3.5 text-zinc-400" aria-hidden />
-                  <span>{selected.phone}</span>
+                  <span>{selected.phone ? selected.phone : "-"}</span>
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="size-3.5 text-zinc-400" aria-hidden />
-                  <span>{selected.location}</span>
+                  <span>{selected.location ? selected.location : "-"}</span>
                 </span>
               </p>
             </div>
@@ -190,19 +202,19 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
 
       <section>
         <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">
-          Buyer's Preference
+          User profile Preference
         </h3>
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+          <span className="rounded-sm border border-zinc-200 bg-[#F8F8F8] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
             Acres range: {selected.preferenceAcreage || "-"}
           </span>
-          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+          <span className="rounded-sm border border-zinc-200 bg-[#F8F9FB] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
             Budget range: {selected.preferenceBudget || "-"}
           </span>
-          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+          <span className="rounded-sm border border-zinc-200 bg-[#F8F9FB] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
             Timeframe: {selected.preferenceTimeframe || "-"}
           </span>
-          <span className="rounded-full border border-zinc-200 bg-[#F1F5F9] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
+          <span className="rounded-sm border border-zinc-200 bg-[#F8F9FB] font-ibm-plex-sans px-3 py-1 text-xs font-medium text-[#030303]">
             Buy for: {selected.preferencePurpose || "-"}
           </span>
         </div>
@@ -219,8 +231,9 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
           <p className="mt-4 py-8 text-center text-sm text-zinc-500">No saved properties yet.</p>
           )
         ) : (
-          <ul className="mt-3 divide-y divide-zinc-100">
-            {selected.savedProperties.map((row) => (
+          <>
+            <ul className="mt-3 divide-y divide-zinc-100">
+              {visibleSavedProperties.map((row) => (
               <li
                 key={row.id}
                 className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
@@ -260,24 +273,27 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
                   ) : null}
                 </div>
               </li>
-            ))}
-          </ul>
+              ))}
+            </ul>
+            {hasMoreSavedProperties ? (
+              <div className="border-t border-zinc-100 bg-zinc-50/80 px-4 py-2.5 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllSavedProperties((prev) => !prev)}
+                  className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+                >
+                  {showAllSavedProperties
+                    ? "Show less"
+                    : `Show more (${selected.savedProperties.length})`}
+                </button>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
 
       <section className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">Recent activity</h3>
-          {hasMoreActivity ? (
-            <button
-              type="button"
-              onClick={() => setShowAllActivity((current) => !current)}
-              className="text-xs font-semibold text-[#2D5A36] hover:underline"
-            >
-              {showAllActivity ? "Show less" : "Show all"}
-            </button>
-          ) : null}
-        </div>
+        <h3 className="text-md font-phudu font-medium uppercase tracking-wide text-[#030303]">Recent activity</h3>
         {selected.activity.length === 0 ? (
           isLoadingHeavy ? (
             <p className="mt-4 py-6 text-center text-sm text-zinc-500">Fetching recent activity...</p>
@@ -285,22 +301,37 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
           <p className="mt-4 py-6 text-center text-sm text-zinc-500">No recent activity.</p>
           )
         ) : (
-          <ul className="mt-4 space-y-4">
-            {visibleActivity.map((row) => (
-              <li key={row.id} className="flex gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2">
-                <ActivityIcon kind={row.kind} />
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
-                    {activityKindLabel(row.kind)}
-                  </p>
-                  <p className="text-sm text-zinc-800">{row.text}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {row.when ? <LastActiveText value={row.when} /> : "Recently"}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="mt-4 space-y-4">
+              {visibleActivity.map((row) => (
+                <li key={row.id} className="flex gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 px-3 py-2">
+                  <ActivityIcon kind={row.kind} />
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+                      {activityKindLabel(row.kind)}
+                    </p>
+                    <p className="text-sm text-zinc-800">{row.text}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {row.when ? <LastActiveText value={row.when} /> : "Recently"}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {hasMoreActivity ? (
+              <div className="border-t border-zinc-100 bg-zinc-50/80 px-4 py-2.5 text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAllActivity((prev) => !prev)}
+                  className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+                >
+                  {showAllActivity
+                    ? "Show less"
+                    : `Show more (${selected.activity.length})`}
+                </button>
+              </div>
+            ) : null}
+          </>
         )}
       </section>
     </main>

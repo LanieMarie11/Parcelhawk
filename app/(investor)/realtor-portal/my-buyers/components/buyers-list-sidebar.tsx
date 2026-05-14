@@ -36,10 +36,10 @@ export function BuyersListSidebar({
 }: BuyersListSidebarProps) {
   return (
     <aside className="flex w-full flex-col border-r-0 border-zinc-100 lg:w-[min(320px,30%)] lg:shrink-0 lg:border-r lg:pr-4">
-      <header className="flex items-center justify-between gap-2 pb-3">
-        <h2 className="flex items-center gap-2 text-xl font-medium font-phudu uppercase tracking-tight text-[#141f2f]">
+      <header className="flex items-center border-b w-full justify-between gap-2 pb-3">
+        <h2 className="flex items-center gap-1 text-xl font-medium font-phudu uppercase tracking-tight text-[#141f2f]">
           <MessageMembersIcon />
-          Linked buyers
+          My buyers
         </h2>
         <button
           type="button"
@@ -54,15 +54,15 @@ export function BuyersListSidebar({
           const active = b.id === selectedId;
           const score = scoreBadge(b);
           const rowClassName = [
-            "flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-3 text-left transition-colors",
+            "flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-2 text-left transition-colors",
             active ? "bg-zinc-50" : "hover:bg-zinc-50",
           ].join(" ");
           const badgeColorClass =
             score === "hot"
-              ? "border-rose-500 text-rose-500 bg-white"
+              ? "border-rose-500 text-rose-500 bg-[#FDEAEA]"
               : score === "warm"
-                ? "border-amber-500 text-amber-500 bg-white"
-                : "border-[#19A0FF] text-[#19A0FF] bg-white";
+                ? "border-amber-500 text-amber-500 bg-[#FDF7E6]"
+                : "border-[#19A0FF] text-[#19A0FF] bg-[#E6F6FD]";
           return (
             <button
               key={b.id}
@@ -87,11 +87,13 @@ export function BuyersListSidebar({
                   {b.name}
                 </p>
                 <p className="truncate text-[12px] leading-4 text-[#6577A0]">
-                  {b.location || "unknown"} · <LastActiveText value={b.lastActiveAt} />
+                  {b.location || "unknown"}
+                  {" · "}
+                  <LastActiveText value={b.lastActiveAt} />
                 </p>
               </div>
               <span
-                className={`flex h-8 min-w-[72px] shrink-0 items-center justify-center rounded-full border px-4 text-xs font-medium capitalize ${badgeColorClass}`}
+                className={`flex h-6 min-w-[50px] shrink-0 items-center justify-center rounded-full border px-2 text-xs font-medium capitalize ${badgeColorClass}`}
               >
                 {score}
               </span>

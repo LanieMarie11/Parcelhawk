@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { PageLoadingIndicator } from "@/components/page-loading-indicator";
 import { BuyerDetailMain } from "./components/buyer-detail-main";
 import { BuyersListSidebar } from "./components/buyers-list-sidebar";
 import type { BuyerDetail } from "./components/types";
@@ -230,7 +231,7 @@ export default function MyBuyersPage() {
   }, [buyers, selectedId]);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-6 pt-4 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-6 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-h-[calc(100vh-120px)] min-h-[calc(100vh-150px)] w-full max-w-[1400px] gap-4 overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-sm lg:p-6">
         {isLoading ? (
           <div className="p-4 text-sm text-zinc-500">Loading buyers...</div>
@@ -245,8 +246,8 @@ export default function MyBuyersPage() {
             />
             {selected ? (
               isLoadingDetail || !selectedDetail ? (
-                <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
-                  Loading buyer details...
+                <div className="relative flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6">
+                  <PageLoadingIndicator label="Loading buyer details..." fixed={false} />
                 </div>
               ) : (
                 <BuyerDetailMain
