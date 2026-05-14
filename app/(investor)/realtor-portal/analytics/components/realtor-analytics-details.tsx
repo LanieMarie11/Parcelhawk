@@ -42,13 +42,6 @@ type WeeklyTrendPoint = {
   messages: number;
 };
 
-const funnelRows = [
-  { label: "Pushed", value: 245, width: 100, color: "bg-teal-700", percent: null },
-  { label: "Opened", value: 187, width: 72, color: "bg-teal-500", percent: 72 },
-  { label: "Saved", value: 124, width: 60, color: "bg-teal-400", percent: 60 },
-  { label: "Viewing Requested", value: 56, width: 47, color: "bg-teal-300", percent: 47 },
-  { label: "No Response", value: 189, width: 33, color: "bg-teal-200", percent: 33 },
-];
 export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount, trendData }: RealtorAnalyticsDetailsProps) {
   let hot = 0;
   let warm = 0;
@@ -149,10 +142,10 @@ export function RealtorAnalyticsDetails({ buyers, isLoading, viewingRequestCount
                       fontSize: 12,
                     }}
                   />
-                  <Line type="monotone" dataKey="searches" stroke="#52525b" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="saves" stroke="#84cc16" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="viewingRequests" stroke="#0ea5e9" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="messages" stroke="#22c55e" strokeWidth={2} dot={false} />
+                  <Line type="linear" dataKey="searches" stroke="#52525b" strokeWidth={2} dot={false} />
+                  <Line type="linear" dataKey="saves" stroke="#84cc16" strokeWidth={2} dot={false} />
+                  <Line type="linear" dataKey="viewingRequests" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                  <Line type="linear" dataKey="messages" stroke="#22c55e" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -1,5 +1,6 @@
 import { GoogleAuth } from "google-auth-library";
 import { buildSearchQueryExtractionPrompt } from "@/lib/prompt";
+import { US_STATE_ABBR_TO_NAME as STATE_ABBREVIATION_TO_NAME } from "@/lib/us-state-abbreviation-to-name";
 
 export type SearchQueryFilters = {
   minPrice?: number;
@@ -56,60 +57,6 @@ function normalizeStateAbbreviation(s: string): string | undefined {
   const cleaned = s.toUpperCase().replace(/[^A-Z]/g, "");
   return cleaned.length === 2 ? cleaned : undefined;
 }
-
-const STATE_ABBREVIATION_TO_NAME: Record<string, string> = {
-  AL: "Alabama",
-  AK: "Alaska",
-  AZ: "Arizona",
-  AR: "Arkansas",
-  CA: "California",
-  CO: "Colorado",
-  CT: "Connecticut",
-  DE: "Delaware",
-  DC: "District of Columbia",
-  FL: "Florida",
-  GA: "Georgia",
-  HI: "Hawaii",
-  ID: "Idaho",
-  IL: "Illinois",
-  IN: "Indiana",
-  IA: "Iowa",
-  KS: "Kansas",
-  KY: "Kentucky",
-  LA: "Louisiana",
-  ME: "Maine",
-  MD: "Maryland",
-  MA: "Massachusetts",
-  MI: "Michigan",
-  MN: "Minnesota",
-  MS: "Mississippi",
-  MO: "Missouri",
-  MT: "Montana",
-  NE: "Nebraska",
-  NV: "Nevada",
-  NH: "New Hampshire",
-  NJ: "New Jersey",
-  NM: "New Mexico",
-  NY: "New York",
-  NC: "North Carolina",
-  ND: "North Dakota",
-  OH: "Ohio",
-  OK: "Oklahoma",
-  OR: "Oregon",
-  PA: "Pennsylvania",
-  RI: "Rhode Island",
-  SC: "South Carolina",
-  SD: "South Dakota",
-  TN: "Tennessee",
-  TX: "Texas",
-  UT: "Utah",
-  VT: "Vermont",
-  VA: "Virginia",
-  WA: "Washington",
-  WV: "West Virginia",
-  WI: "Wisconsin",
-  WY: "Wyoming",
-};
 
 function normalizeNumber(raw: string): number {
   const trimmed = raw.replace(/[, ]/g, "").toLowerCase();
