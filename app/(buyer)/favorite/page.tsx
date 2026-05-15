@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
+import { OrderPropertyReportModal } from "@/app/(buyer)/favorite/components/order-property-report-modal"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
 import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
@@ -97,9 +98,11 @@ function FavoritePropertyCard({
   onRemoveFavorite: () => void
   isRemovingFavorite: boolean
 }) {
+  const { data: session } = useSession()
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false)
+  const [isOrderReportOpen, setIsOrderReportOpen] = useState(false)
   const satelliteUrl = resolveListingSatellitePreviewUrl(listing) ?? null
   const cardImageSrc = getFavoriteCardImageSrc(listing)
   const priceText = formatPrice(listing.price)
@@ -214,6 +217,7 @@ function FavoritePropertyCard({
         <div className="mt-3 flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setIsOrderReportOpen(true)}
             className="flex-1 rounded-lg bg-[#2D4A31] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#253e2a]"
           >
             Order Report
@@ -267,6 +271,15 @@ function FavoritePropertyCard({
         </div>
       </div>
     ) : null}
+
+    <OrderPropertyReportModal
+      open={isOrderReportOpen}
+      onClose={() => setIsOrderReportOpen(false)}
+      propertySubtitle={listing.name}
+      defaultFullName={session?.user?.name ?? ""}
+      defaultEmail={session?.user?.email ?? ""}
+      defaultParcelAddress={(locationLine || listing.name || "").trim()}
+    />
 
     {isRemoveConfirmOpen ? (
       <div
