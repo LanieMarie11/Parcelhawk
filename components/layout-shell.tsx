@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { InvestorHeader } from "@/app/(investor)/components/investor-header";
 import { LandingHeader } from "@/components/landing-header";
+import { RealtorMessagesUnreadProvider } from "@/lib/realtor-messages-unread-context";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -39,13 +40,20 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     ? "flex min-h-0 flex-1 flex-col overflow-y-auto"
     : "flex min-h-0 flex-1 flex-col";
 
+  if (isInvestor) {
+    return (
+      <RealtorMessagesUnreadProvider>
+        <InvestorHeader />
+        <div className={mainShellClass}>
+          <div className={mainInnerClass}>{children}</div>
+        </div>
+      </RealtorMessagesUnreadProvider>
+    );
+  }
+
   return (
     <>
-      {isInvestor ? (
-        <InvestorHeader />
-      ) : (
-        <LandingHeader />
-      )}
+      <LandingHeader />
       <div className={mainShellClass}>
         <div className={mainInnerClass}>{children}</div>
       </div>

@@ -6,6 +6,7 @@ import { LinkedBuyersPanel, type BuyerThread } from "./components/linked-buyers-
 import { MessageComposer } from "@/components/message-composer";
 import { ThreadConversationTimeline } from "@/components/thread-conversation-timeline";
 import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client";
+import { useRealtorMessagesUnread } from "@/lib/realtor-messages-unread-context";
 import type { ThreadTimelineItem, ThreadTimelineViewingRequest } from "@/lib/thread-timeline";
 
 type ChatItem =
@@ -63,6 +64,7 @@ function mapTimelineForRealtor(items: ThreadTimelineItem[], buyerAvatarUrl: stri
 }
 
 export default function RealtorMessagesPage() {
+  const { refreshUnreadCount } = useRealtorMessagesUnread();
   const [buyerThreads, setBuyerThreads] = useState<BuyerThread[]>([]);
   const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ChatItem[]>([]);
@@ -153,6 +155,7 @@ export default function RealtorMessagesPage() {
             thread.id === selectedThread.id ? { ...thread, unread: false } : thread,
           ),
         );
+        void refreshUnreadCount();
       } finally {
         if (isMounted) setIsLoadingMessages(false);
       }
@@ -161,7 +164,7 @@ export default function RealtorMessagesPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedThread?.threadId, selectedThread?.avatarUrl]);
+  }, [selectedThread?.threadId, selectedThread?.avatarUrl, refreshUnreadCount]);
 
   useEffect(() => {
     if (isLoadingMessages) return;
