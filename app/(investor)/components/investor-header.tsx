@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRealtorMessagesUnread } from "@/lib/realtor-messages-unread-context";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,7 +37,7 @@ const investorNavItems: readonly NavItem[] = [
 export function InvestorHeader() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const [unreadMessages, setUnreadMessages] = useState(0);
+  const { unreadCount: unreadMessages } = useRealtorMessagesUnread();
   const isSignedIn = status === "authenticated" && !!session;
   const isRealtorMode =
     pathname === "/realtor-portal" || pathname.startsWith("/realtor-portal/");
@@ -65,40 +65,6 @@ export function InvestorHeader() {
     user?.firstName?.trim() && user?.lastName?.trim()
       ? `${user.firstName.trim()[0]}${user.lastName.trim()[0]}`.toUpperCase()
       : (user?.name?.slice(0, 2).toUpperCase() ?? "?");
-
-  useEffect(() => {
-    if (!isRealtorMode || !isSignedIn) {
-      setUnreadMessages(0);
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchUnreadCount = async () => {
-      try {
-        const response = await fetch("/api/realtor-portal/messages/unread-count", {
-          method: "GET",
-          cache: "no-store",
-        });
-        if (!response.ok) return;
-
-        const data = (await response.json()) as { unreadCount?: number };
-        if (isMounted) {
-          setUnreadMessages(Number.isFinite(data.unreadCount) ? (data.unreadCount ?? 0) : 0);
-        }
-      } catch {
-        if (isMounted) {
-          setUnreadMessages(0);
-        }
-      }
-    };
-
-    fetchUnreadCount();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isRealtorMode, isSignedIn, pathname]);
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
