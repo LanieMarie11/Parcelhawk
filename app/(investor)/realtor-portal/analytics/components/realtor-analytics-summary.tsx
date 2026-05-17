@@ -104,7 +104,7 @@ export function RealtorAnalyticsSummary({ buyers, totalViewingRequests, isLoadin
         </div>
       </section>
 
-      <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <section className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {statCards.map((card) => {
           const Icon = card.icon;
           const isDown = card.trendDirection === "down";

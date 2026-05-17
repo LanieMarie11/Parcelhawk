@@ -78,13 +78,13 @@ export function RealtorAnalyticsPreferences({
           Explore buyer intent and engagement insights to support smarter decisions.
         </p>
 
-        <div className="mt-3 grid gap-3 xl:grid-cols-4">
+        <div className="mt-3 grid gap-3 xl:grid-cols-3">
           {preferenceGroups.map((group) => {
             const Icon = group.icon;
             return (
               <div
                 key={group.title}
-                className="rounded-lg border border-zinc-200 bg-linear-to-b from-[#E6F6FD] to-[#FFFFFF] p-3"
+                className="rounded-lg border border-[#F3F3F5] bg-[#FAFAFA] p-3"
               >
                 <div className="flex items-center gap-2 border-b border-zinc-200 pb-2">
                   <span className="inline-flex h-9 w-9 items-center justify-center rounded bg-[#FFFFFF] text-[#484A54]">
@@ -120,7 +120,7 @@ export function RealtorAnalyticsPreferences({
                           <span>{row.value}</span>
                         </div>
                         <div className="h-1.5 rounded bg-zinc-200">
-                          <div className="h-1.5 rounded bg-sky-500" style={{ width: `${row.width}%` }} />
+                          <div className="h-1.5 rounded bg-[#2D5A36]" style={{ width: `${row.width}%` }} />
                         </div>
                       </div>
                     ))
@@ -132,8 +132,8 @@ export function RealtorAnalyticsPreferences({
         </div>
       </article>
 
-      <div className="grid gap-3 xl:grid-cols-12">
-        <article className="rounded-xl border border-zinc-200 bg-white py-4 xl:col-span-9">
+      <div className="grid gap-3">
+        <article className="rounded-xl border border-zinc-200 bg-white py-4">
           <h3 className="px-4 text-[16px] font-medium font-phudu uppercase tracking-tight text-[#182231]">Highest Intent Buyers</h3>
           <p className="px-4 text-xs font-ibm-plex-sans font-regular text-zinc-500">
             Analyze buyer intent signals to focus on the most valuable opportunities.
