@@ -90,12 +90,14 @@ function FavoritePropertyCard({
   selectedForCompare,
   onToggleCompare,
   onRemoveFavorite,
+  onViewingRequestSent,
   isRemovingFavorite,
 }: {
   listing: ListingItem
   selectedForCompare: boolean
   onToggleCompare: () => void
   onRemoveFavorite: () => void
+  onViewingRequestSent: (listingId: number) => void
   isRemovingFavorite: boolean
 }) {
   const { data: session } = useSession()
@@ -325,7 +327,9 @@ function FavoritePropertyCard({
     <ViewRequestModal
       open={isViewRequestOpen}
       listingId={listing.id}
+      viewingRequest={listing.hasViewingRequest ?? false}
       onClose={() => setIsViewRequestOpen(false)}
+      onSuccess={() => onViewingRequestSent(listing.id)}
     />
     </>
   )
@@ -462,6 +466,14 @@ function FavoritePageContent() {
     }
   }
 
+  const handleViewingRequestSent = (listingId: number) => {
+    setListingsData((prev) =>
+      prev.map((item) =>
+        item.id === listingId ? { ...item, hasViewingRequest: true } : item
+      )
+    )
+  }
+
   const handleRemoveFavorite = async (listingId: number) => {
     if (removingFavoriteIds.includes(listingId)) return
     setRemovingFavoriteIds((prev) => [...prev, listingId])
@@ -574,6 +586,7 @@ function FavoritePageContent() {
                     selectedForCompare={selectedCompareIds.includes(listing.id)}
                     onToggleCompare={() => toggleCompare(listing.id)}
                     onRemoveFavorite={() => void handleRemoveFavorite(listing.id)}
+                    onViewingRequestSent={handleViewingRequestSent}
                     isRemovingFavorite={removingFavoriteIds.includes(listing.id)}
                   />
                 ))}

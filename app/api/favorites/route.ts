@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import type { Session } from "next-auth";
 import { db } from "@/db";
-import { favorites, landListings } from "@/db/schema";
+import {
+  buyerInvestorLinks,
+  favorites,
+  landListings,
+  viewingRequests,
+} from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { authOptions } from "@/lib/auth";
 
@@ -18,30 +23,64 @@ export async function GET() {
   }
 
   try {
-    const rows = await db
-      .select({
-        id: landListings.id,
-        title: landListings.title,
-        price: landListings.price,
-        acres: landListings.acres,
-        address1: landListings.address1,
-        city: landListings.city,
-        stateAbbreviation: landListings.stateAbbreviation,
-        stateName: landListings.stateName,
-        zip: landListings.zip,
-        latitude: landListings.latitude,
-        longitude: landListings.longitude,
-        photos: landListings.photos,
-        propertyType: landListings.propertyType,
-        url: landListings.url,
-        description: landListings.description,
-        updatedAt: landListings.updatedAt,
-        createdAt : favorites.createdAt,
-      })
-      .from(favorites)
-      .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
-      .where(eq(favorites.userId, userId))
-      .orderBy(desc(landListings.listingDate));
+    const [rows, linkRow] = await Promise.all([
+      db
+        .select({
+          id: landListings.id,
+          title: landListings.title,
+          price: landListings.price,
+          acres: landListings.acres,
+          address1: landListings.address1,
+          city: landListings.city,
+          stateAbbreviation: landListings.stateAbbreviation,
+          stateName: landListings.stateName,
+          zip: landListings.zip,
+          latitude: landListings.latitude,
+          longitude: landListings.longitude,
+          photos: landListings.photos,
+          propertyType: landListings.propertyType,
+          url: landListings.url,
+          description: landListings.description,
+          updatedAt: landListings.updatedAt,
+          createdAt: favorites.createdAt,
+        })
+        .from(favorites)
+        .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
+        .where(eq(favorites.userId, userId))
+        .orderBy(desc(landListings.listingDate)),
+      db
+        .select({ investorId: buyerInvestorLinks.investorId })
+        .from(buyerInvestorLinks)
+        .where(
+          and(
+            eq(buyerInvestorLinks.buyerId, userId),
+            eq(buyerInvestorLinks.status, "active"),
+            eq(buyerInvestorLinks.realtorFlag, "active")
+          )
+        )
+        .orderBy(desc(buyerInvestorLinks.linkedAt))
+        .limit(1),
+    ]);
+
+    const realtorId = linkRow[0]?.investorId;
+    const viewingRequestListingIds = new Set<number>();
+
+    if (realtorId && rows.length > 0) {
+      const listingIds = rows.map((row) => row.id);
+      const viewingRows = await db
+        .select({ listingId: viewingRequests.listingId })
+        .from(viewingRequests)
+        .where(
+          and(
+            eq(viewingRequests.buyerId, userId),
+            eq(viewingRequests.realtorId, realtorId),
+            inArray(viewingRequests.listingId, listingIds)
+          )
+        );
+      for (const row of viewingRows) {
+        viewingRequestListingIds.add(row.listingId);
+      }
+    }
 
     const listings = rows.map((row) => ({
       id: row.id,
@@ -60,6 +99,7 @@ export async function GET() {
       latitude: row.latitude != null ? Number(row.latitude) : null,
       longitude: row.longitude != null ? Number(row.longitude) : null,
       isFavorite: true,
+      hasViewingRequest: viewingRequestListingIds.has(row.id),
       url: row.url ?? undefined,
       description: row.description ?? undefined,
       updatedAt:

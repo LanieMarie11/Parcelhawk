@@ -4,6 +4,7 @@ import { and, arrayContains, asc, desc, eq, gt, gte, ilike, lte, or, sql } from 
 import { db } from "@/db";
 import { favorites, landListings, users } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import { getBuyerViewingRequestListingIds } from "@/lib/get-buyer-viewing-request-listing-ids";
 import {
   PREFERENCE_ACREAGE_TO_RANGE,
   PREFERENCE_BUDGET_TO_RANGE,
@@ -173,17 +174,24 @@ export async function GET(request: NextRequest) {
     const totalListingsNumber = Number(countRows[0]?.totalListingsNumber ?? 0);
 
     let favoriteIds = new Set<number>();
+    let viewingRequestListingIds = new Set<number>();
     if (userId) {
-      const favRows = await db
-        .select({ landListingId: favorites.landListingId })
-        .from(favorites)
-        .where(eq(favorites.userId, userId));
+      const listingIds = rows.map((row) => row.id);
+      const [favRows, viewingIds] = await Promise.all([
+        db
+          .select({ landListingId: favorites.landListingId })
+          .from(favorites)
+          .where(eq(favorites.userId, userId)),
+        getBuyerViewingRequestListingIds(userId, listingIds),
+      ]);
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
+      viewingRequestListingIds = viewingIds;
     }
 
     const list = rows.map((row) => ({
       ...row,
       isFavorite: favoriteIds.has(row.id),
+      hasViewingRequest: viewingRequestListingIds.has(row.id),
     }));
 
     return NextResponse.json({ listings: list, totalListingsNumber });

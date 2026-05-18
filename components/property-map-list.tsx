@@ -43,6 +43,8 @@ export interface ListingItem {
   longitude?: number | null
   /** When true, card heart shows as favorited (from API when user is signed in) */
   isFavorite?: boolean
+  /** When true, buyer has a viewing request for this listing with their linked realtor */
+  hasViewingRequest?: boolean
   /** Listing URL from landListings.url; used for "view listing" link (opens in new tab) */
   aiMatchingScore?: number | null
   url?: string | null
@@ -212,6 +214,7 @@ export function PropertyMapList({
                 zip={listing.zip}
                 acreage={listing.acreage}
                 initialIsFavorite={listing.isFavorite}
+                hasViewingRequest={listing.hasViewingRequest}
                 aiMatchingScore={listing.aiMatchingScore}
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}

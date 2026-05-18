@@ -66,6 +66,8 @@ interface PropertyCardProps {
   parcelSatelliteMapDataUrl?: string | null
   /** When true, heart shows as favorited (e.g. from API isFavorite) */
   initialIsFavorite?: boolean
+  /** When true, viewing request modal shows the sent confirmation state */
+  hasViewingRequest?: boolean
   /** URL to open when image is clicked (new tab). Use landListings.url when available; defaults to /property?id={id} */
   detailUrl?: string
   /** `land_listings.updated_at` — when the listing row was last updated in the database */
@@ -117,6 +119,7 @@ export function PropertyCard({
   description,
   parcelSatelliteMapDataUrl,
   initialIsFavorite = false,
+  hasViewingRequest = false,
   detailUrl,
   updatedAt,
   onViewingRequest,
@@ -126,12 +129,17 @@ export function PropertyCard({
   const { data: session } = useSession()
   const { openSignInModal } = useSignInModal()
   const [isFavorited, setIsFavorited] = useState(initialIsFavorite)
+  const [hasViewingRequestLocal, setHasViewingRequestLocal] = useState(hasViewingRequest)
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
 
   useEffect(() => {
     setIsFavorited(initialIsFavorite)
   }, [initialIsFavorite])
+
+  useEffect(() => {
+    setHasViewingRequestLocal(hasViewingRequest)
+  }, [hasViewingRequest])
 
   const firstImage =
     Array.isArray(images) && images.length > 0
@@ -335,7 +343,9 @@ export function PropertyCard({
         <ViewRequestModal
           open={isViewRequestOpen}
           listingId={id}
+          viewingRequest={hasViewingRequestLocal}
           onClose={() => setIsViewRequestOpen(false)}
+          onSuccess={() => setHasViewingRequestLocal(true)}
         />
       </>
     )

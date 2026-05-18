@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { favorites, landListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { getEmbedding } from "@/lib/embedding";
+import { getBuyerViewingRequestListingIds } from "@/lib/get-buyer-viewing-request-listing-ids";
 import {
   extractFiltersWithLlm,
   type SearchQueryFilters,
@@ -388,12 +389,18 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
     let favoriteIds = new Set<number>();
+    let viewingRequestListingIds = new Set<number>();
     if (userId) {
-      const favRows = await db
-        .select({ landListingId: favorites.landListingId })
-        .from(favorites)
-        .where(eq(favorites.userId, userId));
+      const listingIds = listings.map((row) => row.id);
+      const [favRows, viewingIds] = await Promise.all([
+        db
+          .select({ landListingId: favorites.landListingId })
+          .from(favorites)
+          .where(eq(favorites.userId, userId)),
+        getBuyerViewingRequestListingIds(userId, listingIds),
+      ]);
       favoriteIds = new Set(favRows.map((r) => r.landListingId));
+      viewingRequestListingIds = viewingIds;
     }
 
     const hasTargetAcres = targetAcres != null && targetAcres > 0;
@@ -436,6 +443,7 @@ export async function POST(request: NextRequest) {
         return {
           ...row,
           isFavorite: favoriteIds.has(row.id),
+          hasViewingRequest: viewingRequestListingIds.has(row.id),
           semanticMatchScore,
           acreageMatchScore,
           featureMatchScore,
