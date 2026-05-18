@@ -39,6 +39,8 @@ export type ViewRequestModalProps = {
   open: boolean
   /** Land listing id for the favorites card this modal was opened from. */
   listingId: number
+  /** When true, show the confirmation state instead of the request form. */
+  viewingRequest?: boolean
   onClose: () => void
   /** Optional hook after the server persists the request (e.g. invalidate cache). */
   onSuccess?: (result: SubmitBuyerViewingRequestResult) => void
@@ -47,14 +49,22 @@ export type ViewRequestModalProps = {
 export function ViewRequestModal({
   open,
   listingId,
+  viewingRequest = false,
   onClose,
   onSuccess,
 }: ViewRequestModalProps) {
   const [note, setNote] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [sentInSession, setSentInSession] = useState(false)
+
+  const showSentState = viewingRequest || sentInSession
 
   useEffect(() => {
-    if (open) setNote("")
+    if (!open) {
+      setSentInSession(false)
+      return
+    }
+    setNote("")
   }, [open, listingId])
 
   if (!open) return null
@@ -67,14 +77,42 @@ export function ViewRequestModal({
         listingId,
         buyerNote: note.trim(),
       })
-      toast.success("Viewing request sent. Your realtor will be notified.")
       onSuccess?.(result)
-      onClose()
+      setSentInSession(true)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong")
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (showSentState) {
+    return (
+      <div
+        className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 p-6"
+        onClick={onClose}
+      >
+        <div
+          className="w-full max-w-[416px] rounded-xl bg-[#f6f7f8] p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-2xl font-medium uppercase tracking-tight text-[#030303] font-phudu">
+            Viewing request sent
+          </h3>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            Your viewing request has been successfully shared with your realtor.
+            You&apos;ll be notified once they respond or confirm availability.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-8 w-full rounded-full bg-[#3f6f39] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#345f30]"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
