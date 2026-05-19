@@ -93,11 +93,13 @@ export const authOptions: NextAuthOptions = {
           avatarUrl?: string | null;
           phone?: string | null;
           location?: string | null;
+          referralUrl?: string | null;
         } | undefined) ?? {
           name: undefined,
           avatarUrl: undefined,
           phone: undefined,
           location: undefined,
+          referralUrl: undefined,
         };
 
         if (updatedSession.name !== undefined) {
@@ -111,6 +113,9 @@ export const authOptions: NextAuthOptions = {
         }
         if (updatedSession.location !== undefined) {
           token.location = updatedSession.location;
+        }
+        if (updatedSession.referralUrl !== undefined) {
+          token.referralUrl = updatedSession.referralUrl;
         }
       }
       return token;
