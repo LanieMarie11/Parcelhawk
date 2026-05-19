@@ -1,37 +1,80 @@
 "use client";
 
-import { ArrowUp, Check, Clock3, Copy, Mail, MessageCircle, Plus, UserPlus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowUp, Check, Copy, Mail, MessageCircle, Plus, UserCheck, UserPlus } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useEffect, useId, useRef, useState } from "react";
+import { toast } from "sonner";
 
-const MOCK_INVITE_LINK = "https://parcelhawk.com/join/fb-co-land-2024";
+function buildInviteUrl(referralCode: string | null | undefined): string | null {
+  if (!referralCode) return null;
+  const base =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL ?? "https://parcelhawk.com";
+  return `${base.replace(/\/$/, "")}/sign-up?ref=${encodeURIComponent(referralCode)}`;
+}
 
-const statCards = [
-  {
-    label: "Total Joined",
-    value: "3,016",
-    subtext: "All-time buyers",
-    trend: null as string | null,
-    icon: UserPlus,
-  },
-  {
-    label: "Joined This Month",
-    value: "316",
-    subtext: null,
-    trend: "+18% vs last month",
-    icon: UserPlus,
-  },
-  {
-    label: "Pending",
-    value: "7",
-    subtext: "Awaiting confirmation",
-    trend: null,
-    icon: Clock3,
-  },
-] as const;
+type InviteLinkStats = {
+  totalJoined: number;
+  joinedThisMonth: number;
+  monthOverMonthTrend: string | null;
+  activeJoined: number;
+};
+
+function formatStatValue(value: number): string {
+  return value.toLocaleString("en-US");
+}
+
+/** Matches server `generateReferralCode()` — 12 random bytes as base64url. */
+function generateReferralCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
 
 export function InviteLinksDashboard() {
+  const { data: session, update } = useSession();
+  const inviteUrl = buildInviteUrl(session?.user?.referralUrl ?? null);
+  const createLinkModalTitleId = useId();
+  const createLinkReferralInputId = useId();
+
+  const [stats, setStats] = useState<InviteLinkStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [draftReferralId, setDraftReferralId] = useState("");
+  const [isSavingReferralId, setIsSavingReferralId] = useState(false);
   const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStats() {
+      try {
+        setStatsLoading(true);
+        const response = await fetch("/api/realtor-portal/invite-links");
+        const data = (await response.json().catch(() => ({}))) as {
+          stats?: InviteLinkStats;
+          error?: string;
+        };
+        if (!response.ok || !data.stats) {
+          if (!cancelled) setStats(null);
+          return;
+        }
+        if (!cancelled) setStats(data.stats);
+      } catch {
+        if (!cancelled) setStats(null);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    }
+
+    void loadStats();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -39,9 +82,34 @@ export function InviteLinksDashboard() {
     };
   }, []);
 
+  const statCards = [
+    {
+      label: "Total Joined",
+      value: statsLoading ? "—" : formatStatValue(stats?.totalJoined ?? 0),
+      subtext: "All-time buyers",
+      trend: null as string | null,
+      icon: UserPlus,
+    },
+    {
+      label: "Joined This Month",
+      value: statsLoading ? "—" : formatStatValue(stats?.joinedThisMonth ?? 0),
+      subtext: null,
+      trend: statsLoading ? null : stats?.monthOverMonthTrend ?? null,
+      icon: UserPlus,
+    },
+    {
+      label: "Active Joined",
+      value: statsLoading ? "—" : formatStatValue(stats?.activeJoined ?? 0),
+      subtext: "Buyers with your referral code",
+      trend: null,
+      icon: UserCheck,
+    },
+  ] as const;
+
   const handleCopy = async () => {
+    if (!inviteUrl) return;
     try {
-      await navigator.clipboard.writeText(MOCK_INVITE_LINK);
+      await navigator.clipboard.writeText(inviteUrl);
       if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
       setCopied(true);
       copiedResetRef.current = setTimeout(() => {
@@ -54,15 +122,72 @@ export function InviteLinksDashboard() {
   };
 
   const handleEmailShare = () => {
+    if (!inviteUrl) return;
     const subject = encodeURIComponent("Join my buyer pool on ParcelHawk");
-    const body = encodeURIComponent(`Use this link to join: ${MOCK_INVITE_LINK}`);
+    const body = encodeURIComponent(`Use this link to join: ${inviteUrl}`);
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleWhatsAppShare = () => {
-    const text = encodeURIComponent(`Join my buyer pool on ParcelHawk: ${MOCK_INVITE_LINK}`);
+    if (!inviteUrl) return;
+    const text = encodeURIComponent(`Join my buyer pool on ParcelHawk: ${inviteUrl}`);
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   };
+
+  const openCreateModal = () => {
+    setDraftReferralId("");
+    setIsCreateModalOpen(true);
+  };
+
+  const closeCreateModal = () => {
+    if (isSavingReferralId) return;
+    setIsCreateModalOpen(false);
+    setDraftReferralId("");
+  };
+
+  const handleGenerateReferralId = () => {
+    setDraftReferralId(generateReferralCode());
+  };
+
+  const handleConfirmReferralId = async () => {
+    const referralUrl = draftReferralId.trim();
+    if (!referralUrl) {
+      toast.error("Enter a referral ID or generate one");
+      return;
+    }
+    if (referralUrl.length !== 16) {
+      toast.warning("Referral ID must be exactly 16 characters");
+      return;
+    }
+
+    try {
+      setIsSavingReferralId(true);
+      const response = await fetch("/api/realtor-portal/invite-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referralUrl }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        referralUrl?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.referralUrl) {
+        toast.error(data.error ?? "Failed to save referral ID");
+        return;
+      }
+
+      await update({ referralUrl: data.referralUrl });
+      setIsCreateModalOpen(false);
+      setDraftReferralId("");
+      toast.success("Invite link updated");
+    } catch {
+      toast.error("Connection failed. Please try again.");
+    } finally {
+      setIsSavingReferralId(false);
+    }
+  };
+
+  const isCreateModalBusy = isSavingReferralId;
 
   return (
     <div className="min-h-[calc(100vh-73px)] h-full px-4 pb-8 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
@@ -117,7 +242,7 @@ export function InviteLinksDashboard() {
                 <input
                   type="text"
                   readOnly
-                  value={MOCK_INVITE_LINK}
+                  value={inviteUrl ?? "Generating your invite link..."}
                   className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none"
                   aria-label="Referral invite link"
                 />
@@ -125,7 +250,8 @@ export function InviteLinksDashboard() {
                   <button
                     type="button"
                     onClick={() => void handleCopy()}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-800"
+                    disabled={!inviteUrl}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {copied ? (
                       <Check className="h-4 w-4" aria-hidden />
@@ -136,6 +262,7 @@ export function InviteLinksDashboard() {
                   </button>
                   <button
                     type="button"
+                    onClick={openCreateModal}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
                   >
                     <Plus className="h-4 w-4" aria-hidden />
@@ -151,7 +278,8 @@ export function InviteLinksDashboard() {
                 <button
                   type="button"
                   onClick={() => void handleCopy()}
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+                  disabled={!inviteUrl}
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Copy className="h-4 w-4 text-zinc-500" aria-hidden />
                   Copy Link
@@ -159,7 +287,8 @@ export function InviteLinksDashboard() {
                 <button
                   type="button"
                   onClick={handleEmailShare}
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+                  disabled={!inviteUrl}
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Mail className="h-4 w-4 text-zinc-500" aria-hidden />
                   Email
@@ -167,7 +296,8 @@ export function InviteLinksDashboard() {
                 <button
                   type="button"
                   onClick={handleWhatsAppShare}
-                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50"
+                  disabled={!inviteUrl}
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <MessageCircle className="h-4 w-4 text-zinc-500" aria-hidden />
                   What&apos;s app
@@ -177,6 +307,75 @@ export function InviteLinksDashboard() {
           </div>
         </section>
       </div>
+
+      {isCreateModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={createLinkModalTitleId}
+          onClick={closeCreateModal}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3
+              id={createLinkModalTitleId}
+              className="text-lg font-medium font-phudu uppercase tracking-tight text-[#16212f]"
+            >
+              Create New Link
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500">
+              Set a referral ID for your invite link. Buyers who sign up with this code will be linked to you.
+            </p>
+
+            <div className="mt-5">
+              <label htmlFor={createLinkReferralInputId} className="text-xs font-medium text-zinc-600">
+                Referral ID
+              </label>
+              <input
+                id={createLinkReferralInputId}
+                type="text"
+                value={draftReferralId}
+                onChange={(event) => setDraftReferralId(event.target.value)}
+                placeholder="Enter or generate a referral ID"
+                disabled={isCreateModalBusy}
+                className="mt-2 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none transition-colors placeholder:text-zinc-400 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                disabled={isCreateModalBusy}
+                onClick={handleGenerateReferralId}
+                className="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Generate New
+              </button>
+              <button
+                type="button"
+                disabled={isCreateModalBusy}
+                onClick={closeCreateModal}
+                className="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isCreateModalBusy}
+                onClick={() => void handleConfirmReferralId()}
+                className="rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSavingReferralId ? "Saving..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
