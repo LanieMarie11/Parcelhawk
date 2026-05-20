@@ -8,6 +8,7 @@ import SavedSearchAlerts from "./components/saved-search-alerts"
 import Security from "./components/security"
 import AccountDangerZone from "./components/account-danger-zone"
 import InviteLinkSetting from "./components/invite-link-setting"
+import BuyerConnectionSetting from "./components/buyer-connection-setting"
 
 export default async function RealtorPortalSettingsPage() {
   const session = await getServerSession(authOptions)
@@ -59,6 +60,9 @@ export default async function RealtorPortalSettingsPage() {
             </section>
             <section id="security">
               <Security />
+            </section>
+            <section id="buyer-connection-setting">
+              <BuyerConnectionSetting />
             </section>
             <section id="account-danger-zone">
               <AccountDangerZone />
