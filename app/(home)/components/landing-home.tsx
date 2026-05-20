@@ -8,15 +8,53 @@ import { useLandPropertySearchHandoff } from "@/lib/land-property-search-context
 import ParcelLogo from "@/public/images/logo.png";
 
 const SUGGESTIONS = [
-  "Flat land with electric hookup in Texas, at least 10 acres",
-  "Off-grid property in Montana, 40+ acres, no flood risk",
-  "Recreational land near a river in Tennessee under $50k",
+  "10-15 acres in Bastrop County, TX with a pond and seller financing",
+  "5-10 acres in Polk County, FL — no flood, no wetlands, seller financing",
+  "20-50 unrestricted acres in Tennessee with a water source",
 ] as const;
+
+const SEARCH_PLACEHOLDER =
+  "5-10 acres in Cochise County, AZ with seller financing, under $30k";
+
+const SELLER_FINANCING_RE = /(seller financing)/gi;
+
+function QueryTextWithSellerFinancingHighlight({
+  text,
+  muted = false,
+}: {
+  text: string;
+  muted?: boolean;
+}) {
+  const parts = text.split(SELLER_FINANCING_RE);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === "seller financing" ? (
+          <span key={i} className="text-brand-green font-regular">
+            {part}
+          </span>
+        ) : (
+          <span key={i} className={muted ? "text-neutral-400" : undefined}>
+            {part}
+          </span>
+        ),
+      )}
+    </>
+  );
+}
 
 export function LandingHome() {
   const router = useRouter();
   const { setPendingPrompt } = useLandPropertySearchHandoff();
   const [query, setQuery] = useState("");
+  const highlightedPlaceholder = (
+    <QueryTextWithSellerFinancingHighlight text={SEARCH_PLACEHOLDER} muted />
+  );
+  const highlightedQueryText = query ? (
+    <QueryTextWithSellerFinancingHighlight text={query} />
+  ) : (
+    highlightedPlaceholder
+  );
 
   const submitSearch = (q: string) => {
     const trimmed = q.trim();
@@ -49,15 +87,22 @@ export function LandingHome() {
 
         <div className="mt-10 flex w-full max-w-2xl items-center gap-2 rounded-full border border-neutral-200/80 bg-white py-1.5 pl-4 pr-1.5 shadow-sm">
           <Search className="h-5 w-5 shrink-0 text-neutral-400" aria-hidden />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submitSearch(query)}
-            placeholder="20 acres with road access in Colorado under $80k..."
-            className="min-w-0 flex-1 bg-transparent py-3 text-base text-neutral-800 outline-none placeholder:text-neutral-400"
-            aria-label="Describe the land you want"
-          />
+          <div className="relative min-w-0 flex-1">
+            <div
+              className="pointer-events-none absolute inset-0 flex items-center overflow-hidden text-base"
+              aria-hidden
+            >
+              <span className="truncate">{highlightedQueryText}</span>
+            </div>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && submitSearch(query)}
+              className="relative w-full bg-transparent py-3 text-base text-transparent caret-neutral-800 outline-none"
+              aria-label="Describe the land you want"
+            />
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -68,7 +113,7 @@ export function LandingHome() {
               }
               submitSearch(trimmed);
             }}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#2D4A31] text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-green text-white shadow-md transition-transform hover:scale-105 active:scale-95"
             aria-label="Search"
           >
             <ArrowUpRight className="h-5 w-5" strokeWidth={2.25} />
@@ -92,12 +137,15 @@ export function LandingHome() {
                 type="button"
                 onClick={() => {
                   setQuery(text);
-                  submitSearch(text);
                 }}
                 className="flex w-full items-center justify-between gap-4 rounded-2xl border border-neutral-200/90 bg-white px-5 py-4 text-left text-sm text-neutral-800 shadow-sm transition-shadow hover:shadow-md md:text-base"
               >
-                <span>&ldquo;{text}&rdquo;</span>
-                <ArrowUpRight className="h-5 w-5 shrink-0 text-neutral-400" />
+                <span>
+                  &ldquo;
+                  <QueryTextWithSellerFinancingHighlight text={text} />
+                  &rdquo;
+                </span>
+                <ArrowUpRight className="h-5 w-5 shrink-0 text-brand-green" />
               </button>
             </li>
           ))}
