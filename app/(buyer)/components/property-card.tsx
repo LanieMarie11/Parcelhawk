@@ -59,7 +59,7 @@ interface PropertyCardProps {
   stateName?: string | null
   zip?: string | null
   acreage: string
-  aiMatchingScore?: number | null
+  aiMatchingScore?: number | string | null
   /** Description from landListings.description (array joined as paragraph); optional */
   description?: string | string[] | null
   /** Google Static Maps satellite + Regrid boundary (data URL); list variant only */
@@ -93,9 +93,17 @@ function getImageSrc(url: string): string {
   return url
 }
 
-function getAcresMatchBadgeClass(score: number): string {
-  if (score >= 56) return "border-emerald-300 bg-emerald-50 text-emerald-700"
-  if (score >= 35) return "border-sky-300 bg-sky-50 text-sky-700"
+function normalizeScore(score: number | string | null | undefined): number | null {
+  if (score == null) return null
+  const numericScore = typeof score === "number" ? score : Number(score)
+  return Number.isFinite(numericScore) ? numericScore : null
+}
+
+function getAcresMatchBadgeClass(score: number | string): string {
+  const numericScore = normalizeScore(score)
+  if (numericScore == null) return "border-slate-300 bg-slate-100 text-slate-700"
+  if (numericScore >= 56) return "border-emerald-300 bg-emerald-50 text-emerald-700"
+  if (numericScore >= 35) return "border-sky-300 bg-sky-50 text-sky-700"
   return "border-slate-300 bg-slate-100 text-slate-700"
 }
 
@@ -165,6 +173,7 @@ export function PropertyCard({
   })
 
   const updatedAtLabel = formatListingUpdatedAt(updatedAt)
+  const normalizedAiMatchingScore = normalizeScore(aiMatchingScore)
 
   const saveFavorite = async (listingId: number) => {
     const res = await fetch("/api/favorites", {
@@ -257,11 +266,11 @@ export function PropertyCard({
                   {category}
                 </span>
               ) : null} */}
-                {aiMatchingScore != null ? (
+                {normalizedAiMatchingScore != null ? (
                   <span
-                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(aiMatchingScore)}`}
+                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getAcresMatchBadgeClass(normalizedAiMatchingScore)}`}
                   >
-                    AI {aiMatchingScore}/100
+                    AI {normalizedAiMatchingScore}/100
                   </span>
                 ) : null}
                 <button

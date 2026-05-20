@@ -188,7 +188,7 @@ export function SearchFiltersBar({
                   setEmbeddingSearching(false)
                 }
               }}
-              className="flex h-8 w-8 shrink-0 z-100 items-center justify-center cursor-pointer rounded-full bg-[#2F5B3A] text-white shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[#264A30] hover:shadow-md active:scale-[0.92] active:bg-[#1a3324] active:shadow-inner disabled:pointer-events-none disabled:opacity-45"
+              className="flex h-8 w-8 shrink-0 z-100 items-center justify-center cursor-pointer rounded-full bg-brand-green text-white shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-brand-green-hover hover:shadow-md active:scale-[0.92] active:bg-[#1a3324] active:shadow-inner disabled:pointer-events-none disabled:opacity-45"
               disabled={isLoading || embeddingSearching || !aiPrompt.trim()}
               aria-label={embeddingSearching || isLoading ? "Searching" : "Search"}
             >
@@ -237,7 +237,7 @@ export function SearchFiltersBar({
               }
               setSaveModalOpen(true)
             }}
-            className="flex h-[34px] items-center gap-2 rounded-xl bg-[#04C0AF] px-4 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5] disabled:opacity-50"
+            className="flex h-[34px] items-center gap-2 rounded-xl bg-brand-green px-4 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover disabled:opacity-50"
           >
             <Heart className="h-4 w-4 fill-white" />
             Save Search
