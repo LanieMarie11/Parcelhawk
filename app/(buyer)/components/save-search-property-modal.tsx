@@ -93,8 +93,6 @@ export function SavePropertySearchModal({
     { value: "none", label: "No Updates" },
   ]
 
-  const teal = "#04C0AF"
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
@@ -135,7 +133,7 @@ export function SavePropertySearchModal({
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
             placeholder="Enter search name"
-            className="mt-1.5 w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#04C0AF] focus:ring-1 focus:ring-[#04C0AF]"
+            className="mt-1.5 w-full rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           />
         </div>
 
@@ -162,9 +160,9 @@ export function SavePropertySearchModal({
                     onChange={() => setFrequency(option.value)}
                     className="peer sr-only"
                   />
-                  <span className="h-5 w-5 rounded-full border-2 border-neutral-300 transition-colors peer-checked:border-[#04C0AF]" />
+                  <span className="h-5 w-5 rounded-full border-2 border-neutral-300 transition-colors peer-checked:border-brand-green" />
                   <span
-                    className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-[#04C0AF] transition-transform peer-checked:scale-100"
+                    className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 scale-0 rounded-full bg-brand-green transition-transform peer-checked:scale-100"
                     aria-hidden
                   />
                 </span>
@@ -197,8 +195,7 @@ export function SavePropertySearchModal({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 rounded-lg py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50"
-            style={{ backgroundColor: teal }}
+            className="flex-1 rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save Search"}
           </button>

@@ -1,15 +1,12 @@
 import { TrendingUp } from "lucide-react";
+import type { SearchTrendRow } from "../types/dashboard-metrics";
 
-const trendRows = [
-  { metric: "Total searches", current: "18,402", change: "+12.4%", positive: true },
-  { metric: "Unique buyers active", current: "3,287", change: "+8.1%", positive: true },
-  { metric: "Avg searches per buyer", current: "5.6", change: "+3.2%", positive: true },
-  { metric: "Most-searched acreage", current: "20 - 50 ac", change: "0.0%", positive: null },
-  { metric: "Most-searched price rang", current: "$250K - $500K", change: "-4.1%", positive: false },
-  { metric: "Listings getting save", current: "642", change: "+18.7%", positive: true },
-];
+type SearchTrendsTableProps = {
+  rows: SearchTrendRow[];
+  isLoading?: boolean;
+};
 
-export function SearchTrendsTable() {
+export function SearchTrendsTable({ rows, isLoading = false }: SearchTrendsTableProps) {
   return (
     <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
       <header className="border-b border-zinc-100 px-4 py-3">
@@ -30,19 +27,37 @@ export function SearchTrendsTable() {
             </tr>
           </thead>
           <tbody>
-            {trendRows.map((row) => (
-              <tr key={row.metric} className="border-t border-zinc-100">
-                <td className="px-4 py-3 font-medium">{row.metric}</td>
-                <td className="px-4 py-3 font-medium">{row.current}</td>
-                <td
-                  className={`px-4 py-3 text-right text-xs font-semibold ${
-                    row.positive === null ? "text-zinc-400" : row.positive ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {row.change}
+            {isLoading ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-6 text-center text-sm text-zinc-500">
+                  Loading search trends…
                 </td>
               </tr>
-            ))}
+            ) : rows.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="px-4 py-6 text-center text-sm text-zinc-500">
+                  No search trend data yet.
+                </td>
+              </tr>
+            ) : (
+              rows.map((row) => (
+                <tr key={row.metric} className="border-t border-zinc-100">
+                  <td className="px-4 py-3 font-medium">{row.metric}</td>
+                  <td className="px-4 py-3 font-medium">{row.current}</td>
+                  <td
+                    className={`px-4 py-3 text-right text-xs font-semibold ${
+                      row.positive === null
+                        ? "text-zinc-400"
+                        : row.positive
+                          ? "text-emerald-600"
+                          : "text-rose-600"
+                    }`}
+                  >
+                    {row.change}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
