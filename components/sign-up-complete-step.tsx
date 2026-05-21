@@ -97,14 +97,14 @@ export function SignUpCompleteStep({
             <button
               type="button"
               onClick={onGoToDashboard}
-              className="w-full rounded-xl bg-[#04C0AF] py-3 text-base font-medium text-white transition-colors hover:bg-[#3dbdb5]/80 active:bg-[#35aba3]"
+              className="w-full rounded-xl bg-brand-green py-3 text-base font-medium text-white shadow-md transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
             >
               Go to Buyer Dashboard
             </button>
           ) : (
             <Link
               href="/"
-              className="w-full rounded-xl bg-[#04C0AF] py-3 text-center text-base font-medium text-white transition-colors hover:bg-[#3dbdb5]/80 active:bg-[#35aba3]"
+              className="w-full rounded-xl bg-brand-green py-3 text-center text-base font-medium text-white shadow-md transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
             >
               Go to Buyer Dashboard
             </Link>

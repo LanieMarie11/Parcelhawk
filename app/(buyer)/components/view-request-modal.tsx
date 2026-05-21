@@ -154,7 +154,7 @@ export function ViewRequestModal({
             type="button"
             disabled={submitting}
             onClick={handleConfirm}
-            className="flex-1 rounded-lg bg-[#3f6f39] px-4 py-[10px] text-sm font-medium text-white transition-colors hover:bg-[#345f30] disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 rounded-lg bg-brand-green px-4 py-[10px] text-sm font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Sending…" : "Confirm"}
           </button>

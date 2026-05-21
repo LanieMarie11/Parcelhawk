@@ -133,7 +133,7 @@ function FavoritePropertyCard({
             onClick={onToggleCompare}
             className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium backdrop-blur-sm ${
               selectedForCompare
-                ? "border-[#04C0AF]/50 bg-[#04C0AF] text-white"
+                ? "border-brand-green bg-brand-green/80 text-white"
                 : "border-black/10 bg-white/90 text-foreground"
             }`}
           >
@@ -220,7 +220,7 @@ function FavoritePropertyCard({
           <button
             type="button"
             onClick={() => setIsOrderReportOpen(true)}
-            className="flex-1 rounded-lg bg-[#2D4A31] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#253e2a]"
+            className="flex-1 rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
           >
             Order Report
           </button>
@@ -633,7 +633,7 @@ function FavoritePageContent() {
                 type="button"
                 onClick={handleCompareProperties}
                 disabled={selectedCompareListings.length < 2 || isComparing}
-                className="mt-4 w-full rounded-lg bg-[#2E5A33] py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#274d2b] disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-4 w-full rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isComparing ? "Comparing..." : "Compare properties"}
               </button>

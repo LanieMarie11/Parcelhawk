@@ -189,7 +189,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   }
 
   const card = (
-    <div className="flex w-full max-w-xl flex-col items-center justify-center py-10">
+    <div className="flex w-full max-w-2xl flex-col items-center justify-center py-10">
       <StepProgress
         steps={STEPS}
         currentStep={currentStep}
@@ -225,7 +225,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                 onClick={() => setSelectedRole("buyer")}
                 className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
                   selectedRole === "buyer"
-                    ? "border-[#04C0AF] bg-[#E4FFFD] text-[#096D64]"
+                    ? "border-brand-green bg-[#EAEFEB] text-brand-green"
                     : "border-border bg-card text-muted-foreground hover:border-border"
                 }`}
               >
@@ -238,7 +238,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                   onClick={() => setSelectedRole("investor")}
                   className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
                     selectedRole === "investor"
-                      ? "border-[#04C0AF] bg-[#E4FFFD] text-[#096D64]"
+                      ? "border-brand-green bg-[#EAEFEB] text-brand-green"
                       : "border-border bg-card text-muted-foreground hover:border-border"
                   }`}
                 >
@@ -260,7 +260,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                 placeholder="Enter first name"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]"
+                className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors hover:border-brand-green active:border-brand-green-active focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               />
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                 placeholder="Enter last name"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]"
+                className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors hover:border-brand-green active:border-brand-green-active focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               />
             </div>
           </div>
@@ -288,7 +288,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
               placeholder="Enter email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]"
+              className="mt-2 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors hover:border-brand-green active:border-brand-green-active focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
 
@@ -303,7 +303,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-border bg-card px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#4ECDC4] focus:outline-none focus:ring-1 focus:ring-[#4ECDC4]"
+                className="w-full rounded-lg border border-border bg-card px-4 py-3 pr-12 text-sm text-foreground placeholder:text-muted-foreground transition-colors hover:border-brand-green active:border-brand-green-active focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               />
               <button
                 type="button"
@@ -318,7 +318,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
 
           <button
             type="button"
-            className="mt-6 w-full rounded-xl cursor-pointer bg-[#04C0AF] py-3.5 text-base text-white shadow-md transition-colors hover:bg-[#3dbdb5]/80 active:bg-[#35aba3]"
+            className="mt-6 w-full rounded-xl cursor-pointer bg-brand-green py-3.5 text-base text-white shadow-md transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
             onClick={handleSignUp}
           >
             Sign Up
@@ -326,7 +326,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
 
           <p className="mt-3 text-center text-sm text-muted-foreground">
             {"By signing up, I agree to the "}
-            <Link href="/terms" className="font-medium text-[#04C0AF] underline hover:text-[#3dbdb5]">
+            <Link href="/terms" className="font-medium text-brand-green underline hover:text-brand-green-hover">
               Terms of use.
             </Link>
           </p>
@@ -347,7 +347,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
 
           <p className="mt-5 text-center text-base text-muted-foreground">
             {"Already have an account? "}
-            <Link href="/" className="font-medium text-[#04C0AF] hover:text-[#3dbdb5]">
+            <Link href="/" className="font-medium text-brand-green hover:text-brand-green-hover">
               Log In
             </Link>
           </p>

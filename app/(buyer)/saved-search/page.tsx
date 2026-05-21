@@ -202,7 +202,7 @@ export default function SavedSearches() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">
             Saved Searches
           </h1>
           <p className="mt-1 text-base text-muted-foreground">
@@ -243,10 +243,10 @@ export default function SavedSearches() {
           </div>
 
           {/* Create new button */}
-          <button className="flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90">
+          {/* <button className="flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90">
             <Plus className="size-4" />
             Create new
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -334,7 +334,7 @@ function SearchCard({
             </h3>
             <Link
               href={search.viewResultHref}
-              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-[#04C0AF] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3dbdb5]"
+              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
             >
               <ExternalLink className="size-3.5" />
               View Result
@@ -347,8 +347,8 @@ function SearchCard({
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <FilterTag label="Price Range" value={search.priceRange} />
             <FilterTag label="Size" value={search.size} />
-            <FilterTag label="Type" value={search.type} />
-            <FilterTag label="Activities" value={search.activities} />
+            {/* <FilterTag label="Type" value={search.type} /> */}
+            {/* <FilterTag label="Activities" value={search.activities} /> */}
           </div>
         </div>
 
@@ -363,7 +363,7 @@ function SearchCard({
                 aria-checked={search.alertsEnabled}
                 onClick={onToggleAlerts}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
-                  search.alertsEnabled ? "bg-[#04C0AF]" : "bg-[#E5E7EB]"
+                  search.alertsEnabled ? "bg-brand-green" : "bg-[#E5E7EB]"
                 }`}
               >
                 <span
