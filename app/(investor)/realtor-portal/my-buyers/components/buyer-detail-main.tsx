@@ -69,8 +69,8 @@ function ActivityIcon({ kind }: { kind: ActivityRow["kind"] }) {
     );
   if (kind === "saved")
     return (
-      <span className={`${base} bg-[#E9F7EE]`}>
-        <Star className="size-3.5 text-[#166534]" />
+      <span className={`${base} bg-[#EAEFEB]`}>
+        <Star className="size-3.5 text-brand-green" />
       </span>
     );
   return (
@@ -155,8 +155,8 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
                 </p>
                 <span className="flex shrink-0 items-center gap-2 text-xs text-zinc-600">
                   <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-40" />
-                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand-green opacity-40" />
+                    <span className="relative inline-flex size-2 rounded-full bg-brand-green" />
                   </span>
                   <span className="whitespace-nowrap">
                     <LastActiveText value={selected.lastActiveAt} />
@@ -193,7 +193,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
           <button
             type="button"
             onClick={() => router.push("/realtor-portal/messages")}
-            className="rounded-xl bg-[#2D5A36] px-4 py-3 text-md font-ibm-plex-sans font-medium text-white transition-colors hover:bg-[#244b30]"
+            className="rounded-xl bg-brand-green px-4 py-3 text-md font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
           >
             Message
           </button>
@@ -280,7 +280,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
                 <button
                   type="button"
                   onClick={() => setShowAllSavedProperties((prev) => !prev)}
-                  className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+                  className="text-sm font-semibold text-brand-green underline-offset-2 hover:text-brand-green-hover hover:underline"
                 >
                   {showAllSavedProperties
                     ? "Show less"
@@ -323,7 +323,7 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
                 <button
                   type="button"
                   onClick={() => setShowAllActivity((prev) => !prev)}
-                  className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+                  className="text-sm font-semibold text-brand-green underline-offset-2 hover:text-brand-green-hover hover:underline"
                 >
                   {showAllActivity
                     ? "Show less"

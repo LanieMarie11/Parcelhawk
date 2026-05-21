@@ -106,7 +106,7 @@ function LenderCard({ lender }: { lender: LenderEntry }) {
         <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-[#373940]">{lender.description}</p>
         <Link
           href={lender.href}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#04C0AF] transition-colors hover:text-[#3dbdb5]"
+          className="inline-flex items-center gap-1 text-sm font-medium text-brand-green transition-colors hover:text-brand-green-hover"
         >
           Learn more
           <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />

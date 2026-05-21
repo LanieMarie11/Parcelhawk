@@ -15,11 +15,11 @@ export default async function RealtorPortalSettingsPage() {
 
   if (!session) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 py-10 font-ibm-plex-sans sm:px-6 lg:px-8">
+      <div className="min-h-[calc(100vh-73px)] bg-background px-4 py-10 font-ibm-plex-sans sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
-          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-            <h1 className="text-2xl font-bold text-zinc-900">Settings</h1>
-            <p className="max-w-md text-sm text-zinc-600">
+          <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+            <p className="max-w-md text-sm text-muted-foreground">
               Sign in to load this page and update your personal info, preferences, and security
               settings.
             </p>
@@ -30,11 +30,11 @@ export default async function RealtorPortalSettingsPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] px-4 pb-8 pt-6 font-ibm-plex-sans sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl px-4 py-10">
+    <div className="min-h-[calc(100vh-73px)] bg-background font-ibm-plex-sans">
+      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-zinc-900">Settings</h1>
-          <p className="mt-1 text-sm text-zinc-600">
+          <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Update your personal info, preferences, and security settings.
           </p>
         </div>

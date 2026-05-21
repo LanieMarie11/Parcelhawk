@@ -67,7 +67,7 @@ export function RealtorPortalClient() {
   }, []);
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-zinc-50 px-4 pb-8 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-73px)] bg-background px-4 pb-8 pt-6 font-ibm-plex-sans text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1400px]">
         <StatsCards stats={stats} isLoading={isLoading} />
 

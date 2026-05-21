@@ -79,7 +79,7 @@ function BuyingGuideCard({ guide }: { guide: BuyingGuide }) {
         </p>
         <Link
           href={guide.href}
-          className="inline-flex items-center gap-1 text-sm font-medium text-[#04C0AF] transition-colors hover:text-[#3dbdb5]"
+          className="inline-flex items-center gap-1 text-sm font-medium text-brand-green transition-colors hover:text-brand-green-hover"
         >
           Read more
           <ArrowUpRight className="h-4 w-4 shrink-0" aria-hidden />

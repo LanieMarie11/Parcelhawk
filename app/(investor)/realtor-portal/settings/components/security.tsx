@@ -89,7 +89,7 @@ export default function Security() {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-[#5cbcb6] focus:ring-1 focus:ring-[#5cbcb6]"
+                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
               />
             </div>
 
@@ -111,7 +111,7 @@ export default function Security() {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-[#5cbcb6] focus:ring-1 focus:ring-[#5cbcb6]"
+                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
               />
             </div>
 
@@ -133,7 +133,7 @@ export default function Security() {
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
-                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-[#5cbcb6] focus:ring-1 focus:ring-[#5cbcb6]"
+                className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
               />
             </div>
           </div>
@@ -141,7 +141,7 @@ export default function Security() {
           <div className="mt-5 flex justify-end">
             <button
               type="submit"
-              className="text-sm font-medium text-[#5cbcb6] underline-offset-4 transition-colors hover:underline"
+              className="text-sm font-medium text-brand-green underline-offset-4 transition-colors hover:text-brand-green-hover hover:underline"
             >
               Change password
             </button>
@@ -180,7 +180,7 @@ export default function Security() {
                 type="button"
                 disabled={isChangingPassword}
                 onClick={() => void handleUpdatePassword()}
-                className="rounded-md border border-[#5cbcb6] bg-[#5cbcb6] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#4db3ad] disabled:opacity-60"
+                className="rounded-xl bg-brand-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:opacity-60"
               >
                 {isChangingPassword ? "Updating..." : "Confirm change"}
               </button>

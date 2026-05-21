@@ -238,7 +238,7 @@ export default function PersonalInfo() {
           type="button"
           onClick={handleSaveChanges}
           disabled={isSaving}
-          className="rounded-md bg-[#04C0AF] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#03ac9d]"
+          className="rounded-md bg-brand-green px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </button>

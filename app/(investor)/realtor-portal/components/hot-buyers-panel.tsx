@@ -80,7 +80,7 @@ export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
             <button
               className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                 buyer.ctaVariant === "solid"
-                  ? "bg-emerald-700 text-white hover:bg-emerald-800"
+                  ? "bg-brand-green text-white hover:bg-brand-green-hover active:bg-brand-green-active"
                   : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
               }`}
             >
@@ -96,7 +96,7 @@ export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
           <button
             type="button"
             onClick={() => setShowAllRows((prev) => !prev)}
-            className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+            className="text-sm font-semibold text-brand-green underline-offset-2 hover:text-brand-green-hover hover:underline"
           >
             {showAllRows ? "Show less" : `Show all (${hotBuyerCount})`}
           </button>

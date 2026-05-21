@@ -116,7 +116,7 @@ function ViewingRequestCard({
   /** When true, timeline shows submitted time beside the card (buyer/outgoing layout). */
   omitHeaderSubmittedAt?: boolean;
 }) {
-  const accentClass = "text-[#3f6f39]";
+  const accentClass = "text-brand-green";
   const heroListingCaption =
     item.fullAddress.trim() || formatViewingRequestHeroListingLine(item.listingId);
   const heroImageUrl =
@@ -206,13 +206,13 @@ function ViewingRequestCard({
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-4 inline-block font-phudu text-[14px] font-regular text-[#2D5A36] uppercase tracking-wide underline-offset-2 hover:underline"
+            className="mt-4 inline-block font-phudu text-[14px] font-regular text-brand-green uppercase tracking-wide underline-offset-2 hover:underline"
           >
             VIEW LISTING DETAILS
           </a>
         ) : (
           <p
-            className="mt-4 font-phudu text-[14px] font-regular text-[#2D5A36] uppercase tracking-wide"
+            className="mt-4 font-phudu text-[14px] font-regular text-brand-green uppercase tracking-wide"
           >
             VIEW LISTING DETAILS
           </p>

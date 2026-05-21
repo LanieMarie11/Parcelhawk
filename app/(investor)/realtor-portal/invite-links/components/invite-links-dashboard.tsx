@@ -190,9 +190,9 @@ export function InviteLinksDashboard() {
   const isCreateModalBusy = isSavingReferralId;
 
   return (
-    <div className="min-h-[calc(100vh-73px)] h-full px-4 pb-8 pt-6 font-ibm-plex-sans text-zinc-900 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-[1400px] rounded-2xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm lg:p-5">
-        <header className="border-b border-zinc-100 pb-3">
+    <div className="min-h-[calc(100vh-73px)] h-full bg-background px-4 pb-8 pt-6 font-ibm-plex-sans text-foreground sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1400px] rounded-2xl border border-border bg-card p-4 shadow-sm lg:p-5">
+        <header className="border-b border-border pb-3">
           <h1 className="text-2xl font-medium font-phudu uppercase tracking-tight text-[#16212f]">
             Invite Links
           </h1>
@@ -215,7 +215,7 @@ export function InviteLinksDashboard() {
                 <div className="mt-2">
                   <p className="font-phudu text-[24px] font-medium leading-none text-[#1F1F1F]">{card.value}</p>
                   {card.trend ? (
-                    <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                    <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-brand-green">
                       <ArrowUp className="size-4 shrink-0 stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round" aria-hidden />
                       {card.trend}
                     </p>
@@ -251,7 +251,7 @@ export function InviteLinksDashboard() {
                     type="button"
                     onClick={() => void handleCopy()}
                     disabled={!inviteUrl}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {copied ? (
                       <Check className="h-4 w-4" aria-hidden />
@@ -317,7 +317,7 @@ export function InviteLinksDashboard() {
           onClick={closeCreateModal}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 shadow-lg"
+            className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
             onClick={(event) => event.stopPropagation()}
           >
             <h3
@@ -341,7 +341,7 @@ export function InviteLinksDashboard() {
                 onChange={(event) => setDraftReferralId(event.target.value)}
                 placeholder="Enter or generate a referral ID"
                 disabled={isCreateModalBusy}
-                className="mt-2 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none transition-colors placeholder:text-zinc-400 focus:border-emerald-700 focus:ring-1 focus:ring-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-2 w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-brand-green focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:opacity-60"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -368,7 +368,7 @@ export function InviteLinksDashboard() {
                 type="button"
                 disabled={isCreateModalBusy}
                 onClick={() => void handleConfirmReferralId()}
-                className="rounded-lg border border-emerald-700 bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg bg-brand-green px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSavingReferralId ? "Saving..." : "Confirm"}
               </button>

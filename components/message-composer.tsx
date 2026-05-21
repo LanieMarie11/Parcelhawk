@@ -121,7 +121,7 @@ export function MessageComposer({
             type="button"
             onClick={onSend}
             disabled={sendDisabled}
-            className="absolute bottom-3 right-3 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-[#3f6f39] px-4 py-2 text-sm font-semibold text-white hover:bg-[#345f30] disabled:cursor-not-allowed disabled:opacity-60"
+            className="absolute bottom-3 right-3 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             Send <MessageSendIcon className="shrink-0 text-white" />
           </button>

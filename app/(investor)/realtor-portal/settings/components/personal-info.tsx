@@ -160,7 +160,7 @@ export default function PersonalInfo() {
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-[#04C0AF] focus:ring-1 focus:ring-[#04C0AF]"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           />
         </div>
 
@@ -177,7 +177,7 @@ export default function PersonalInfo() {
               readOnly
               className="w-full rounded-md border border-border bg-card px-3 py-2 pr-24 text-sm text-card-foreground outline-none"
             />
-            <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs font-medium text-[#04C0AF]">
+            <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1 text-xs font-medium text-brand-green">
               <svg
                 width="14"
                 height="14"
@@ -206,7 +206,7 @@ export default function PersonalInfo() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Enter your phone number"
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-[#04C0AF] focus:ring-1 focus:ring-[#04C0AF]"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           />
         </div>
 
@@ -221,7 +221,7 @@ export default function PersonalInfo() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Enter your location"
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-[#04C0AF] focus:ring-1 focus:ring-[#04C0AF]"
+            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           />
         </div>
       </div>
@@ -238,7 +238,7 @@ export default function PersonalInfo() {
           type="button"
           onClick={handleSaveChanges}
           disabled={isSaving}
-          className="rounded-md bg-[#04C0AF] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#03ac9d]"
+          className="rounded-xl bg-brand-green px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </button>
