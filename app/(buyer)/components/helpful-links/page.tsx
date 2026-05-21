@@ -224,7 +224,7 @@ export default function HelpfulLinksPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "border-transparent bg-[#1B4D3E] text-white"
+                    ? "border-transparent bg-brand-green text-white"
                     : "border-border bg-white text-foreground hover:bg-muted/60"
                 }`}
               >

@@ -195,7 +195,7 @@ export default function BuyerConnectionSetting() {
                   aria-labelledby="buyer-to-remove-label"
                   disabled={isSubmitting || isLoadingBuyers}
                   onClick={() => setIsBuyerMenuOpen((open) => !open)}
-                  className="flex w-full items-center gap-2 rounded-md border border-border bg-card py-2 pl-2 pr-9 text-left text-sm text-card-foreground outline-none transition-colors focus:border-[#5cbcb6] focus:ring-1 focus:ring-[#5cbcb6] disabled:opacity-60"
+                  className="flex w-full items-center gap-2 rounded-md border border-border bg-card py-2 pl-2 pr-9 text-left text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green disabled:opacity-60"
                 >
                   {selectedBuyer ? (
                     <>
@@ -270,7 +270,7 @@ export default function BuyerConnectionSetting() {
                 onChange={(e) => setReasonNote(e.target.value)}
                 rows={5}
                 placeholder="Write your reason here."
-                className="mt-2 w-full resize-none rounded-lg border border-transparent bg-muted px-3 py-2.5 text-sm text-card-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-[#5cbcb6] focus:ring-1 focus:ring-[#5cbcb6] disabled:opacity-60"
+                className="mt-2 w-full resize-none rounded-lg border border-transparent bg-muted px-3 py-2.5 text-sm text-card-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-brand-green focus:ring-1 focus:ring-brand-green disabled:opacity-60"
               />
             </div>
 
@@ -287,7 +287,7 @@ export default function BuyerConnectionSetting() {
                 type="button"
                 disabled={isSubmitting || isLoadingBuyers || buyers.length === 0}
                 onClick={() => void handleApprove()}
-                className="rounded-md bg-[#345e37] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#2d5230] disabled:opacity-60"
+                className="rounded-xl bg-brand-green px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:opacity-60"
               >
                 {isSubmitting ? "Working…" : "Approve"}
               </button>

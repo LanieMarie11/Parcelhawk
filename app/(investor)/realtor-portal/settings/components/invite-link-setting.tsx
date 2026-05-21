@@ -21,14 +21,14 @@ function Toggle({
       id={id}
       aria-checked={enabled}
       onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-        enabled ? "bg-emerald-500" : "bg-zinc-200"
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ${
+        enabled ? "bg-brand-green" : "bg-muted"
       }`}
     >
       <span className="sr-only">Toggle invite link</span>
       <span
-        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
-          enabled ? "translate-x-5" : "translate-x-0"
+        className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+          enabled ? "translate-x-5.5" : "translate-x-0.5"
         }`}
       />
     </button>
@@ -105,7 +105,7 @@ export default function InviteLinkSetting() {
             type="button"
             onClick={() => void handleCopy()}
             disabled={!inviteUrl || !inviteEnabled}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#345e37] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2d5230] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-green px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
           >
             {copied ? (
               <Check className="h-4 w-4" aria-hidden />

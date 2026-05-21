@@ -120,7 +120,7 @@ export function RealtorAnalyticsPreferences({
                           <span>{row.value}</span>
                         </div>
                         <div className="h-1.5 rounded bg-zinc-200">
-                          <div className="h-1.5 rounded bg-[#2D5A36]" style={{ width: `${row.width}%` }} />
+                          <div className="h-1.5 rounded bg-brand-green" style={{ width: `${row.width}%` }} />
                         </div>
                       </div>
                     ))
@@ -195,7 +195,7 @@ export function RealtorAnalyticsPreferences({
                       <td className="py-2.5 text-center">
                         <button
                           type="button"
-                          className="rounded-md bg-emerald-800 px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-emerald-900"
+                          className="rounded-md bg-brand-green px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
                         >
                           Contact Now
                         </button>
@@ -212,7 +212,7 @@ export function RealtorAnalyticsPreferences({
               <button
                 type="button"
                 onClick={() => setShowAllRows((prev) => !prev)}
-                className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-950 hover:underline"
+                className="text-sm font-semibold text-brand-green underline-offset-2 hover:text-brand-green-hover hover:underline"
               >
                 {showAllRows ? "Show less" : `Show all (${intentBuyerCount})`}
               </button>

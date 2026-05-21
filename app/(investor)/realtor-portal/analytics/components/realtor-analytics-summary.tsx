@@ -80,7 +80,7 @@ export function RealtorAnalyticsSummary({ buyers, totalViewingRequests, isLoadin
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-lg border border-emerald-700 bg-emerald-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-800"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-green px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
           >
             <Download className="h-4 w-4" />
             Export
@@ -109,7 +109,7 @@ export function RealtorAnalyticsSummary({ buyers, totalViewingRequests, isLoadin
           const Icon = card.icon;
           const isDown = card.trendDirection === "down";
           const isNeutral = card.trendDirection === "neutral";
-          const trendClass = isDown ? "text-red-500" : isNeutral ? "text-zinc-500" : "text-emerald-600";
+          const trendClass = isDown ? "text-red-500" : isNeutral ? "text-zinc-500" : "text-brand-green";
           const TrendArrow = isNeutral ? null : isDown ? ArrowDown : ArrowUp;
 
           return (

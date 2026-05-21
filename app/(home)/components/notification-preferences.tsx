@@ -18,14 +18,14 @@ function Toggle({
       id={id}
       aria-checked={enabled}
       onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-        enabled ? "bg-[#5cbcb6]" : "bg-muted"
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ${
+        enabled ? "bg-brand-green" : "bg-muted"
       }`}
     >
       <span className="sr-only">Toggle</span>
       <span
-        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
-          enabled ? "translate-x-5" : "translate-x-0"
+        className={`pointer-events-none inline-block size-5 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+          enabled ? "translate-x-5.5" : "translate-x-0.5"
         }`}
       />
     </button>

@@ -143,7 +143,7 @@ export default function ComparePage() {
           <>
             <section className="mb-5 rounded-2xl border border-[#E7E9EF] bg-white p-5 shadow-sm">
               <div className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F2F8F7] text-[#2E5A33]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F2F8F7] text-brand-green">
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
@@ -154,7 +154,7 @@ export default function ComparePage() {
                       : "The comparison table below uses values returned from the compare API."}
                   </p>
                   {backendMessage ? (
-                    <p className="mt-2 text-sm font-semibold text-[#2D5A36]">{backendMessage}</p>
+                    <p className="mt-2 text-sm font-semibold text-brand-green">{backendMessage}</p>
                   ) : null}
                 </div>
               </div>

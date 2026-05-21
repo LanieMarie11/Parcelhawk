@@ -74,6 +74,11 @@ const acreageOptions = [
 
 const timeframeOptions = ["ASAP", "1-3 months", "3-6 months", "6+ months", "Just researching"]
 
+const optionButtonClass = (selected: boolean) =>
+  selected
+    ? "border-brand-green bg-[#EAEFEB] text-brand-green"
+    : "border-border bg-[#FAFAFA] text-foreground hover:border-brand-green active:border-brand-green-active"
+
 export default function LandPreferences() {
   const [selectedBudget, setSelectedBudget] = useState<string | null>(null)
   const [selectedAcreage, setSelectedAcreage] = useState<string | null>(null)
@@ -166,11 +171,7 @@ export default function LandPreferences() {
                   key={option}
                   type="button"
                   onClick={() => setSelectedBudget((prev) => (prev === option ? null : option))}
-                  className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? "border-[#04C0AF] bg-[#04C0AF]/10 text-[#04C0AF]"
-                      : "border-border bg-card text-muted-foreground hover:border-[#04C0AF]/50 hover:text-card-foreground"
-                  }`}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-regular transition-colors ${optionButtonClass(isSelected)}`}
                 >
                   {option}
                 </button>
@@ -189,11 +190,7 @@ export default function LandPreferences() {
                   key={option}
                   type="button"
                   onClick={() => setSelectedAcreage((prev) => (prev === option ? null : option))}
-                  className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? "border-[#04C0AF] bg-[#04C0AF]/10 text-[#04C0AF]"
-                      : "border-border bg-card text-muted-foreground hover:border-[#04C0AF]/50 hover:text-card-foreground"
-                  }`}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-regular transition-colors ${optionButtonClass(isSelected)}`}
                 >
                   {option}
                 </button>
@@ -214,22 +211,20 @@ export default function LandPreferences() {
                   onClick={() =>
                     setSelectedBuyerType((prev) => (prev === type.id ? null : type.id))
                   }
-                  className={`flex items-start gap-3 rounded-xl border p-3 text-left transition-colors ${
-                    isSelected
-                      ? "border-[#04C0AF] bg-[#04C0AF]/10"
-                      : "border-border bg-card hover:border-[#04C0AF]/50 hover:bg-accent/30"
-                  }`}
+                  className={`flex items-center gap-3 rounded-lg border p-4 text-left transition-colors ${optionButtonClass(isSelected)}`}
                 >
                   <span
-                    className={`mt-0.5 rounded-md border p-2 ${
-                      isSelected ? "border-[#04C0AF] text-[#04C0AF]" : "border-border text-muted-foreground"
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                      isSelected ? "bg-white/60 text-brand-green" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {type.icon}
                   </span>
-                  <span>
-                    <span className="block text-sm font-semibold text-muted-foreground">{type.label}</span>
-                    <span className="block text-sm text-muted-foreground">{type.description}</span>
+                  <span className="min-w-0 flex flex-col">
+                    <span className="text-sm font-medium leading-tight">{type.label}</span>
+                    <span className="mt-0.5 text-sm text-muted-foreground leading-snug">
+                      {type.description}
+                    </span>
                   </span>
                 </button>
               )
@@ -247,11 +242,7 @@ export default function LandPreferences() {
                   key={option}
                   type="button"
                   onClick={() => setSelectedTimeframe((prev) => (prev === option ? null : option))}
-                  className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-                    isSelected
-                      ? "border-[#04C0AF] bg-[#04C0AF]/10 text-[#04C0AF]"
-                      : "border-border bg-card text-muted-foreground hover:border-[#04C0AF]/50 hover:text-card-foreground"
-                  }`}
+                  className={`rounded-lg border px-4 py-2.5 text-sm font-regular transition-colors ${optionButtonClass(isSelected)}`}
                 >
                   {option}
                 </button>
@@ -266,7 +257,7 @@ export default function LandPreferences() {
           type="button"
           onClick={handleSavePreferences}
           disabled={isSaving || isLoading}
-          className="rounded-md bg-[#04C0AF] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#03ac9d] disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-brand-green px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSaving ? "Saving..." : "Save Preferences"}
         </button>

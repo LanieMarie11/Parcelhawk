@@ -36,7 +36,7 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
               <p className={`text-2xl font-medium font-phudu leading-none ${card.alert ? "text-red-600" : "text-[#1F1F1F]"}`}>
                 {isLoading ? "..." : card.value.toLocaleString()}
               </p>
-              <p className={`mt-2 flex items-center gap-1 text-xs ${card.alert ? "text-zinc-500" : "text-emerald-600"}`}>
+              <p className={`mt-2 flex items-center gap-1 text-xs ${card.alert ? "text-zinc-500" : "text-brand-green"}`}>
                 {!card.alert && <TrendingUp className="h-3 w-3" />}
                 {card.subtext}
               </p>
