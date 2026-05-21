@@ -20,21 +20,28 @@ const SELLER_FINANCING_RE = /(seller financing)/gi;
 
 function QueryTextWithSellerFinancingHighlight({
   text,
-  muted = false,
+  placeholder = false,
 }: {
   text: string;
-  muted?: boolean;
+  placeholder?: boolean;
 }) {
   const parts = text.split(SELLER_FINANCING_RE);
   return (
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === "seller financing" ? (
-          <span key={i} className="text-brand-green font-regular">
+          <span
+            key={i}
+            className={
+              placeholder
+                ? "font-regular text-brand-green opacity-60"
+                : "font-regular text-brand-green"
+            }
+          >
             {part}
           </span>
         ) : (
-          <span key={i} className={muted ? "text-neutral-400" : undefined}>
+          <span key={i} className={placeholder ? "text-neutral-400" : undefined}>
             {part}
           </span>
         ),
@@ -48,7 +55,7 @@ export function LandingHome() {
   const { setPendingPrompt } = useLandPropertySearchHandoff();
   const [query, setQuery] = useState("");
   const highlightedPlaceholder = (
-    <QueryTextWithSellerFinancingHighlight text={SEARCH_PLACEHOLDER} muted />
+    <QueryTextWithSellerFinancingHighlight text={SEARCH_PLACEHOLDER} placeholder />
   );
   const highlightedQueryText = query ? (
     <QueryTextWithSellerFinancingHighlight text={query} />

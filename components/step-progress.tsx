@@ -45,7 +45,7 @@ export function StepProgress({
             {/* Left connecting line */}
             {!isFirst && (
               <div
-                className={`h-px flex-1 shrink-0 ${leftLineActive ? "bg-[#04C0AF]" : "bg-gray-200"}`}
+                className={`h-px flex-1 shrink-0 ${leftLineActive ? "bg-brand-green" : "bg-gray-200"}`}
               />
             )}
 
@@ -54,7 +54,7 @@ export function StepProgress({
               <div
                 className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ${
                   isActive || isPast
-                    ? "bg-[#04C0AF] text-white"
+                    ? "bg-brand-green text-white"
                     : "border border-gray-300 bg-white text-gray-500"
                 }`}
               >
@@ -76,7 +76,7 @@ export function StepProgress({
             {/* Right connecting line */}
             {!isLast && (
               <div
-                className={`h-px flex-1 shrink-0 ${rightLineActive ? "bg-[#04C0AF]" : "bg-gray-200"}`}
+                className={`h-px flex-1 shrink-0 ${rightLineActive ? "bg-brand-green" : "bg-gray-200"}`}
               />
             )}
           </div>

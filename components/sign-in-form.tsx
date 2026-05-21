@@ -91,7 +91,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
               onClick={() => setSelectedRole("buyer")}
               className={`flex items-center justify-center gap-2 rounded-lg border px-16 py-3 text-base font-medium transition-colors ${
                 selectedRole === "buyer"
-                  ? "border-[#04C0AF]! bg-[#E4FFFD] text-[#096D64]"
+                  ? "border-brand-green! bg-[#EAEFEB] text-brand-green"
                   : "border-border bg-card text-muted-foreground hover:border-border"
               }`}
             >
@@ -103,7 +103,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
               onClick={() => setSelectedRole("investor")}
               className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
                 selectedRole === "investor"
-                  ? "border-[#04C0AF]! bg-[#E4FFFD] text-[#096D64]"
+                  ? "border-brand-green! bg-[#EAEFEB] text-brand-green"
                   : "border-border bg-card text-muted-foreground hover:border-border"
               }`}
             >
@@ -164,7 +164,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
           <div className="mt-2 text-right">
             <a
               href="#"
-              className="text-base text-[#4ECDC4] hover:text-[#3dbdb5]"
+              className="text-base text-brand-green hover:text-brand-green-hover"
             >
               Forgot Password?
             </a>
@@ -174,7 +174,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
         {/* Continue Button */}
         <button
           type="button"
-          className="mt-4 w-full rounded-xl cursor-pointer bg-[#04C0AF] hover:bg-[#3dbdb5]/80 active:bg-[#35aba3] py-3.5 text-lg text-white shadow-md transition-colors"
+          className="mt-4 w-full rounded-xl cursor-pointer bg-brand-green hover:bg-brand-green-hover active:bg-green-active py-3.5 text-lg text-white shadow-md transition-colors"
           onClick={handleSignIn}
         >
           Continue
@@ -201,7 +201,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
           {"Don't have an account? "}
           <a
             href="#"
-            className="text-[#4ECDC4] hover:text-[#04C0AF]"
+            className="text-brand-green hover:text-brand-green-hover"
           >
             Join For Free
           </a>
