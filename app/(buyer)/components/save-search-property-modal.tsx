@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { X } from "lucide-react"
 
-type Frequency = "instant" | "daily" | "none"
+export type Frequency = "instant" | "daily" | "none"
 
 export interface SavedSearchFilters {
   minPrice?: number | null
@@ -22,8 +22,16 @@ interface SavePropertySearchModalProps {
   onClose: () => void
   onSave?: (data: { searchName: string; frequency: Frequency }) => void
   defaultSearchName?: string
+  defaultFrequency?: Frequency
+  /** When set, updates an existing saved search instead of creating one */
+  searchId?: string
   /** Current filters to persist to saved_searches when user clicks Save Search */
   filters?: SavedSearchFilters | null
+}
+
+function parseFrequency(value: string | undefined): Frequency {
+  if (value === "daily" || value === "none") return value
+  return "instant"
 }
 
 export function SavePropertySearchModal({
@@ -31,12 +39,23 @@ export function SavePropertySearchModal({
   onClose,
   onSave,
   defaultSearchName = "",
+  defaultFrequency = "instant",
+  searchId,
   filters,
 }: SavePropertySearchModalProps) {
   const [searchName, setSearchName] = useState(defaultSearchName)
-  const [frequency, setFrequency] = useState<Frequency>("instant")
+  const [frequency, setFrequency] = useState<Frequency>(defaultFrequency)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isEditMode = searchId != null && searchId !== ""
+
+  useEffect(() => {
+    if (isOpen) {
+      setSearchName(defaultSearchName)
+      setFrequency(parseFrequency(defaultFrequency))
+      setError(null)
+    }
+  }, [isOpen, defaultSearchName, defaultFrequency])
 
   if (!isOpen) return null
 
@@ -48,11 +67,31 @@ export function SavePropertySearchModal({
     }
     setError(null)
 
+    if (isEditMode) {
+      setSaving(true)
+      try {
+        const res = await fetch(`/api/saved-searches/${searchId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, frequency }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error ?? "Failed to update search")
+        }
+        onSave?.({ searchName: name, frequency })
+        onClose()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to update search")
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
     if (filters != null) {
       setSaving(true)
       try {
-        console.log("state", filters?.state)
-        console.log("county", filters?.county)
         const res = await fetch("/api/saved-searches", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -116,7 +155,7 @@ export function SavePropertySearchModal({
 
         {/* Title */}
         <h2 id="modal-title" className="pr-8 text-lg font-semibold text-neutral-900">
-          Save Property Search
+          {isEditMode ? "Edit Saved Search" : "Save Property Search"}
         </h2>
 
         {/* Search name input */}
@@ -197,7 +236,7 @@ export function SavePropertySearchModal({
             disabled={saving}
             className="flex-1 rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save Search"}
+            {saving ? "Saving…" : isEditMode ? "Save Changes" : "Save Search"}
           </button>
         </div>
       </div>

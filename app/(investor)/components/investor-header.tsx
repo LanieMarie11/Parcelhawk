@@ -31,7 +31,7 @@ const investorNavItems: readonly NavItem[] = [
   { href: "/investor-portal", label: "Overview" },
   { href: "/investor-portal/curated-parcels", label: "Curated parcels" },
   { href: "/investor-portal/analytics", label: "Analytics" },
-  { href: "/investor-portal/settings", label: "Settings" },
+  { href: "/realtor-portal/settings", label: "Settings" },
 ];
 
 export function InvestorHeader() {
