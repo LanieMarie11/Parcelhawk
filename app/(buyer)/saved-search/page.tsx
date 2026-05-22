@@ -4,13 +4,16 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import {
   MapPin,
-  Plus,
   MoreVertical,
   SquarePen,
   Trash2,
   ChevronDown,
   ExternalLink,
 } from "lucide-react"
+import {
+  SavePropertySearchModal,
+  type Frequency,
+} from "@/app/(buyer)/components/save-search-property-modal"
 
 interface SavedSearch {
   id: string
@@ -23,6 +26,8 @@ interface SavedSearch {
   activities: string
   alertsEnabled: boolean
   frequency: string
+  /** Raw DB value for API updates (instant, daily, none, …) */
+  frequencyRaw: string
   /** URL to land-property with this search's filters (for View Result) */
   viewResultHref: string
 }
@@ -113,8 +118,14 @@ function rowToSavedSearch(row: SavedSearchRow): SavedSearch {
     activities: row.activities?.length ? row.activities.join(", ") : "Any",
     alertsEnabled: true,
     frequency: frequencyDisplayLabel(row.frequency),
+    frequencyRaw: row.frequency,
     viewResultHref: buildViewResultHref(row),
   }
+}
+
+function toModalFrequency(raw: string): Frequency {
+  if (raw === "daily" || raw === "none") return raw
+  return "instant"
 }
 
 const sortOptions = ["Newest", "Oldest", "A-Z", "Z-A"]
@@ -180,6 +191,24 @@ export default function SavedSearches() {
   }
 
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingSearch, setEditingSearch] = useState<SavedSearch | null>(null)
+
+  const handleEditSave = (data: { searchName: string; frequency: Frequency }) => {
+    if (!editingSearch) return
+    setSearches((prev) =>
+      prev.map((s) =>
+        s.id === editingSearch.id
+          ? {
+              ...s,
+              name: data.searchName,
+              frequency: frequencyDisplayLabel(data.frequency),
+              frequencyRaw: data.frequency,
+            }
+          : s
+      )
+    )
+    setEditingSearch(null)
+  }
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -279,11 +308,23 @@ export default function SavedSearches() {
                 handleFrequencyChange(search.id, freq)
               }
               onDelete={() => handleDelete(search.id)}
+              onEdit={() => setEditingSearch(search)}
               isDeleting={deletingId === search.id}
             />
           ))}
         </div>
       )}
+
+      <SavePropertySearchModal
+        isOpen={editingSearch != null}
+        onClose={() => setEditingSearch(null)}
+        searchId={editingSearch?.id}
+        defaultSearchName={editingSearch?.name ?? ""}
+        defaultFrequency={
+          editingSearch ? toModalFrequency(editingSearch.frequencyRaw) : "instant"
+        }
+        onSave={handleEditSave}
+      />
     </div>
   )
 }
@@ -297,12 +338,14 @@ function SearchCard({
   onToggleAlerts,
   onFrequencyChange,
   onDelete,
+  onEdit,
   isDeleting = false,
 }: {
   search: SavedSearch
   onToggleAlerts: () => void
   onFrequencyChange: (frequency: string) => void
   onDelete: () => void
+  onEdit: () => void
   isDeleting?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -422,7 +465,10 @@ function SearchCard({
             {menuOpen && (
               <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-border bg-card py-1 shadow-lg">
                 <button
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onEdit()
+                  }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left font-medium text-sm text-[#5D606D] transition-colors hover:bg-secondary"
                 >
                   <SquarePen className="size-4" />
