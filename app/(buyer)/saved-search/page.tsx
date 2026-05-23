@@ -46,6 +46,7 @@ interface SavedSearchRow {
   propertyType: string | null
   landType: string | null
   activities: string[] | null
+  prompt: string | null
 }
 
 function formatPrice(num: string | null): string {
@@ -93,6 +94,11 @@ function frequencyDisplayLabel(freq: string): string {
 }
 
 function buildViewResultHref(row: SavedSearchRow): string {
+  const prompt = row.prompt?.trim()
+  if (prompt) {
+    return `/land-property?prompt=${encodeURIComponent(prompt)}`
+  }
+
   const params = new URLSearchParams()
   if (row.state?.trim()) params.set("state", row.state.trim())
   if (row.county?.trim()) params.set("county", row.county.trim())

@@ -15,6 +15,7 @@ export interface SavedSearchFilters {
   propertyType?: string | null
   landType?: string | null
   activities?: string[] | null
+  prompt?: string | null
 }
 
 interface SavePropertySearchModalProps {
@@ -98,15 +99,16 @@ export function SavePropertySearchModal({
           body: JSON.stringify({
             name,
             frequency,
-            minPrice: filters.minPrice ?? undefined,
-            maxPrice: filters.maxPrice ?? undefined,
-            minAcres: filters.minAcres ?? undefined,
-            maxAcres: filters.maxAcres ?? undefined,
-            state: filters.state ?? undefined,
-            county: filters.county ?? undefined,
-            propertyType: filters.propertyType ?? undefined,
-            landType: filters.landType ?? undefined,
-            activities: filters.activities ?? undefined,
+            minPrice: filters.minPrice ?? null,
+            maxPrice: filters.maxPrice ?? null,
+            minAcres: filters.minAcres ?? null,
+            maxAcres: filters.maxAcres ?? null,
+            state: filters.state ?? null,
+            county: filters.county ?? null,
+            propertyType: filters.propertyType ?? null,
+            landType: filters.landType ?? null,
+            activities: filters.activities ?? null,
+            prompt: filters.prompt?.trim() || null,
           }),
         })
         if (!res.ok) {

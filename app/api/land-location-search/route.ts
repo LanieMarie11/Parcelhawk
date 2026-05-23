@@ -57,12 +57,12 @@ export async function GET(request: NextRequest) {
     if (type) {
       conditions.push(arrayContains(landListings.propertyType, [type]));
     }
-    if (propertyTypes.length > 0) {
-      conditions.push(or(...propertyTypes.map((t) => arrayContains(landListings.propertyType, [t])))!);
-    }
-    if (activities.length > 0) {
-      conditions.push(or(...activities.map((a) => arrayContains(landListings.activities, [a])))!);
-    }
+    // if (propertyTypes.length > 0) {
+    //   conditions.push(or(...propertyTypes.map((t) => arrayContains(landListings.propertyType, [t])))!);
+    // }
+    // if (activities.length > 0) {
+    //   conditions.push(or(...activities.map((a) => arrayContains(landListings.activities, [a])))!);
+    // }
     if (minPrice != null) {
       conditions.push(gte(landListings.price, String(minPrice)));
     }
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     // When the client sends no min/max for price or acres, apply signed-in user profile preferences.
     if (
       userId &&
-      ((minPrice == null && maxPrice == null) || (minAcres == null && maxAcres == null))
+      ((minPrice == null && maxPrice == null) && (minAcres == null && maxAcres == null))
     ) {
       const needBudgetFromUser = minPrice == null && maxPrice == null;
       const needAcresFromUser = minAcres == null && maxAcres == null;
@@ -136,6 +136,7 @@ export async function GET(request: NextRequest) {
         )!
       );
     }
+    console.log("⚡conditions", conditions);
 
     const pricePerAcreAsc = sql`(${landListings.price}::float / NULLIF(${landListings.acres}::float, 0)) ASC`;
     const pricePerAcreDesc = sql`(${landListings.price}::float / NULLIF(${landListings.acres}::float, 0)) DESC`;
@@ -172,6 +173,7 @@ export async function GET(request: NextRequest) {
       countSelect,
     ]);
     const totalListingsNumber = Number(countRows[0]?.totalListingsNumber ?? 0);
+    console.log("⚡totalListingsNumber", totalListingsNumber);
 
     let favoriteIds = new Set<number>();
     let viewingRequestListingIds = new Set<number>();

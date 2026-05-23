@@ -59,21 +59,24 @@ export async function POST(request: NextRequest) {
 
     const [row] = await db
       .insert(savedSearches)
-      .values({
-        userId,
-        name,
-        frequency,
-        minPrice: minPrice || undefined,
-        maxPrice: maxPrice || undefined,
-        minAcres: minAcres || undefined,
-        maxAcres: maxAcres || undefined,
-        state: state ?? undefined,
-        county: county ?? undefined,
-        prompt: prompt ?? undefined,
-        propertyType: propertyType ?? undefined,
-        landType: landType ?? undefined,
-        activities: activities ?? undefined,
-      })
+      .values(
+        prompt
+          ? { userId, name, frequency, prompt }
+          : {
+              userId,
+              name,
+              frequency,
+              minPrice: minPrice || undefined,
+              maxPrice: maxPrice || undefined,
+              minAcres: minAcres || undefined,
+              maxAcres: maxAcres || undefined,
+              state: state ?? undefined,
+              county: county ?? undefined,
+              propertyType: propertyType ?? undefined,
+              landType: landType ?? undefined,
+              activities: activities ?? undefined,
+            }
+      )
       .returning({ id: savedSearches.id })
 
     return NextResponse.json({ id: row?.id })
