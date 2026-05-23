@@ -92,6 +92,7 @@ function LandPropertyPageContent() {
   const maxPriceFromUrl = searchParams.get("maxPrice")
   const stateFromUrl = searchParams.get("state")
   const countyFromUrl = searchParams.get("county")
+  const promptFromUrl = searchParams.get("prompt") ?? ""
   const [listingsData, setListingsData] = useState<any[]>([])
   const [totalListingsNumber, setTotalListingsNumber] = useState(0)
   const [priceRange, setPriceRange] = useState<{
@@ -307,6 +308,13 @@ function LandPropertyPageContent() {
       setIsLoading(false)
     }
   }, [landFeatureFilters])
+
+  /** Saved search "View Result" links use ?prompt=… to re-run embedding search. */
+  useEffect(() => {
+    const trimmed = promptFromUrl.trim()
+    if (!trimmed) return
+    setPendingSearchPrompt(trimmed)
+  }, [promptFromUrl, setPendingSearchPrompt])
 
   useEffect(() => {
     if (!pendingSearchPrompt) {

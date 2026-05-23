@@ -145,6 +145,20 @@ export function SearchFiltersBar({
     router.push(`${pathname}?${next.toString()}`)
   }
 
+  /** Always merge parent filters + AI prompt so Save Search sends both, even when one side is empty. */
+  const mergedSaveFilters: SavedSearchFilters = {
+    minPrice: currentFilters?.minPrice ?? null,
+    maxPrice: currentFilters?.maxPrice ?? null,
+    minAcres: currentFilters?.minAcres ?? null,
+    maxAcres: currentFilters?.maxAcres ?? null,
+    state: currentFilters?.state ?? null,
+    county: currentFilters?.county ?? null,
+    propertyType: currentFilters?.propertyType ?? null,
+    landType: currentFilters?.landType ?? null,
+    activities: currentFilters?.activities ?? null,
+    prompt: aiPrompt.trim() || currentFilters?.prompt?.trim() || null,
+  }
+
   return (
     <div className="w-full shrink-0 border-b border-border bg-background px-4 py-3">
       {onEmbeddingSearch ? (
@@ -251,7 +265,7 @@ export function SearchFiltersBar({
         isOpen={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
         onSave={() => setSaveModalOpen(false)}
-        filters={currentFilters}
+        filters={mergedSaveFilters}
       />
     </div>
   )
