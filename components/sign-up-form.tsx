@@ -189,7 +189,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   }
 
   const card = (
-    <div className="flex w-full max-w-2xl flex-col items-center justify-center py-10">
+    <div className="flex w-full max-w-xl flex-col items-center justify-center py-10">
       <StepProgress
         steps={STEPS}
         currentStep={currentStep}
