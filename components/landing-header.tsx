@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { createPortal } from "react-dom";
+import { Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 import ParcelLogo from "@/public/images/parcel.png";
 import SignInForm from "./sign-in-form";
@@ -24,6 +25,7 @@ const nav = [
 export function LandingHeader() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const { registerOpenSignInModal } = useSignInModal();
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -41,6 +43,17 @@ export function LandingHeader() {
   useEffect(() => {
     registerOpenSignInModal(() => setShowSignInModal(true));
   }, [registerOpenSignInModal]);
+
+  useEffect(() => {
+    if (pathname !== "/" || searchParams.get("auth") !== "sign-in") return;
+
+    setShowSignInModal(true);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("auth");
+    const next = params.toString();
+    router.replace(next ? `/?${next}` : "/", { scroll: false });
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     if (!isBuyer) {
@@ -120,6 +133,15 @@ export function LandingHeader() {
         </div>
 
         <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            className="relative rounded-lg p-2 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Notifications"
+          >
+            <Bell className="size-5" />
+            <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 ring-2 ring-[#0B1D31]" />
+          </button>
+
           {status === "loading" ? (
             <div className="min-w-[140px] rounded-lg border border-white/40 px-4 py-2" aria-hidden>
               <span className="invisible text-sm">Login</span>

@@ -189,7 +189,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   }
 
   const card = (
-    <div className="flex w-full max-w-2xl flex-col items-center justify-center py-10">
+    <div className="flex w-full max-w-xl flex-col items-center justify-center py-10">
       <StepProgress
         steps={STEPS}
         currentStep={currentStep}
@@ -347,7 +347,10 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
 
           <p className="mt-5 text-center text-base text-muted-foreground">
             {"Already have an account? "}
-            <Link href="/" className="font-medium text-brand-green hover:text-brand-green-hover">
+            <Link
+              href="/?auth=sign-in"
+              className="font-medium text-brand-green hover:text-brand-green-hover"
+            >
               Log In
             </Link>
           </p>
