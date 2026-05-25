@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Copy } from "lucide-react"
+import { Check, Copy, Send } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -50,6 +50,7 @@ export default function InviteLinkSetting() {
   const inviteUrl = buildInviteUrl(referralCode)
 
   const [inviteEnabled, setInviteEnabled] = useState(true)
+  const [buyerEmail, setBuyerEmail] = useState("")
   const [copied, setCopied] = useState(false)
   const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -91,29 +92,57 @@ export default function InviteLinkSetting() {
         />
       </div>
 
-      <div className={`pt-5 ${!inviteEnabled ? "pointer-events-none opacity-50" : ""}`}>
-        <p className="text-sm font-semibold text-card-foreground">Your Invite URL</p>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-          <input
-            type="text"
-            readOnly
-            value={inviteUrl ?? "Generating your invite link..."}
-            className="min-w-0 flex-1 rounded-lg border border-border bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none"
-            aria-label="Your invite URL"
-          />
-          <button
-            type="button"
-            onClick={() => void handleCopy()}
-            disabled={!inviteUrl || !inviteEnabled}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-green px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {copied ? (
-              <Check className="h-4 w-4" aria-hidden />
-            ) : (
-              <Copy className="h-4 w-4" aria-hidden />
-            )}
-            {copied ? "Copied" : "Copy Link"}
-          </button>
+      <div className={`space-y-5 pt-5 ${!inviteEnabled ? "pointer-events-none opacity-50" : ""}`}>
+        <div>
+          <p className="text-sm font-semibold text-card-foreground">Your Invite URL</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <input
+              type="text"
+              readOnly
+              value={inviteUrl ?? "Generating your invite link..."}
+              className="min-w-0 flex-1 rounded-lg border border-border bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none"
+              aria-label="Your invite URL"
+            />
+            <button
+              type="button"
+              onClick={() => void handleCopy()}
+              disabled={!inviteUrl || !inviteEnabled}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-medium text-card-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {copied ? (
+                <Check className="h-4 w-4" aria-hidden />
+              ) : (
+                <Copy className="h-4 w-4" aria-hidden />
+              )}
+              {copied ? "Copied" : "Copy Link"}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-sm font-semibold text-card-foreground">Send Link-to-Me Invitation</p>
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <input
+              type="email"
+              value={buyerEmail}
+              onChange={(event) => setBuyerEmail(event.target.value)}
+              placeholder="Enter buyer email address"
+              disabled={!inviteEnabled}
+              className="min-w-0 flex-1 rounded-lg border border-border bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+              aria-label="Buyer email address"
+            />
+            <button
+              type="button"
+              disabled={!inviteEnabled || !buyerEmail.trim()}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-green px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Send className="h-4 w-4" aria-hidden />
+              Send Invitation
+            </button>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The buyer will receive an in-platform invitation to link their account with you.
+          </p>
         </div>
       </div>
     </section>
