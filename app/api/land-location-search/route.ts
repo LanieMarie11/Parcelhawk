@@ -136,7 +136,6 @@ export async function GET(request: NextRequest) {
         )!
       );
     }
-    console.log("⚡conditions", conditions);
 
     const pricePerAcreAsc = sql`(${landListings.price}::float / NULLIF(${landListings.acres}::float, 0)) ASC`;
     const pricePerAcreDesc = sql`(${landListings.price}::float / NULLIF(${landListings.acres}::float, 0)) DESC`;
@@ -173,7 +172,6 @@ export async function GET(request: NextRequest) {
       countSelect,
     ]);
     const totalListingsNumber = Number(countRows[0]?.totalListingsNumber ?? 0);
-    console.log("⚡totalListingsNumber", totalListingsNumber);
 
     let favoriteIds = new Set<number>();
     let viewingRequestListingIds = new Set<number>();
