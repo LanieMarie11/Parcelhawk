@@ -127,6 +127,13 @@
       "when": 1778178319519,
       "tag": "0017_gorgeous_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1779739417039,
+      "tag": "0018_fresh_killmonger",
+      "breakpoints": true
     }
   ]
 }
