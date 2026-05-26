@@ -8,5 +8,10 @@ export {
 export { favorites, savedSearches } from "./favorites-saved-searches";
 export { landListingEmbeddings, landListings } from "./listings";
 export { messages, messageSenderRoleEnum, messageThreads } from "./messages";
+export {
+  notificationTypeEnum,
+  notifications,
+  type NotificationMetadata,
+} from "./notifications";
 export { investors, users } from "./users";
 export { viewingRequestStatusEnum, viewingRequests } from "./viewing-requests";
