@@ -52,6 +52,7 @@ export default function InviteLinkSetting() {
   const [inviteEnabled, setInviteEnabled] = useState(true)
   const [buyerEmail, setBuyerEmail] = useState("")
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
   const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -73,6 +74,31 @@ export default function InviteLinkSetting() {
       toast.success("Invite link copied")
     } catch {
       toast.error("Could not copy link")
+    }
+  }
+
+  const handleSendInvitation = async () => {
+    const email = buyerEmail.trim()
+    if (!inviteEnabled || !email || sending) return
+
+    setSending(true)
+    try {
+      const response = await fetch("/api/realtor-portal/invite-links/send-invitation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = (await response.json()) as { error?: string }
+      if (!response.ok) {
+        toast.error(data.error ?? "Failed to send invitation")
+        return
+      }
+      setBuyerEmail("")
+      toast.success("Invitation sent")
+    } catch {
+      toast.error("Failed to send invitation")
+    } finally {
+      setSending(false)
     }
   }
 
@@ -133,11 +159,12 @@ export default function InviteLinkSetting() {
             />
             <button
               type="button"
-              disabled={!inviteEnabled || !buyerEmail.trim()}
+              onClick={() => void handleSendInvitation()}
+              disabled={!inviteEnabled || !buyerEmail.trim() || sending}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-green px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Send className="h-4 w-4" aria-hidden />
-              Send Invitation
+              {sending ? "Sending..." : "Send Invitation"}
             </button>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">

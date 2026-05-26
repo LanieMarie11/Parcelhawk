@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { messages, messageThreads, viewingRequests } from "@/db/schema";
+import { messages, messageThreads, notifications, viewingRequests } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 
 type SessionUser = {
@@ -24,22 +24,43 @@ export async function GET() {
   }
 
   try {
-    const [messageResult] = await db
-      .select({
-        unreadCount: sql<number>`count(*)`,
-      })
-      .from(messages)
-      .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
-      .where(
-        and(
-          eq(messageThreads.buyerUserId, buyerUserId),
-          eq(messages.senderRole, "investor"),
-          or(isNull(messageThreads.buyerLastReadAt), gt(messages.createdAt, messageThreads.buyerLastReadAt)),
+    const [messageRows, notificationUnreadRows] = await Promise.all([
+      db
+        .select({
+          unreadCount: sql<number>`count(*)`,
+        })
+        .from(messages)
+        .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+        .where(
+          and(
+            eq(messageThreads.buyerUserId, buyerUserId),
+            eq(messages.senderRole, "investor"),
+            or(
+              isNull(messageThreads.buyerLastReadAt),
+              gt(messages.createdAt, messageThreads.buyerLastReadAt),
+            ),
+          ),
         ),
-      );
+      db
+        .select({ unreadCount: sql<number>`count(*)` })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, buyerUserId),
+            isNull(notifications.readAt),
+            isNull(notifications.dismissedAt),
+          ),
+        ),
+    ]);
+
+    const messageResult = messageRows[0];
+    const notificationUnreadResult = notificationUnreadRows[0];
 
     const threadRows = await db
-      .select({ investorId: messageThreads.investorId, buyerLastReadAt: messageThreads.buyerLastReadAt })
+      .select({
+        investorId: messageThreads.investorId,
+        buyerLastReadAt: messageThreads.buyerLastReadAt,
+      })
       .from(messageThreads)
       .where(eq(messageThreads.buyerUserId, buyerUserId));
 
@@ -70,8 +91,10 @@ export async function GET() {
         viewingRequestsUnreadCount += 1;
       }
     }
+
     return NextResponse.json({
       unreadCount: Number(messageResult?.unreadCount ?? 0) + viewingRequestsUnreadCount,
+      notificationUnreadCount: Number(notificationUnreadResult?.unreadCount ?? 0),
     });
   } catch (error) {
     console.error("Buyer unread count fetch error:", error);

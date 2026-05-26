@@ -29,6 +29,7 @@ export function LandingHeader() {
   const { registerOpenSignInModal } = useSignInModal();
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const isSignedIn = status === "authenticated" && !!session;
   const role = (session?.user as { role?: string } | undefined)?.role;
   const isBuyer = isSignedIn && role === "buyer";
@@ -46,6 +47,7 @@ export function LandingHeader() {
   useEffect(() => {
     if (!isBuyer) {
       setUnreadMessages(0);
+      setUnreadNotifications(0);
       return;
     }
 
@@ -53,19 +55,28 @@ export function LandingHeader() {
 
     const fetchUnreadCount = async () => {
       try {
-        const response = await fetch("/api/buyer/messages/unread-count", {
+        const response = await fetch("/api/buyer/notifications/unread", {
           method: "GET",
           cache: "no-store",
         });
         if (!response.ok) return;
 
-        const data = (await response.json()) as { unreadCount?: number };
+        const data = (await response.json()) as {
+          unreadCount?: number;
+          notificationUnreadCount?: number;
+        };
         if (isMounted) {
           setUnreadMessages(Number.isFinite(data.unreadCount) ? (data.unreadCount ?? 0) : 0);
+          setUnreadNotifications(
+            Number.isFinite(data.notificationUnreadCount)
+              ? (data.notificationUnreadCount ?? 0)
+              : 0,
+          );
         }
       } catch {
         if (isMounted) {
           setUnreadMessages(0);
+          setUnreadNotifications(0);
         }
       }
     };
@@ -122,12 +133,20 @@ export function LandingHeader() {
 
         <div className="flex items-center justify-end gap-2">
           <Link
-            href="/notification"
+            href="/notifications"
             className="relative rounded-lg p-2 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Notifications"
+            aria-label={
+              unreadNotifications > 0
+                ? `Notifications (${unreadNotifications} unread)`
+                : "Notifications"
+            }
           >
             <Bell className="size-5" />
-            <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 ring-2 ring-[#0B1D31]" />
+            {unreadNotifications > 0 ? (
+              <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-[#0B1D31]">
+                {unreadNotifications > 99 ? "99+" : unreadNotifications}
+              </span>
+            ) : null}
           </Link>
 
           {status === "loading" ? (
