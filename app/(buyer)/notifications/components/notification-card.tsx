@@ -21,7 +21,7 @@ export type NotificationItem = {
     bgColor: string
   }
   actions:
-    | { type: "single"; label: string; href: string }
+    | { type: "single"; label: string; href?: string }
     | {
         type: "dual"
         primary: { label: string; href?: string }

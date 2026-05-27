@@ -2,7 +2,15 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { buyerInvestorLinks, investors, messageThreads, messages, users } from "@/db/schema"
+import {
+  buyerInvestorLinks,
+  investors,
+  messageThreads,
+  messages,
+  notifications,
+  users,
+  viewingRequests,
+} from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -106,6 +114,28 @@ export async function POST(request: Request) {
           .set({ referralId: null, updatedAt: now })
           .where(and(eq(users.id, buyerId), eq(users.referralId, investor.referralUrl)))
       }
+
+      await tx.insert(notifications).values({
+        type: "link_invitation",
+        userId: buyerId,
+        investorId,
+        buyerInvestorLinkId: link.id,
+        title: "Realtor connection ended",
+        body: endNote
+          ? `Your realtor connection was ended. Reason: ${endNote}`
+          : "Your realtor connection was ended.",
+        metadata: {
+          status: "ended",
+          endedAt: now.toISOString(),
+          endedBy: "realtor",
+          endReason: END_REASON,
+          endNote: endNote ?? undefined,
+        },
+      })
+
+      await tx
+        .delete(viewingRequests)
+        .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
 
       const pairThreadRows = await tx
         .select({ id: messageThreads.id })

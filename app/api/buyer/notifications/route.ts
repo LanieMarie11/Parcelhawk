@@ -20,7 +20,7 @@ type SessionUser = {
 };
 
 export type BuyerNotificationAction =
-  | { type: "single"; label: string; href: string }
+  | { type: "single"; label: string; href?: string }
   | {
       type: "dual";
       primary: { label: string; href?: string };
@@ -106,6 +106,29 @@ function mapNotificationRow(row: {
       : undefined;
 
   if (row.type === "link_invitation") {
+    const isEnded = row.metadata?.status === "ended";
+
+    if (isEnded) {
+      return {
+        id: row.id,
+        title: row.title ?? "Realtor connection ended",
+        timestamp: formatRelativeTime(row.createdAt),
+        readAt: row.readAt ? row.readAt.toISOString() : undefined,
+        category: "Invitation",
+        description:
+          row.body ??
+          (investorName
+            ? `Your connection with ${investorName} has ended.`
+            : "Your realtor connection has ended."),
+        unread: row.readAt == null,
+        avatar,
+        actions: {
+          type: "single",
+          label: "View details",
+        },
+      };
+    }
+
     return {
       id: row.id,
       title: row.title ?? "New Realtor Connection Request",
@@ -221,7 +244,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Notification id is required" }, { status: 400 });
   }
 
-  if (action !== "connect" && action !== "ignore") {
+  if (action !== "connect" && action !== "ignore" && action !== "read") {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   }
 
@@ -372,10 +395,16 @@ export async function POST(request: Request) {
 
       updated = result.updated;
       connectedEmailPayload = result.emailPayload;
-    } else {
+    } else if (action === "ignore") {
       [updated] = await db
         .update(notifications)
         .set({ dismissedAt: now, readAt: now, updatedAt: now })
+        .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
+        .returning({ id: notifications.id });
+    } else {
+      [updated] = await db
+        .update(notifications)
+        .set({ readAt: now, updatedAt: now })
         .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
         .returning({ id: notifications.id });
     }
