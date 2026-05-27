@@ -1,7 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { useSession } from "next-auth/react"
 import { ChevronDown } from "lucide-react"
+import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   NotificationCard,
   type NotificationItem,
@@ -9,66 +11,51 @@ import {
 
 const SORT_OPTIONS = ["Unread", "Newest", "Oldest", "All"] as const
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    title: "New Match in Colorado",
-    timestamp: "2h ago",
-    category: "Parcel match",
-    description:
-      "A 40-acre parcel matches your \"Mountain View\" saved search criteria in Montrose County.",
-    unread: true,
-    actions: { type: "single", label: "View Parcel", href: "/land-property" },
-  },
-  {
-    id: "2",
-    title: "New Listing: 24B Pinecrest",
-    timestamp: "5 min ago",
-    category: "New listing",
-    description:
-      "Just listed: 24B Pinecrest, TX with an asking price of $120K and road frontage.",
-    unread: true,
-    actions: { type: "single", label: "View Details", href: "/land-property" },
-  },
-  {
-    id: "3",
-    title: "New Realtor Connection Request",
-    timestamp: "30m ago",
-    category: "Invitation",
-    description: "Jamie Alvarez wants to connect with you as your dedicated land specialist.",
-    unread: true,
-    avatar: { initials: "JA", bgColor: "#FDE68A" },
-    actions: {
-      type: "dual",
-      primary: { label: "Connect" },
-      secondary: { label: "Ignore" },
-    },
-  },
-  {
-    id: "4",
-    title: "Message from Realtor",
-    timestamp: "12 min ago",
-    category: "New message",
-    description:
-      "Sarah Jenkins: \"Hi Felix, I just got word on a new unlisted parcel that fits your criteria.\"",
-    unread: true,
-    actions: { type: "single", label: "Reply", href: "/message" },
-  },
-  {
-    id: "5",
-    title: "Price Drop: 38AC Montrose",
-    timestamp: "12 min ago",
-    category: "Price drop",
-    description:
-      "The listing price for 38AC Montrose, CO just dropped by $5,000 to $185,000.",
-    unread: true,
-    actions: { type: "single", label: "Review Deal", href: "/land-property" },
-  },
-]
+type NotificationsResponse = {
+  notifications?: NotificationItem[]
+}
+
+async function postNotificationAction(id: string, action: "connect" | "ignore") {
+  await fetch("/api/buyer/notifications", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, action }),
+  })
+}
 
 export default function BuyerNotificationsPage() {
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS)
-  const [sortBy, setSortBy] = useState<(typeof SORT_OPTIONS)[number]>("Unread")
+  const { status } = useSession()
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<(typeof SORT_OPTIONS)[number]>("All")
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setLoading(true)
+
+    fetch("/api/buyer/notifications", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) return null
+        return (await res.json()) as NotificationsResponse
+      })
+      .then((data) => {
+        if (!cancelled && Array.isArray(data?.notifications)) {
+          setNotifications(data.notifications)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [status])
 
   const visibleNotifications = useMemo(() => {
     let items = [...notifications]
@@ -90,8 +77,24 @@ export default function BuyerNotificationsPage() {
     )
   }
 
+  const connectNotificationAction = (id: string) => {
+    const target = notifications.find((item) => item.id === id)
+    if (target?.actions.type === "dual" && target.actions.primary.label === "Connect") {
+      void postNotificationAction(id, "connect")
+    }
+    markRead(id)
+  }
+
   const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((item) => item.id !== id))
+    const target = notifications.find((item) => item.id === id)
+    if (target?.actions.type === "dual") {
+      void postNotificationAction(id, "ignore")
+    }
+    markRead(id)
+  }
+
+  if (loading) {
+    return <PageLoadingIndicator />
   }
 
   return (
@@ -99,12 +102,11 @@ export default function BuyerNotificationsPage() {
       <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-phudu font-medium tracking-tight text-[#111827]">
+            <h1 className="text-3xl font-ibm-plex-sans font-semibold tracking-tight text-[#111827]">
               Notifications
             </h1>
-            <p className="mt-1 max-w-2xl text-base text-[#6B7280]">
-              Stay updated on matching parcels, saved searches, messages, and account
-              activity.
+            <p className="mt-1 max-w-2xl text-base font-ibm-plex-sans text-[#6B7280]">
+              Stay updated on matching parcels, saved searches, messages, and account activity.
             </p>
           </div>
 
@@ -149,7 +151,7 @@ export default function BuyerNotificationsPage() {
                 key={notification.id}
                 notification={notification}
                 onMarkRead={markRead}
-                onConnect={markRead}
+                onConnect={connectNotificationAction}
                 onIgnore={removeNotification}
               />
             ))

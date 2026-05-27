@@ -6,11 +6,13 @@ export type NotificationCategory =
   | "Invitation"
   | "New message"
   | "Price drop"
+  | "Viewing request"
 
 export type NotificationItem = {
   id: string
   title: string
   timestamp: string
+  readAt?: string
   category: NotificationCategory
   description: string
   unread: boolean
@@ -67,7 +69,18 @@ export function NotificationCard({
   onIgnore,
   onConnect,
 }: NotificationCardProps) {
-  const { unread, title, timestamp, category, description, avatar, actions } = notification
+  const { unread, title, timestamp, category, description, avatar, actions, readAt } = notification
+
+  const readAtLabel =
+    !unread && readAt
+      ? new Date(readAt).toLocaleString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : null
 
   const handleAction = () => {
     if (unread) onMarkRead?.(notification.id)
@@ -75,22 +88,16 @@ export function NotificationCard({
 
   return (
     <article
-      className={`relative overflow-hidden rounded-xl border bg-white pl-5 pr-4 py-4 shadow-sm transition-colors ${
-        unread ? "border-[#BFDBFE]/60" : "border-zinc-200"
+      className={`relative overflow-hidden rounded-xl border border-zinc-200 bg-white pl-5 pr-4 py-4 shadow-sm transition-colors ${
+        unread ? "!border-l-4 !border-l-[#B0E3F899]" : ""
       }`}
     >
-      {unread ? (
-        <span
-          className="absolute left-0 top-0 h-full w-1 bg-[#3B82F6]"
-          aria-hidden
-        />
-      ) : null}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 gap-3">
           {unread ? (
             <span
-              className="mt-2 size-2 shrink-0 rounded-full bg-[#3B82F6]"
+              className="mt-2 size-2 shrink-0 rounded-full bg-[#00A6E8]"
               aria-hidden
             />
           ) : (
@@ -101,7 +108,7 @@ export function NotificationCard({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <h2 className="text-base font-semibold text-[#111827]">{title}</h2>
               <span className="text-sm text-[#6B7280]">{timestamp}</span>
-              <span className="inline-flex items-center rounded-full border border-[#BFDBFE] bg-[#E0F2FE] px-2.5 py-0.5 text-xs font-medium text-[#0369A1]">
+              <span className="inline-flex items-center rounded-full border border-[#00A6E8] bg-[#E6F6FD] px-2.5 py-0.5 text-xs font-medium text-[#00A6E8]">
                 {category}
               </span>
               {avatar ? (
@@ -127,7 +134,7 @@ export function NotificationCard({
               href={actions.href}
               onClick={handleAction}
             />
-          ) : (
+          ) : unread ? (
             <>
               <button
                 type="button"
@@ -150,7 +157,11 @@ export function NotificationCard({
                 {actions.secondary.label}
               </button>
             </>
-          )}
+          ) : category === "Invitation" ? (
+            <span className="text-xs text-[#6B7280]">
+              {readAtLabel ? `Read on ${readAtLabel}` : "Read"}
+            </span>
+          ) : null}
         </div>
       </div>
     </article>
