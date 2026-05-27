@@ -23,6 +23,10 @@ export type NotificationMetadata = {
   status?: string;
   listingTitle?: string;
   investorName?: string;
+  endedAt?: string;
+  endedBy?: "realtor" | "buyer" | "system";
+  endReason?: string;
+  endNote?: string;
 };
 
 /**

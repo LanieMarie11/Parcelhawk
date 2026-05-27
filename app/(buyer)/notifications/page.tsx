@@ -15,7 +15,7 @@ type NotificationsResponse = {
   notifications?: NotificationItem[]
 }
 
-async function postNotificationAction(id: string, action: "connect" | "ignore") {
+async function postNotificationAction(id: string, action: "connect" | "ignore" | "read") {
   await fetch("/api/buyer/notifications", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -71,14 +71,20 @@ export default function BuyerNotificationsPage() {
     return items
   }, [notifications, sortBy])
 
+  const findNotification = (id: string) => notifications.find((item) => item.id === id)
+
   const markRead = (id: string) => {
+    const target = findNotification(id)
+    if (target?.actions.type === "single" && !target.actions.href) {
+      void postNotificationAction(id, "read")
+    }
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, unread: false } : item)),
     )
   }
 
   const connectNotificationAction = (id: string) => {
-    const target = notifications.find((item) => item.id === id)
+    const target = findNotification(id)
     if (target?.actions.type === "dual" && target.actions.primary.label === "Connect") {
       void postNotificationAction(id, "connect")
     }
@@ -86,7 +92,7 @@ export default function BuyerNotificationsPage() {
   }
 
   const removeNotification = (id: string) => {
-    const target = notifications.find((item) => item.id === id)
+    const target = findNotification(id)
     if (target?.actions.type === "dual") {
       void postNotificationAction(id, "ignore")
     }
