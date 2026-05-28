@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 
 type RealtorMessagesUnreadContextValue = {
   unreadCount: number;
+  notificationUnreadCount: number;
   refreshUnreadCount: () => Promise<void>;
 };
 
@@ -17,6 +18,7 @@ export function RealtorMessagesUnreadProvider({ children }: { children: React.Re
   const pathname = usePathname();
   const { status } = useSession();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const isSignedIn = status === "authenticated";
   const isRealtorMode =
     pathname === "/realtor-portal" || pathname.startsWith("/realtor-portal/");
@@ -29,23 +31,33 @@ export function RealtorMessagesUnreadProvider({ children }: { children: React.Re
       });
       if (!response.ok) return;
 
-      const data = (await response.json()) as { unreadCount?: number };
+      const data = (await response.json()) as {
+        unreadCount?: number;
+        notificationUnreadCount?: number;
+      };
       setUnreadCount(Number.isFinite(data.unreadCount) ? (data.unreadCount ?? 0) : 0);
+      setNotificationUnreadCount(
+        Number.isFinite(data.notificationUnreadCount) ? (data.notificationUnreadCount ?? 0) : 0,
+      );
     } catch {
       setUnreadCount(0);
+      setNotificationUnreadCount(0);
     }
   }, []);
 
   useEffect(() => {
     if (!isRealtorMode || !isSignedIn) {
       setUnreadCount(0);
+      setNotificationUnreadCount(0);
       return;
     }
     void refreshUnreadCount();
   }, [isRealtorMode, isSignedIn, pathname, refreshUnreadCount]);
 
   return (
-    <RealtorMessagesUnreadContext.Provider value={{ unreadCount, refreshUnreadCount }}>
+    <RealtorMessagesUnreadContext.Provider
+      value={{ unreadCount, notificationUnreadCount, refreshUnreadCount }}
+    >
       {children}
     </RealtorMessagesUnreadContext.Provider>
   );
@@ -56,6 +68,7 @@ export function useRealtorMessagesUnread(): RealtorMessagesUnreadContextValue {
   if (!ctx) {
     return {
       unreadCount: 0,
+      notificationUnreadCount: 0,
       refreshUnreadCount: async () => {},
     };
   }

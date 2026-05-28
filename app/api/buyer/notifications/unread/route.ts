@@ -49,6 +49,7 @@ export async function GET() {
             eq(notifications.userId, buyerUserId),
             isNull(notifications.readAt),
             isNull(notifications.dismissedAt),
+            sql`${notifications.metadata} ->> 'sender' = 'realtor'`,
           ),
         ),
     ]);

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { buyerInvestorLinks, investors, messageThreads, messages, users } from "@/db/schema"
+import { buyerInvestorLinks, investors, messageThreads, messages, notifications, users } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { sendBuyerEndedRealtorConnectionNotification } from "@/lib/email/send-buyer-ended-realtor-connection-notification"
 
@@ -150,6 +150,26 @@ export async function POST(request: Request) {
         .update(users)
         .set({ referralId: null, updatedAt: now })
         .where(eq(users.id, buyerId))
+
+      await tx.insert(notifications).values({
+        type: "link_invitation",
+        userId: buyerId,
+        investorId: link.investorId,
+        buyerInvestorLinkId: link.id,
+        title: "Realtor connection ended",
+        body: endNote
+          ? `You ended your realtor connection. Reason: ${endNote}`
+          : "You ended your realtor connection.",
+        metadata: {
+          type: "link-invitation",
+          sender: "buyer",
+          status: "ended",
+          endedAt: now.toISOString(),
+          endedBy: "buyer",
+          endReason: reasonRaw,
+          endNote: endNote ?? undefined,
+        },
+      })
 
       const pairThreadRows = await tx
         .select({ id: messageThreads.id })

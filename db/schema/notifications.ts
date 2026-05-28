@@ -19,10 +19,20 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "link_invitation",
 ]);
 
+export const notificationSenderValues = ["buyer", "realtor"] as const;
+export type NotificationSender = (typeof notificationSenderValues)[number];
+
 export type NotificationMetadata = {
+  /** Deep-link target for notification actions (e.g. buyer land-property). */
+  type?: "viewing-requests" | "link-invitation";
+  /** Who triggered or owns the notification event. */
+  sender?: NotificationSender;
   status?: string;
+  listingId?: number;
   listingTitle?: string;
   investorName?: string;
+  buyerName?: string;
+  realtorReadAt?: string;
   endedAt?: string;
   endedBy?: "realtor" | "buyer" | "system";
   endReason?: string;

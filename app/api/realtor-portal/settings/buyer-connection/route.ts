@@ -125,6 +125,8 @@ export async function POST(request: Request) {
           ? `Your realtor connection was ended. Reason: ${endNote}`
           : "Your realtor connection was ended.",
         metadata: {
+          type: "link-invitation",
+          sender: "realtor",
           status: "ended",
           endedAt: now.toISOString(),
           endedBy: "realtor",

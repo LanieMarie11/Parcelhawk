@@ -12,6 +12,7 @@ export {
   notificationTypeEnum,
   notifications,
   type NotificationMetadata,
+  type NotificationSender,
 } from "./notifications";
 export { investors, users } from "./users";
 export { viewingRequestStatusEnum, viewingRequests } from "./viewing-requests";

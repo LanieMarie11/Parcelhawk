@@ -36,6 +36,10 @@ type NotificationCardProps = {
   onConnect?: (id: string) => void
 }
 
+function isExternalHref(href: string): boolean {
+  return /^https?:\/\//i.test(href)
+}
+
 function OutlineActionButton({
   label,
   href,
@@ -49,6 +53,20 @@ function OutlineActionButton({
     "inline-flex shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
 
   if (href) {
+    if (isExternalHref(href)) {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={className}
+          onClick={onClick}
+        >
+          {label}
+        </a>
+      )
+    }
+
     return (
       <Link href={href} className={className} onClick={onClick}>
         {label}
@@ -92,20 +110,20 @@ export function NotificationCard({
         unread ? "!border-l-4 !border-l-[#B0E3F899]" : ""
       }`}
     >
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 flex-1 gap-3">
-          {unread ? (
-            <span
-              className="mt-2 size-2 shrink-0 rounded-full bg-[#00A6E8]"
-              aria-hidden
-            />
-          ) : (
-            <span className="mt-2 size-2 shrink-0" aria-hidden />
-          )}
+          
 
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {unread ? (
+                <span
+                  className="size-2 shrink-0 rounded-full bg-[#00A6E8]"
+                  aria-hidden
+                />
+              ) : (
+                <span className="size-2 shrink-0" aria-hidden />
+              )}
               <h2 className="text-base font-semibold text-[#111827]">{title}</h2>
               <span className="text-sm text-[#6B7280]">{timestamp}</span>
               <span className="inline-flex items-center rounded-full border border-[#00A6E8] bg-[#E6F6FD] px-2.5 py-0.5 text-xs font-medium text-[#00A6E8]">

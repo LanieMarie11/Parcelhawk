@@ -7,7 +7,7 @@ import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   NotificationCard,
   type NotificationItem,
-} from "../../components/notification-card"
+} from "../../../components/notification-card"
 
 const SORT_OPTIONS = ["Unread", "Newest", "Oldest", "All"] as const
 
@@ -16,14 +16,14 @@ type NotificationsResponse = {
 }
 
 async function postNotificationAction(id: string, action: "connect" | "ignore" | "read") {
-  await fetch("/api/buyer/notifications", {
+  await fetch("/api/realtor-portal/notifications", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, action }),
   })
 }
 
-export default function BuyerNotificationsPage() {
+export default function RealtorNotificationsPage() {
   const { status } = useSession()
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,7 +38,7 @@ export default function BuyerNotificationsPage() {
     let cancelled = false
     setLoading(true)
 
-    fetch("/api/buyer/notifications", { cache: "no-store" })
+    fetch("/api/realtor-portal/notifications", { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) return null
         return (await res.json()) as NotificationsResponse
@@ -75,7 +75,7 @@ export default function BuyerNotificationsPage() {
 
   const markRead = (id: string) => {
     const target = findNotification(id)
-    if (target?.actions.type === "single" && !target.actions.href) {
+    if (target?.actions.type === "single") {
       void postNotificationAction(id, "read")
     }
     setNotifications((prev) =>
@@ -112,7 +112,7 @@ export default function BuyerNotificationsPage() {
               Notifications
             </h1>
             <p className="mt-1 max-w-2xl text-base font-ibm-plex-sans text-[#6B7280]">
-              Stay updated on matching parcels, saved searches, messages, and account activity.
+              Stay updated on buyer connections, viewing requests, messages, and account activity.
             </p>
           </div>
 
