@@ -37,7 +37,8 @@ const investorNavItems: readonly NavItem[] = [
 export function InvestorHeader() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const { unreadCount: unreadMessages } = useRealtorMessagesUnread();
+  const { unreadCount: unreadMessages, notificationUnreadCount: unreadNotifications } =
+    useRealtorMessagesUnread();
   const isSignedIn = status === "authenticated" && !!session;
   const isRealtorMode =
     pathname === "/realtor-portal" || pathname.startsWith("/realtor-portal/");
@@ -125,14 +126,24 @@ export function InvestorHeader() {
         <div className="flex items-center justify-end gap-2">
           <PortalModeToggle />
 
-          <button
-            type="button"
-            className="relative rounded-lg p-2 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Notifications"
-          >
-            <Bell className="size-5" />
-            <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500 ring-2 ring-[#0B1D31]" />
-          </button>
+          {isRealtorMode ? (
+            <Link
+              href="/realtor-portal/notifications"
+              className="relative rounded-lg p-2 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+              aria-label={
+                unreadNotifications > 0
+                  ? `Notifications (${unreadNotifications} unread)`
+                  : "Notifications"
+              }
+            >
+              <Bell className="size-5" />
+              {unreadNotifications > 0 ? (
+                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-[#0B1D31]">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              ) : null}
+            </Link>
+          ) : null}
 
           {status === "loading" ? (
             <div className="min-w-[140px] rounded-lg border border-white/40 px-4 py-2" aria-hidden>

@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-connected-notification";
+import type { NotificationMetadata } from "@/db/schema/notifications";
 
 type SessionUser = {
   id?: string;
@@ -73,11 +74,28 @@ function avatarColor(seed: string): string {
   return AVATAR_COLORS[hash] ?? AVATAR_COLORS[0];
 }
 
+function viewingRequestDetailsHref(
+  listingUrl: string | null,
+  listingId: number | null,
+): string {
+  const url = listingUrl?.trim();
+  if (url) return url;
+  if (listingId != null) return `/property?id=${listingId}`;
+  return "/land-property";
+}
+
 function investorInitials(firstName: string | null, lastName: string | null): string {
   const first = firstName?.trim()?.[0] ?? "";
   const last = lastName?.trim()?.[0] ?? "";
   const initials = `${first}${last}`.toUpperCase();
   return initials || "?";
+}
+
+function isBuyerUnread(metadata: NotificationMetadata | null, readAt: Date | null): boolean {
+  if (metadata?.sender === "buyer") {
+    return false;
+  }
+  return readAt == null;
 }
 
 function mapNotificationRow(row: {
@@ -87,10 +105,12 @@ function mapNotificationRow(row: {
   body: string | null;
   readAt: Date | null;
   createdAt: Date;
-  metadata: { status?: string; listingTitle?: string; investorName?: string } | null;
+  metadata: NotificationMetadata | null;
   investorFirstName: string | null;
   investorLastName: string | null;
   investorId: string | null;
+  listingId: number | null;
+  listingUrl: string | null;
   listingTitle: string | null;
   viewingStatus: string | null;
 }): BuyerNotificationItem {
@@ -120,7 +140,7 @@ function mapNotificationRow(row: {
           (investorName
             ? `Your connection with ${investorName} has ended.`
             : "Your realtor connection has ended."),
-        unread: row.readAt == null,
+        unread: isBuyerUnread(row.metadata, row.readAt),
         avatar,
         actions: {
           type: "single",
@@ -140,7 +160,7 @@ function mapNotificationRow(row: {
         (investorName
           ? `${investorName} wants to connect with you as your dedicated land specialist.`
           : "A realtor wants to connect with you on ParcelHawk."),
-      unread: row.readAt == null,
+      unread: isBuyerUnread(row.metadata, row.readAt),
       avatar,
       actions: {
         type: "dual",
@@ -164,11 +184,11 @@ function mapNotificationRow(row: {
       (status
         ? `Your viewing request for ${listingLabel} is now ${status}.`
         : `There is an update on your viewing request for ${listingLabel}.`),
-    unread: row.readAt == null,
+    unread: isBuyerUnread(row.metadata, row.readAt),
     actions: {
       type: "single",
       label: "View Details",
-      href: "/land-property",
+      href: viewingRequestDetailsHref(row.listingUrl, row.listingId),
     },
   };
 }
@@ -196,10 +216,12 @@ export async function GET() {
         readAt: notifications.readAt,
         createdAt: notifications.createdAt,
         metadata: notifications.metadata,
+        listingId: notifications.listingId,
         investorId: notifications.investorId,
         investorFirstName: investors.firstName,
         investorLastName: investors.lastName,
         listingTitle: landListings.title,
+        listingUrl: landListings.url,
         viewingStatus: viewingRequests.status,
       })
       .from(notifications)
@@ -250,6 +272,23 @@ export async function POST(request: Request) {
 
   try {
     const now = new Date();
+    const [targetNotification] = await db
+      .select({
+        id: notifications.id,
+        metadata: notifications.metadata,
+      })
+      .from(notifications)
+      .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
+      .limit(1);
+
+    if (!targetNotification) {
+      return NextResponse.json({ error: "Notification not found" }, { status: 404 });
+    }
+
+    if (targetNotification.metadata?.sender === "buyer") {
+      return NextResponse.json({ ok: true, skipped: true });
+    }
+
     let updated: { id: string } | undefined;
     let connectedEmailPayload:
       | {

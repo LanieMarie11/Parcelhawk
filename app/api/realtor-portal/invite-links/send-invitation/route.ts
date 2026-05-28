@@ -101,7 +101,12 @@ export async function POST(request: Request) {
         investorId,
         title: "Realtor invitation",
         body: `${realtorName} invited you to link your account on ParcelHawk.`,
-        metadata: { investorName: realtorName, status: "pending" },
+        metadata: {
+          type: "link-invitation",
+          sender: "realtor",
+          investorName: realtorName,
+          status: "pending",
+        },
       })
       .returning({ id: notifications.id })
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm"
 import { db } from "@/db"
-import { messages, messageThreads, viewingRequests } from "@/db/schema"
+import { messages, messageThreads, notifications, type NotificationMetadata, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -63,10 +63,21 @@ export async function GET() {
         ),
       )
 
+    const notificationRows = await db
+      .select({ metadata: notifications.metadata })
+      .from(notifications)
+      .where(and(eq(notifications.investorId, investorId), isNull(notifications.dismissedAt)))
+
+    const notificationUnreadCount = notificationRows.reduce((count, row) => {
+      const metadata = row.metadata as NotificationMetadata | null
+      if (metadata?.sender === "realtor") return count
+      return metadata?.realtorReadAt == null ? count + 1 : count
+    }, 0)
+
     const unreadCount =
       Number(messageResult?.unreadCount ?? 0) + Number(viewingRequestResult?.unreadCount ?? 0)
 
-    return NextResponse.json({ unreadCount })
+    return NextResponse.json({ unreadCount, notificationUnreadCount })
   } catch (error) {
     console.error("Unread message count fetch error:", error)
     return NextResponse.json({ error: "Failed to fetch unread message count" }, { status: 500 })

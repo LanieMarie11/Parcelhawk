@@ -7,6 +7,7 @@ import {
   favorites,
   investors,
   landListings,
+  notifications,
   users,
   viewingRequests,
 } from "@/db/schema"
@@ -130,6 +131,26 @@ export async function POST(request: Request) {
     if (!inserted) {
       return NextResponse.json({ error: "Failed to create viewing request" }, { status: 500 })
     }
+
+    const listingTitle = listingRow.title?.trim() || null
+    await db.insert(notifications).values({
+      type: "viewing_request",
+      userId: buyerId,
+      investorId: linkRow.investorId,
+      listingId,
+      viewingRequestId: inserted.id,
+      title: "Viewing request submitted",
+      body: listingTitle
+        ? `Your viewing request for ${listingTitle} has been sent to your realtor.`
+        : "Your viewing request has been sent to your realtor.",
+      metadata: {
+        type: "viewing-requests",
+        sender: "buyer",
+        status: "pending",
+        listingId,
+        listingTitle: listingTitle ?? undefined,
+      },
+    })
 
     const locationParts = [
       listingRow.address1,
