@@ -8,6 +8,8 @@ declare module "next-auth" {
     lastName?: string;
     phone?: string | null;
     location?: string | null;
+    about?: string | null;
+    bio?: string | null;
     avatarUrl?: string | null;
     referralUrl?: string | null;
   }
@@ -20,6 +22,8 @@ declare module "next-auth" {
       lastName?: string;
       phone?: string | null;
       location?: string | null;
+      about?: string | null;
+      bio?: string | null;
       avatarUrl?: string | null;
       referralUrl?: string | null;
     };
@@ -34,6 +38,8 @@ declare module "next-auth/jwt" {
     lastName?: string;
     phone?: string | null;
     location?: string | null;
+    about?: string | null;
+    bio?: string | null;
     avatarUrl?: string | null;
     referralUrl?: string | null;
   }

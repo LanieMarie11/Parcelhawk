@@ -16,6 +16,7 @@ export type BuyerRow = {
   preferenceAcreage: string;
   preferenceBudget: string;
   preferenceTimeframe: string;
+  about: string;
   action: "Call Now" | "Push";
 };
 

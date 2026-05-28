@@ -17,13 +17,15 @@ export default function PersonalInfo() {
 
   const [phone, setPhone] = useState("")
   const [location, setLocation] = useState("")
+  const [bio, setBio] = useState("")
 
   useEffect(() => {
     if (session?.user?.name) setFullName(session.user.name)
     if (session?.user?.email) setEmail(session.user.email ?? "")
     if (session?.user?.phone != null) setPhone(session.user.phone ?? "")
     if (session?.user?.location != null) setLocation(session.user.location ?? "")
-  }, [session?.user?.name, session?.user?.email, session?.user?.phone, session?.user?.location])
+    if (session?.user?.bio != null) setBio(session.user.bio ?? "")
+  }, [session?.user?.name, session?.user?.email, session?.user?.phone, session?.user?.location, session?.user?.bio])
 
   const handleSaveChanges = async () => {
     try {
@@ -33,6 +35,7 @@ export default function PersonalInfo() {
       formData.append("email", email)
       formData.append("phone", phone)
       formData.append("location", location)
+      formData.append("bio", bio)
       if (pendingAvatarFile) {
         formData.append("avatar", pendingAvatarFile)
       }
@@ -51,6 +54,7 @@ export default function PersonalInfo() {
           name: fullName,
           phone,
           location,
+          bio,
           avatarUrl: data.avatarUrl ?? session?.user?.avatarUrl ?? null,
         })
         if (avatarPreviewSrc) {
@@ -222,6 +226,20 @@ export default function PersonalInfo() {
             onChange={(e) => setLocation(e.target.value)}
             placeholder="Enter your location"
             className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+          />
+        </div>
+
+        {/* Bio */}
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <label htmlFor="bio" className="text-sm text-muted-foreground">
+            Bio
+          </label>
+          <textarea
+            id="bio"
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            placeholder="Tell others a bit about yourself"            rows={4}
+            className="resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           />
         </div>
       </div>

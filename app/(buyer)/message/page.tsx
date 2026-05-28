@@ -18,6 +18,7 @@ type Thread = {
   email: string;
   phone: string;
   location: string;
+  bio: string;
 };
 
 type ConversationItem =
@@ -39,6 +40,7 @@ type BuyerThreadsApiResponse = {
     email: string;
     phone: string;
     location: string;
+    bio: string;
     lastActive: string;
     lastMessagePreview: string;
     unreadCount: number;
@@ -115,6 +117,7 @@ export default function BuyerMessagePage() {
           email: thread.email,
           phone: thread.phone,
           location: thread.location,
+          bio: thread.bio,
           lastActive: thread.lastActive,
         }));
 
@@ -372,6 +375,7 @@ export default function BuyerMessagePage() {
                 email={selectedThread?.email ?? ""}
                 phone={selectedThread?.phone ?? ""}
                 location={selectedThread?.location ?? ""}
+                bio={selectedThread?.bio}
               />
             </div>
           ) : null}

@@ -108,6 +108,7 @@ export async function GET() {
         preferenceAcreage: users.preferenceAcreage,
         preferenceBudget: users.preferenceBudget,
         preferenceTimeframe: users.preferenceTimeframe,
+        about: users.about,
       })
       .from(users)
       .where(and(eq(users.role, "buyer"), eq(users.referralId, investor.referralUrl)))
@@ -145,6 +146,7 @@ export async function GET() {
         preferenceAcreage: buyer.preferenceAcreage ?? "",
         preferenceBudget: buyer.preferenceBudget ?? "",
         preferenceTimeframe: buyer.preferenceTimeframe ?? "",
+        about: buyer.about ?? "",
         action: index % 2 === 0 ? "Call Now" : "Push",
       }
     })

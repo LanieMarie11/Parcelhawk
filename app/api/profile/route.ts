@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     email?: string
     phone?: string
     location?: string
+    about?: string
     preferenceBudget?: string
     preferenceAcreage?: string
     preferencePurpose?: string
@@ -62,6 +63,7 @@ export async function POST(request: Request) {
         email: String(formData.get("email") ?? ""),
         phone: String(formData.get("phone") ?? ""),
         location: String(formData.get("location") ?? ""),
+        about: String(formData.get("about") ?? ""),
         preferenceBudget: String(formData.get("preferenceBudget") ?? ""),
         preferenceAcreage: String(formData.get("preferenceAcreage") ?? ""),
         preferencePurpose: String(formData.get("preferencePurpose") ?? ""),
@@ -83,6 +85,7 @@ export async function POST(request: Request) {
     lastName?: string
     phone?: string | null
     location?: string | null
+    about?: string | null
     preferenceBudget?: string | null
     preferenceAcreage?: string | null
     preferencePurpose?: string | null
@@ -96,6 +99,7 @@ export async function POST(request: Request) {
   }
   if (body.phone !== undefined) updates.phone = body.phone === "" ? null : body.phone
   if (body.location !== undefined) updates.location = body.location === "" ? null : body.location
+  if (body.about !== undefined) updates.about = body.about === "" ? null : body.about
   if (body.preferenceBudget !== undefined) {
     updates.preferenceBudget = body.preferenceBudget === "" ? null : body.preferenceBudget
   }
@@ -197,6 +201,7 @@ export async function GET() {
         email: users.email,
         phone: users.phone,
         location: users.location,
+        about: users.about,
         preferenceBudget: users.preferenceBudget,
         preferenceAcreage: users.preferenceAcreage,
         preferencePurpose: users.preferencePurpose,
@@ -221,6 +226,7 @@ export async function GET() {
       email: user.email,
       phone: user.phone ?? "",
       location: user.location ?? "",
+      about: user.about ?? "",
       preferenceBudget: user.preferenceBudget ?? "",
       preferenceAcreage: user.preferenceAcreage ?? "",
       preferencePurpose: user.preferencePurpose ?? "",
