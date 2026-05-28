@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Check, Copy, Mail, MessageCircle, Plus, UserCheck, UserPlus } from "lucide-react";
+import { ArrowUp, Check, Copy, Mail, MessageCircle, Plus, Send, UserCheck, UserPlus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -45,6 +45,8 @@ export function InviteLinksDashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [draftReferralId, setDraftReferralId] = useState("");
   const [isSavingReferralId, setIsSavingReferralId] = useState(false);
+  const [buyerEmail, setBuyerEmail] = useState("");
+  const [isSendingInvitation, setIsSendingInvitation] = useState(false);
   const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -132,6 +134,39 @@ export function InviteLinksDashboard() {
     if (!inviteUrl) return;
     const text = encodeURIComponent(`Join my buyer pool on ParcelHawk: ${inviteUrl}`);
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
+  };
+
+  const handleSendInvitation = async () => {
+    const email = buyerEmail.trim();
+    if (!email) {
+      toast.error("Enter buyer email address");
+      return;
+    }
+
+    try {
+      setIsSendingInvitation(true);
+      const response = await fetch("/api/realtor-portal/invite-links/send-invitation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok || !data.ok) {
+        toast.error(data.error ?? "Failed to send invitation");
+        return;
+      }
+      
+      setBuyerEmail("");
+      toast.success("Invitation sent successfully");
+    } catch {
+      toast.error("Connection failed. Please try again.");
+    } finally {
+      setIsSendingInvitation(false);
+    }
   };
 
   const openCreateModal = () => {
@@ -304,6 +339,44 @@ export function InviteLinksDashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <div className="border-b border-zinc-100 px-4 py-3 lg:px-5">
+            <h2 className="text-base font-medium font-phudu uppercase tracking-tight text-[#16212f]">
+              Invite Buyer By Email
+            </h2>
+          </div>
+
+          <div className="px-4 py-4 lg:px-5 lg:py-5">
+            <label htmlFor="buyer-invitation-email" className="text-sm font-medium text-zinc-700">
+              Link-to-Me Invitation
+            </label>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                id="buyer-invitation-email"
+                type="email"
+                value={buyerEmail}
+                onChange={(event) => setBuyerEmail(event.target.value)}
+                placeholder="Enter buyer email address"
+                disabled={isSendingInvitation}
+                className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-700 outline-none transition-colors placeholder:text-zinc-400 focus:border-brand-green focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:opacity-60"
+              />
+              <button
+                type="button"
+                onClick={() => void handleSendInvitation()}
+                disabled={isSendingInvitation}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-green px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" aria-hidden />
+                {isSendingInvitation ? "Sending..." : "Send Invitation"}
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-zinc-500">
+              The buyer will receive an in-platform invitation to link their account with you.(This sends
+              a private invitation for the buyer to connect with you inside ParcelHawk.)
+            </p>
           </div>
         </section>
       </div>

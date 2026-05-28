@@ -129,10 +129,6 @@ function mapNotificationRow(row: {
   const readAtIso = realtorReadAt ? new Date(realtorReadAt).toISOString() : undefined
 
   if (row.type === "link_invitation") {
-    if (row.metadata?.status === "ended") {
-      return null
-    }
-
     const isPending = row.metadata?.status === "pending" || row.metadata?.status == null
 
     if (isPending) {
