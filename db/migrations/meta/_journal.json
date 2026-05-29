@@ -134,6 +134,13 @@
       "when": 1779739417039,
       "tag": "0018_fresh_killmonger",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1779992226555,
+      "tag": "0019_fancy_hydra",
+      "breakpoints": true
     }
   ]
 }

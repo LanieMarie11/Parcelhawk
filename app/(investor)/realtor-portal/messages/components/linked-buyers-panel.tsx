@@ -17,6 +17,7 @@ export type BuyerThread = {
   preferenceAcreage: string;
   preferencePurpose: string;
   preferenceTimeframe: string;
+  about?: string;
   lastActive?: string;
 };
 

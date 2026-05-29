@@ -33,6 +33,7 @@ type MessageThreadsApiResponse = {
     preferenceAcreage: string;
     preferencePurpose: string;
     preferenceTimeframe: string;
+    about: string;
     lastActive: string;
     lastMessagePreview: string;
     unreadCount: number;
@@ -100,6 +101,7 @@ export default function RealtorMessagesPage() {
           preferenceAcreage: thread.preferenceAcreage,
           preferencePurpose: thread.preferencePurpose,
           preferenceTimeframe: thread.preferenceTimeframe,
+          about: thread.about,
           lastActive: thread.lastActive,
         }));
 
@@ -320,6 +322,7 @@ export default function RealtorMessagesPage() {
                 preferenceAcreage={selectedThread?.preferenceAcreage ?? ""}
                 preferencePurpose={selectedThread?.preferencePurpose ?? ""}
                 preferenceTimeframe={selectedThread?.preferenceTimeframe ?? ""}
+                about={selectedThread?.about}
               />
             </div>
           ) : null}

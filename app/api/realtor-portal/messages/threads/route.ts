@@ -69,6 +69,7 @@ export async function GET() {
         preferenceAcreage: users.preferenceAcreage,
         preferencePurpose: users.preferencePurpose,
         preferenceTimeframe: users.preferenceTimeframe,
+        about: users.about,
         updatedAt: users.updatedAt,
       })
       .from(users)
@@ -197,6 +198,7 @@ export async function GET() {
         preferenceAcreage: buyer.preferenceAcreage ?? "",
         preferencePurpose: buyer.preferencePurpose ?? "",
         preferenceTimeframe: buyer.preferenceTimeframe ?? "",
+        about: buyer.about ?? "",
         lastActive: formatRelativeTime(buyer.updatedAt),
         lastMessagePreview: latest?.body || "Start a conversation with this buyer.",
         lastMessageAt: (latest?.createdAt ?? buyer.updatedAt).toISOString(),

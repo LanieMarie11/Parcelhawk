@@ -58,6 +58,7 @@ export async function GET() {
         email: investors.email,
         phone: investors.phone,
         address: investors.address,
+        bio: investors.bio,
         investorLastActiveAt: investors.lastActiveAt,
       })
       .from(messageThreads)
@@ -152,6 +153,7 @@ export async function GET() {
           email: thread.email ?? "",
           phone: thread.phone ?? "",
           location: thread.address ?? "",
+          bio: thread.bio ?? "",
           lastActive: formatRelativeTime(
             thread.investorLastActiveAt ??
               latest?.createdAt ??

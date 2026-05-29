@@ -1,5 +1,8 @@
-import { Eye, Search, Send, UserRound } from "lucide-react";
+"use client";
+
+import { UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ProfileRichText } from "@/lib/profile-rich-text";
 import type { BuyerRow } from "./buyers-table";
 
 type SelectedBuyerCardProps = {
@@ -68,9 +71,12 @@ export function SelectedBuyerCard({ buyer }: SelectedBuyerCardProps) {
           <span className="text-[#0F172A]">{buyer.preferenceAcreage || "-"}</span>
           <span className="text-zinc-400">Timeframe</span>
           <span className="text-[#0F172A]">{buyer.preferenceTimeframe || "-"}</span>
-          <span className="text-zinc-400">Road access</span>
-          <span className="text-[#0F172A]">-</span>
+          <span className="text-zinc-400">About</span>
         </div>
+        <ProfileRichText
+          content={buyer.about}
+          emptyClassName="text-xs font-normal text-[#0F172A]"
+        />
       </div>
 
 {/* TODO : add recent activity */}

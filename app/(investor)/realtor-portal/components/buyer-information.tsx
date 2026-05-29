@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfileRichText } from "@/lib/profile-rich-text";
 import { UserRound } from "lucide-react";
 
 type BuyerInformationProps = {
@@ -13,6 +14,7 @@ type BuyerInformationProps = {
   preferenceAcreage: string;
   preferencePurpose: string;
   preferenceTimeframe: string;
+  about?: string;
 };
 
 export function BuyerInformation({
@@ -22,6 +24,7 @@ export function BuyerInformation({
   email,
   phone,
   location,
+  about,
   preferenceBudget,
   preferenceAcreage,
   preferencePurpose,
@@ -73,6 +76,10 @@ export function BuyerInformation({
             <div className="grid grid-cols-[120px_1fr] justify-items-start">
               <span className="text-xs text-[#607394]">Location</span>
               <span className="text-xs font-semibold text-[#1f2937]">{location || "-"}</span>
+            </div>
+            <div className="grid grid-cols-[120px_1fr] justify-items-start">
+              <span className="text-xs text-[#607394]">About</span>
+              <ProfileRichText content={about} />
             </div>
           </div>
         </div>

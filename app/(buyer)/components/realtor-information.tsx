@@ -1,6 +1,7 @@
 "use client";
 
 import { UserRound } from "lucide-react";
+import { ProfileRichText } from "@/lib/profile-rich-text";
 
 type RealtorInformationProps = {
   name: string;
@@ -9,6 +10,7 @@ type RealtorInformationProps = {
   email: string;
   phone: string;
   location: string;
+  bio?: string;
 };
 
 export function RealtorInformation({
@@ -18,6 +20,7 @@ export function RealtorInformation({
   email,
   phone,
   location,
+  bio,
 }: RealtorInformationProps) {
   return (
     <aside className="w-full">
@@ -41,9 +44,6 @@ export function RealtorInformation({
 
           <div className="min-w-0 flex-1">
             <p className="truncate text-md font-medium font-phudu uppercase leading-tight text-[#0F172A]">{name}</p>
-            <p className="mt-2 text-xs leading-snug text-[#5f7190]">
-              "Helping families find the perfect home with a smooth and stress-free experience."
-            </p>
           </div>
 
           <span className="rounded-full border border-[#ef4444] px-3 py-1 text-[11px] font-medium text-[#ef4444]">
@@ -65,6 +65,10 @@ export function RealtorInformation({
             <div className="grid grid-cols-[120px_1fr] justify-items-start">
               <span className="text-xs text-[#607394]">Location</span>
               <span className="text-xs font-semibold text-[#1f2937]">{location || "-"}</span>
+            </div>
+            <div className="grid grid-cols-[120px_1fr] justify-items-start">
+              <span className="text-xs text-[#607394]">Bio</span>
+              <ProfileRichText content={bio} />
             </div>
           </div>
         </div>

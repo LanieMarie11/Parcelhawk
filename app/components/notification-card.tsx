@@ -107,7 +107,7 @@ export function NotificationCard({
   return (
     <article
       className={`relative overflow-hidden rounded-xl border border-zinc-200 bg-white pl-5 pr-4 py-4 shadow-sm transition-colors ${
-        unread ? "!border-l-4 !border-l-[#B0E3F899]" : ""
+        unread ? "!border-l-4 !border-l-[#B0E3F899]" : "!border-l-4 !border-l-[#D9DADF]"
       }`}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -126,7 +126,13 @@ export function NotificationCard({
               )}
               <h2 className="text-base font-semibold text-[#111827]">{title}</h2>
               <span className="text-sm text-[#6B7280]">{timestamp}</span>
-              <span className="inline-flex items-center rounded-full border border-[#00A6E8] bg-[#E6F6FD] px-2.5 py-0.5 text-xs font-medium text-[#00A6E8]">
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                  unread
+                    ? "border-[#00A6E8] bg-[#E6F6FD] text-[#00A6E8]"
+                    : "border-[#D9DADF] bg-[#F3F4F6] text-[#6B7280]"
+                }`}
+              >
                 {category}
               </span>
               {avatar ? (

@@ -43,6 +43,7 @@ export const authOptions: NextAuthOptions = {
             lastName: user.lastName,
             phone: user.phone ?? null,
             location: user.location ?? null,
+            about: user.about ?? null,
             avatarUrl: user.avatarUrl ?? null,
             referralUrl: null,
           };
@@ -69,6 +70,7 @@ export const authOptions: NextAuthOptions = {
           lastName: investor.lastName,
           phone: investor.phone ?? null,
           location: investor.address ?? null,
+          bio: investor.bio ?? null,
           avatarUrl: investor.avatarUrl ?? null,
           referralUrl: investor.referralUrl ?? null,
         };
@@ -84,6 +86,8 @@ export const authOptions: NextAuthOptions = {
         token.lastName = (user as { lastName?: string }).lastName;
         token.phone = (user as { phone?: string | null }).phone ?? null;
         token.location = (user as { location?: string | null }).location ?? null;
+        token.about = (user as { about?: string | null }).about ?? null;
+        token.bio = (user as { bio?: string | null }).bio ?? null;
         token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
         token.referralUrl = (user as { referralUrl?: string | null }).referralUrl ?? null;
       }
@@ -93,12 +97,16 @@ export const authOptions: NextAuthOptions = {
           avatarUrl?: string | null;
           phone?: string | null;
           location?: string | null;
+          about?: string | null;
+          bio?: string | null;
           referralUrl?: string | null;
         } | undefined) ?? {
           name: undefined,
           avatarUrl: undefined,
           phone: undefined,
           location: undefined,
+          about: undefined,
+          bio: undefined,
           referralUrl: undefined,
         };
 
@@ -113,6 +121,12 @@ export const authOptions: NextAuthOptions = {
         }
         if (updatedSession.location !== undefined) {
           token.location = updatedSession.location;
+        }
+        if (updatedSession.about !== undefined) {
+          token.about = updatedSession.about;
+        }
+        if (updatedSession.bio !== undefined) {
+          token.bio = updatedSession.bio;
         }
         if (updatedSession.referralUrl !== undefined) {
           token.referralUrl = updatedSession.referralUrl;
@@ -129,6 +143,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as { lastName?: string }).lastName = token.lastName as string;
         (session.user as { phone?: string | null }).phone = token.phone ?? null;
         (session.user as { location?: string | null }).location = token.location ?? null;
+        (session.user as { about?: string | null }).about = token.about ?? null;
+        (session.user as { bio?: string | null }).bio = token.bio ?? null;
         (session.user as { avatarUrl?: string | null }).avatarUrl = token.avatarUrl ?? null;
         (session.user as { referralUrl?: string | null }).referralUrl = token.referralUrl ?? null;
       }

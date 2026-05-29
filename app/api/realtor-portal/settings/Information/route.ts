@@ -57,6 +57,7 @@ export async function POST(request: Request) {
     email?: string
     phone?: string
     location?: string
+    bio?: string
     avatar?: File | null
   }
   try {
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
         email: String(formData.get("email") ?? ""),
         phone: String(formData.get("phone") ?? ""),
         location: String(formData.get("location") ?? ""),
+        bio: String(formData.get("bio") ?? ""),
         avatar: avatar instanceof File ? avatar : null,
       }
     } else {
@@ -86,6 +88,7 @@ export async function POST(request: Request) {
     lastName?: string
     phone?: string | null
     address?: string | null
+    bio?: string | null
     avatarUrl?: string
   } = {}
   if (fullName !== "") {
@@ -94,6 +97,7 @@ export async function POST(request: Request) {
   }
   if (body.phone !== undefined) updates.phone = body.phone === "" ? null : body.phone
   if (body.location !== undefined) updates.address = body.location === "" ? null : body.location
+  if (body.bio !== undefined) updates.bio = body.bio === "" ? null : body.bio
 
   try {
     let previousAvatarUrl: string | null = null
@@ -189,6 +193,7 @@ export async function GET() {
         email: investors.email,
         phone: investors.phone,
         address: investors.address,
+        bio: investors.bio,
         avatarUrl: investors.avatarUrl,
       })
       .from(investors)
@@ -207,6 +212,7 @@ export async function GET() {
       email: investor.email,
       phone: investor.phone ?? "",
       location: investor.address ?? "",
+      bio: investor.bio ?? "",
       avatarUrl: investor.avatarUrl ?? null,
     })
   } catch (err) {
