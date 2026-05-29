@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { and, desc, eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { db } from "@/db"
 import {
-  buyerInvestorLinks,
   favorites,
   investors,
   landListings,
@@ -12,6 +11,7 @@ import {
   viewingRequests,
 } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
+import { ensureActiveRealtorInvestorId } from "@/lib/buyer-investor-connection"
 import { sendViewingRequestCreatedNotification } from "@/lib/email/send-viewing-request-notification"
 
 type SessionUser = {
@@ -69,20 +69,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const [linkRow] = await db
-      .select({ investorId: buyerInvestorLinks.investorId })
-      .from(buyerInvestorLinks)
-      .where(
-        and(
-          eq(buyerInvestorLinks.buyerId, buyerId),
-          eq(buyerInvestorLinks.status, "active"),
-          eq(buyerInvestorLinks.realtorFlag, "active")
-        )
-      )
-      .orderBy(desc(buyerInvestorLinks.linkedAt))
-      .limit(1)
+    const realtorId = await ensureActiveRealtorInvestorId(buyerId)
 
-    if (!linkRow) {
+    if (!realtorId) {
       return NextResponse.json(
         { error: "No active realtor is linked to your account" },
         { status: 409 }
@@ -122,7 +111,7 @@ export async function POST(request: Request) {
       .insert(viewingRequests)
       .values({
         buyerId,
-        realtorId: linkRow.investorId,
+        realtorId,
         listingId,
         buyerNote,
       })
@@ -136,7 +125,7 @@ export async function POST(request: Request) {
     await db.insert(notifications).values({
       type: "viewing_request",
       userId: buyerId,
-      investorId: linkRow.investorId,
+      investorId: realtorId,
       listingId,
       viewingRequestId: inserted.id,
       title: "Viewing request submitted",
@@ -173,7 +162,7 @@ export async function POST(request: Request) {
           email: investors.email,
         })
         .from(investors)
-        .where(eq(investors.id, linkRow.investorId))
+        .where(eq(investors.id, realtorId))
         .limit(1),
     ])
 

@@ -6,6 +6,8 @@ import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-
 import { generateReferralCode } from "@/lib/referral-code";
 import { eq } from "drizzle-orm";
 
+const DEFAULT_INVESTOR_EMAIL = process.env.DEFAULT_EMAIL?.trim().toLowerCase() ?? "";
+
 function isPostgresUniqueViolation(err: unknown): boolean {
   let e: unknown = err;
   for (let d = 0; d < 5 && e; d++) {
@@ -69,51 +71,72 @@ export async function POST(request: Request) {
       createdId = createdBuyer.id;
 
       const refToken = typeof ref === "string" ? ref.trim() : "";
-      if (refToken) {
-        const [referrer] = await db
-          .select({
-            id: investors.id,
-            firstName: investors.firstName,
-            lastName: investors.lastName,
-            email: investors.email,
-          })
-          .from(investors)
-          .where(eq(investors.referralUrl, refToken))
-          .limit(1);
-        if (referrer) {
-          await db
-            .update(users)
-            .set({ referralId: refToken })
-            .where(eq(users.id, createdId));
+      let linkedVia: "referral_link" | "default" = "referral_link";
 
-          await db.insert(buyerInvestorLinks).values({
-            buyerId: createdId,
-            investorId: referrer.id,
-            status: "active",
-            linkedVia: "referral_link",
-          });
-
-          await db
-            .insert(messageThreads)
-            .values({
-              investorId: referrer.id,
-              buyerUserId: createdId,
+      const [referrer] = refToken
+        ? await db
+            .select({
+              id: investors.id,
+              firstName: investors.firstName,
+              lastName: investors.lastName,
+              email: investors.email,
+              referralUrl: investors.referralUrl,
             })
-            .onConflictDoNothing({
-              target: [messageThreads.investorId, messageThreads.buyerUserId],
-            });
+            .from(investors)
+            .where(eq(investors.referralUrl, refToken))
+            .limit(1)
+        : DEFAULT_INVESTOR_EMAIL
+          ? await db
+              .select({
+                id: investors.id,
+                firstName: investors.firstName,
+                lastName: investors.lastName,
+                email: investors.email,
+                referralUrl: investors.referralUrl,
+              })
+              .from(investors)
+              .where(eq(investors.email, DEFAULT_INVESTOR_EMAIL))
+              .limit(1)
+          : [];
 
-          const buyerDisplayName =
-            `${normalizedFirstName} ${normalizedLastName}`.trim() || "(unknown buyer)";
-          const realtorDisplayName =
-            `${referrer.firstName} ${referrer.lastName}`.trim() || "there";
+      if (!refToken && referrer) {
+        linkedVia = "default";
+      }
 
-          await sendBuyerConnectedToRealtorNotification({
-            buyerName: buyerDisplayName,
-            realtorName: realtorDisplayName,
-            realtorEmail: referrer.email.trim(),
+      const effectiveReferralUrl = refToken || referrer?.referralUrl?.trim() || "";
+      if (referrer && effectiveReferralUrl) {
+        await db
+          .update(users)
+          .set({ referralId: effectiveReferralUrl })
+          .where(eq(users.id, createdId));
+
+        await db.insert(buyerInvestorLinks).values({
+          buyerId: createdId,
+          investorId: referrer.id,
+          status: "active",
+          linkedVia,
+        });
+
+        await db
+          .insert(messageThreads)
+          .values({
+            investorId: referrer.id,
+            buyerUserId: createdId,
+          })
+          .onConflictDoNothing({
+            target: [messageThreads.investorId, messageThreads.buyerUserId],
           });
-        }
+
+        const buyerDisplayName =
+          `${normalizedFirstName} ${normalizedLastName}`.trim() || "(unknown buyer)";
+        const realtorDisplayName =
+          `${referrer.firstName} ${referrer.lastName}`.trim() || "there";
+
+        await sendBuyerConnectedToRealtorNotification({
+          buyerName: buyerDisplayName,
+          realtorName: realtorDisplayName,
+          realtorEmail: referrer.email.trim(),
+        });
       }
     } else {
       const [existingInvestor] = await db
