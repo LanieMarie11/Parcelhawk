@@ -4,6 +4,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { investors, messages, messageThreads, viewingRequests } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import { ensureBuyerMessageThread } from "@/lib/buyer-investor-connection";
 
 type SessionUser = {
   id?: string;
@@ -45,26 +46,37 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const buyerId = buyerUserId;
+
   try {
-    const threads = await db
-      .select({
-        threadId: messageThreads.id,
-        investorId: messageThreads.investorId,
-        updatedAt: messageThreads.updatedAt,
-        buyerLastReadAt: messageThreads.buyerLastReadAt,
-        firstName: investors.firstName,
-        lastName: investors.lastName,
-        avatarUrl: investors.avatarUrl,
-        email: investors.email,
-        phone: investors.phone,
-        address: investors.address,
-        bio: investors.bio,
-        investorLastActiveAt: investors.lastActiveAt,
-      })
-      .from(messageThreads)
-      .innerJoin(investors, eq(messageThreads.investorId, investors.id))
-      .where(eq(messageThreads.buyerUserId, buyerUserId))
-      .orderBy(desc(messageThreads.updatedAt));
+    async function loadThreads() {
+      return db
+        .select({
+          threadId: messageThreads.id,
+          investorId: messageThreads.investorId,
+          updatedAt: messageThreads.updatedAt,
+          buyerLastReadAt: messageThreads.buyerLastReadAt,
+          firstName: investors.firstName,
+          lastName: investors.lastName,
+          avatarUrl: investors.avatarUrl,
+          email: investors.email,
+          phone: investors.phone,
+          address: investors.address,
+          bio: investors.bio,
+          investorLastActiveAt: investors.lastActiveAt,
+        })
+        .from(messageThreads)
+        .innerJoin(investors, eq(messageThreads.investorId, investors.id))
+        .where(eq(messageThreads.buyerUserId, buyerId))
+        .orderBy(desc(messageThreads.updatedAt));
+    }
+
+    let threads = await loadThreads();
+
+    if (threads.length === 0) {
+      await ensureBuyerMessageThread(buyerId);
+      threads = await loadThreads();
+    }
 
     if (threads.length === 0) {
       return NextResponse.json({ threads: [] });
