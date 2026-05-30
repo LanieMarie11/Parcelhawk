@@ -19,7 +19,7 @@ const nav = [
   { href: "/compare", label: "Compare" },
   { href: "/resources", label: "Resources" },
   { href: "/message", label: "Messages" },
-  { href: "/profile-settings", label: "Profile" },
+  { href: "/profile-settings", label: "Settings" },
 ] as const;
 
 export function LandingHeader() {
@@ -116,11 +116,19 @@ export function LandingHeader() {
               <Link
                 key={label}
                 href={href}
-                className={`inline-flex items-center gap-1.5 text-sm font-medium text-white transition-colors hover:text-white/90 ${
-                  active ? "border-b-2 border-white pb-0.5" : "text-white/90"
+                className={`relative inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors ${
+                  active ? "text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {label}
+                <span
+                  className={
+                    active
+                      ? "border-b-2 border-white"
+                      : "border-b-2 border-transparent"
+                  }
+                >
+                  {label}
+                </span>
                 {badge != null && (
                   <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
                     {badge}

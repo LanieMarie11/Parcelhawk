@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { Brain, ChartColumnIncreasing, ChevronDown, LayoutDashboard, LogOut, Settings, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 
 const menuItems = [
   { label: "Overview", href: "/realtor-portal", icon: LayoutDashboard },
+  { label: "My Buyers", href: "/realtor-portal/my-buyers", icon: Users },
+  { label: "Analytics", href: "/realtor-portal/analytics", icon: ChartColumnIncreasing },
   { label: "Settings", href: "/realtor-portal/settings", icon: Settings },
 ] as const;
 
@@ -24,6 +27,9 @@ export default function InvestorProfileMenu({
   userImage,
 }: InvestorProfileMenuProps) {
   const pathname = usePathname();
+  const isRealtorMode =
+    pathname === "/realtor-portal" || pathname.startsWith("/realtor-portal/");
+  const roleLabel = isRealtorMode ? "Realtor" : "Investor";
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -37,8 +43,6 @@ export default function InvestorProfileMenu({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
-
-  const initial = displayName.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <div className="relative inline-block" ref={containerRef}>
@@ -60,30 +64,30 @@ export default function InvestorProfileMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-white/20 bg-[#0B1D31] shadow-lg ring-1 ring-white/10">
+        <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
+          {/* Profile Section */}
           <div className="flex items-center gap-3 p-4">
-            {userImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={userImage}
-                alt=""
-                className="h-12 w-12 shrink-0 rounded-full border-2 border-white/30 object-cover"
-              />
-            ) : (
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-lg font-semibold text-white">
-                {initial}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-white">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-border bg-muted">
+              {userImage ? (
+                <Image
+                  src={userImage}
+                  alt={`${displayName} avatar`}
+                  fill
+                  className="object-cover"
+                />
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-base font-semibold text-foreground">
                 {displayName === "Account" ? "Account" : displayName}
-              </p>
-              <p className="text-sm text-white/60">Investor</p>
+              </span>
+              <span className="text-sm text-muted-foreground">{roleLabel}</span>
             </div>
           </div>
 
-          <div className="h-px w-full bg-white/10" />
+          <div className="h-px w-full bg-border" />
 
+          {/* Navigation Items */}
           <nav className="flex flex-col py-2">
             {menuItems.map((item) => {
               const isActive =
@@ -92,33 +96,34 @@ export default function InvestorProfileMenu({
                   : pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
-                  key={item.href}
+                  key={item.label}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 text-[15px] font-medium transition-colors ${
+                  className={`flex items-center gap-3 px-4 py-3 text-[15px] font-medium transition-colors hover:bg-accent ${
                     isActive
-                      ? "bg-white/10 text-white"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                      ? "bg-accent/50 text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <item.icon className="h-5 w-5 shrink-0" aria-hidden />
+                  <item.icon className="h-5 w-5 shrink-0" />
                   {item.label}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="h-px w-full bg-white/10" />
+          <div className="h-px w-full bg-border" />
 
+          {/* Log out */}
           <button
             type="button"
             onClick={() => {
               setOpen(false);
               signOut({ callbackUrl: "/" });
             }}
-            className="flex w-full items-center gap-3 px-4 py-3 text-[15px] font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="flex w-full items-center gap-3 px-4 py-3 text-[15px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+            <LogOut className="h-5 w-5 shrink-0" />
             Log out
           </button>
         </div>

@@ -43,6 +43,10 @@ function getFavoriteCardImageSrc(listing: ListingItem): string {
   return getImageSrc(first)
 }
 
+function shouldUseUnoptimizedImage(src: string): boolean {
+  return src.startsWith("data:") || src.includes("maps.googleapis.com")
+}
+
 function formatSavedRelativeLabel(iso: string | null | undefined): string {
   if (!iso?.trim()) return "Saved recently"
   const saved = new Date(iso)
@@ -168,7 +172,7 @@ function FavoritePropertyCard({
                 src={cardImageSrc}
                 alt={`${listing.name} — parcel on satellite map`}
                 fill
-                unoptimized={cardImageSrc.startsWith("data:")}
+                unoptimized={shouldUseUnoptimizedImage(cardImageSrc)}
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
                 sizes="(max-width: 1280px) 33vw, 300px"
               />
@@ -178,7 +182,7 @@ function FavoritePropertyCard({
               src={cardImageSrc}
               alt={listing.name}
               fill
-              unoptimized={cardImageSrc.startsWith("data:")}
+              unoptimized={shouldUseUnoptimizedImage(cardImageSrc)}
               className="object-cover"
               sizes="(max-width: 1280px) 33vw, 300px"
             />

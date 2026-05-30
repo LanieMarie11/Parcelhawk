@@ -100,15 +100,15 @@ export function InvestorHeader() {
               <Link
                 key={href}
                 href={href}
-                className={`relative inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
-                  active ? "text-white" : "text-white/75 hover:text-white"
+                className={`relative inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium transition-colors ${
+                  active ? "text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 <span
                   className={
                     active
-                      ? "border-b-2 border-white pb-0.5"
-                      : "border-b-2 border-transparent pb-0.5"
+                      ? "border-b-2 border-white"
+                      : "border-b-2 border-transparent"
                   }
                 >
                   {label}
