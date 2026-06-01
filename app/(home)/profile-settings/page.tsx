@@ -16,7 +16,7 @@ export default async function ProfileSettingsPage() {
     return <div className="min-h-screen bg-background font-ibm-plex-sans">
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+          <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">PROFILE Settings</h1>
           <p className="max-w-md text-sm text-muted-foreground">
             Sign in to load this page and update your personal info, preferences, and security
             settings.
@@ -31,7 +31,7 @@ export default async function ProfileSettingsPage() {
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Page header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+          <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">PROFILE Settings</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Update your personal info, preferences, and security settings.
           </p>

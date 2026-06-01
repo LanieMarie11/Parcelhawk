@@ -33,6 +33,8 @@ export function LandingHeader() {
   const isSignedIn = status === "authenticated" && !!session;
   const role = (session?.user as { role?: string } | undefined)?.role;
   const isBuyer = isSignedIn && role === "buyer";
+  const isNotificationsActive =
+    pathname === "/notifications" || pathname.startsWith("/notifications/");
 
   const user = session?.user as { firstName?: string; lastName?: string; name?: string } | undefined;
   const profileLabel =
@@ -142,7 +144,12 @@ export function LandingHeader() {
         <div className="flex items-center justify-end gap-2">
           <Link
             href="/notifications"
-            className="relative rounded-lg p-2 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+            className={`relative rounded-lg p-2 transition-colors ${
+              isNotificationsActive
+                ? "bg-white/20 text-white"
+                : "text-white/90 hover:bg-white/10 hover:text-white"
+            }`}
+            aria-current={isNotificationsActive ? "page" : undefined}
             aria-label={
               unreadNotifications > 0
                 ? `Notifications (${unreadNotifications} unread)`
