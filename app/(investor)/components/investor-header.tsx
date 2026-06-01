@@ -54,6 +54,9 @@ export function InvestorHeader() {
       )
     : investorNavItems;
   const portalRoot = isRealtorMode ? "/realtor-portal" : "/investor-portal";
+  const isNotificationsActive =
+    pathname === "/realtor-portal/notifications" ||
+    pathname.startsWith("/realtor-portal/notifications/");
 
   const user = session?.user as
     | { firstName?: string; lastName?: string; name?: string; image?: string | null }
@@ -129,7 +132,12 @@ export function InvestorHeader() {
           {isRealtorMode ? (
             <Link
               href="/realtor-portal/notifications"
-              className="relative rounded-lg p-2 text-white/90 transition-colors hover:bg-white/10 hover:text-white"
+              className={`relative rounded-lg p-2 transition-colors ${
+                isNotificationsActive
+                  ? "bg-white/20 text-white"
+                  : "text-white/90 hover:bg-white/10 hover:text-white"
+              }`}
+              aria-current={isNotificationsActive ? "page" : undefined}
               aria-label={
                 unreadNotifications > 0
                   ? `Notifications (${unreadNotifications} unread)`

@@ -116,7 +116,7 @@ export default function ComparePage() {
             <ChevronLeft className="h-4 w-4" />
             Saved Properties
           </Link>
-          <h1 className="mt-2 text-3xl font-ibm-plex-sans font-semibold uppercase tracking-tight text-[#1F232B]">
+          <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">
             Property Comparison
           </h1>
         </div>

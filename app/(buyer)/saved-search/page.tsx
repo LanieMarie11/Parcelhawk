@@ -30,6 +30,7 @@ interface SavedSearch {
   frequencyRaw: string
   /** URL to land-property with this search's filters (for View Result) */
   viewResultHref: string
+  prompt: string | null
 }
 
 /** DB row shape from GET /api/saved-searches */
@@ -81,6 +82,14 @@ function formatSize(minAcres: string | null, maxAcres: string | null): string {
   return `${minF} - ${maxF}`
 }
 
+const MAX_PROMPT_DISPLAY = 120
+
+function truncatePrompt(text: string, maxLen = MAX_PROMPT_DISPLAY): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= maxLen) return trimmed
+  return `${trimmed.slice(0, maxLen).trimEnd()}…`
+}
+
 function frequencyDisplayLabel(freq: string): string {
   const map: Record<string, string> = {
     instant: "Instant",
@@ -126,6 +135,7 @@ function rowToSavedSearch(row: SavedSearchRow): SavedSearch {
     frequency: frequencyDisplayLabel(row.frequency),
     frequencyRaw: row.frequency,
     viewResultHref: buildViewResultHref(row),
+    prompt: row.prompt?.trim() || null,
   }
 }
 
@@ -389,15 +399,26 @@ function SearchCard({
               View Result
             </Link>
           </div>
-          <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-            <MapPin className="size-3.5" />
-            <span>{`${search.county}, ${search.state}`}</span>
-          </div>
+          {!search.prompt && (
+            <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="size-3.5" />
+              <span>{`${search.county}, ${search.state}`}</span>
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <FilterTag label="Price Range" value={search.priceRange} />
-            <FilterTag label="Size" value={search.size} />
-            {/* <FilterTag label="Type" value={search.type} /> */}
-            {/* <FilterTag label="Activities" value={search.activities} /> */}
+            {search.prompt ? (
+              <p
+                className="text-sm text-[#373940] line-clamp-2 bg-secondary px-2 py-1 rounded-md"
+                title={search.prompt.length > MAX_PROMPT_DISPLAY ? search.prompt : undefined}
+              >
+                {truncatePrompt(search.prompt)}
+              </p>
+            ) : (
+              <>
+                <FilterTag label="Price Range" value={search.priceRange} />
+                <FilterTag label="Size" value={search.size} />
+              </>
+            )}
           </div>
         </div>
 
