@@ -61,3 +61,42 @@ export async function sendToRealtorInbox(options: {
     console.info(`[${options.logTag}] sent`, { resendEmailId: data.id })
   }
 }
+
+/**
+ * Shared Resend send for buyer-facing transactional mail.
+ * Does not throw; logs and returns on skip or failure.
+ */
+export async function sendToBuyerInbox(options: {
+  buyerEmail: string
+  subject: string
+  text: string
+  html: string
+  logTag: string
+}): Promise<void> {
+  const config = getResendConfig()
+  if (!config) return
+
+  const to = options.buyerEmail.trim()
+  if (!to) {
+    console.warn(`[${options.logTag}] buyerEmail is empty; skipping notification`)
+    return
+  }
+
+  const resend = new Resend(config.apiKey)
+  const { data, error } = await resend.emails.send({
+    from: config.from,
+    to,
+    subject: options.subject,
+    text: options.text,
+    html: options.html,
+  })
+
+  if (error) {
+    console.error(`[${options.logTag}] Resend error:`, error)
+    return
+  }
+
+  if (data?.id) {
+    console.info(`[${options.logTag}] sent`, { resendEmailId: data.id })
+  }
+}

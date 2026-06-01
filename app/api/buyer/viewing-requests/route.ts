@@ -183,6 +183,7 @@ export async function POST(request: Request) {
       listingLocation,
       buyerName: formatPersonName(buyerNameRow),
       realtorName: formatPersonName(realtorNameRow),
+      investorId: realtorId,
       realtorEmail,
       buyerNote,
     })

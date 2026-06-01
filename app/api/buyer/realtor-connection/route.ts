@@ -68,6 +68,7 @@ async function afterBuyerEndsRealtorConnection(ctx: {
   await sendBuyerEndedRealtorConnectionNotification({
     buyerName,
     realtorName,
+    investorId: ctx.investorId,
     realtorEmail: investorRow.email,
     reason: ctx.reason,
     endNote: ctx.endNote,
