@@ -294,6 +294,7 @@ export async function POST(request: Request) {
       | {
           buyerName: string;
           realtorName: string;
+          investorId: string;
           realtorEmail: string;
         }
       | undefined;
@@ -384,6 +385,7 @@ export async function POST(request: Request) {
           | {
               buyerName: string;
               realtorName: string;
+              investorId: string;
               realtorEmail: string;
             }
           | undefined;
@@ -405,6 +407,7 @@ export async function POST(request: Request) {
             emailPayload = {
               buyerName: buyerDisplayName,
               realtorName: realtorDisplayName,
+              investorId: notification.investorId,
               realtorEmail: investor.email.trim(),
             };
           }

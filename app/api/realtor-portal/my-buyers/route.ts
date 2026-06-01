@@ -44,6 +44,7 @@ export async function GET() {
       .from(buyerInvestorLinks)
       .innerJoin(users, eq(users.id, buyerInvestorLinks.buyerId))
       .where(and(eq(buyerInvestorLinks.investorId, investorId), eq(buyerInvestorLinks.status, "active")))
+      .groupBy(users.id)
       .orderBy(desc(users.updatedAt))
 
     const buyers = rows.map((user) => {

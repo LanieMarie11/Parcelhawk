@@ -135,6 +135,7 @@ export async function POST(request: Request) {
         await sendBuyerConnectedToRealtorNotification({
           buyerName: buyerDisplayName,
           realtorName: realtorDisplayName,
+          investorId: referrer.id,
           realtorEmail: referrer.email.trim(),
         });
       }

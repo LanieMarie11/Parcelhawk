@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm"
+import { db } from "@/db"
+import { investors } from "@/db/schema"
 import { escapeHtml, sendToRealtorInbox } from "@/lib/email/resend-realtor-inbox"
 
 export type ViewingRequestNotificationPayload = {
@@ -7,6 +10,7 @@ export type ViewingRequestNotificationPayload = {
   listingLocation: string | null
   buyerName: string
   realtorName: string
+  investorId: string
   /** Linked investor (realtor) inbox — must be deliverable in Resend. */
   realtorEmail: string
   buyerNote: string | null
@@ -19,6 +23,16 @@ export type ViewingRequestNotificationPayload = {
 export async function sendViewingRequestCreatedNotification(
   payload: ViewingRequestNotificationPayload
 ): Promise<void> {
+  const [investor] = await db
+    .select({ emailNotifications: investors.emailNotifications })
+    .from(investors)
+    .where(eq(investors.id, payload.investorId))
+    .limit(1)
+
+  if (!investor?.emailNotifications) {
+    return
+  }
+
   const location =
     payload.listingLocation?.trim() ||
     (payload.listingTitle?.trim() ? null : `Listing #${payload.listingId}`)

@@ -1,8 +1,12 @@
+import { eq } from "drizzle-orm"
+import { db } from "@/db"
+import { investors } from "@/db/schema"
 import { escapeHtml, sendToRealtorInbox } from "@/lib/email/resend-realtor-inbox"
 
 export type BuyerConnectedNotificationPayload = {
   buyerName: string
   realtorName: string
+  investorId: string
   realtorEmail: string
 }
 
@@ -16,6 +20,16 @@ export type BuyerConnectedNotificationPayload = {
 export async function sendBuyerConnectedToRealtorNotification(
   payload: BuyerConnectedNotificationPayload
 ): Promise<void> {
+  const [investor] = await db
+    .select({ emailNotifications: investors.emailNotifications })
+    .from(investors)
+    .where(eq(investors.id, payload.investorId))
+    .limit(1)
+
+  if (!investor?.emailNotifications) {
+    return
+  }
+
   const buyer = payload.buyerName.trim() || "(unknown buyer)"
   const realtor = payload.realtorName.trim() || "there"
 

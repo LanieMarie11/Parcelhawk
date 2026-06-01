@@ -12,6 +12,7 @@ import {
   viewingRequests,
 } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
+import { sendRealtorEndedBuyerConnectionNotification } from "@/lib/email/send-realtor-ended-buyer-connection-notification"
 
 type SessionUser = {
   id?: string
@@ -26,6 +27,48 @@ function normalizeEndNote(raw: unknown): string | null {
   if (typeof raw !== "string") return null
   const trimmed = raw.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+async function afterRealtorEndsBuyerConnection(ctx: {
+  buyerId: string
+  investorId: string
+  endNote: string | null
+}) {
+  const [buyerRow] = await db
+    .select({
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+    })
+    .from(users)
+    .where(eq(users.id, ctx.buyerId))
+    .limit(1)
+
+  const [investorRow] = await db
+    .select({
+      firstName: investors.firstName,
+      lastName: investors.lastName,
+    })
+    .from(investors)
+    .where(eq(investors.id, ctx.investorId))
+    .limit(1)
+
+  if (!buyerRow?.email?.trim()) {
+    return
+  }
+
+  const buyerName =
+    `${buyerRow.firstName} ${buyerRow.lastName}`.trim() || "there"
+  const realtorName =
+    `${investorRow?.firstName ?? ""} ${investorRow?.lastName ?? ""}`.trim() || "Your realtor"
+
+  await sendRealtorEndedBuyerConnectionNotification({
+    buyerId: ctx.buyerId,
+    buyerEmail: buyerRow.email,
+    buyerName,
+    realtorName,
+    endNote: ctx.endNote,
+  })
 }
 
 export async function POST(request: Request) {
@@ -154,6 +197,12 @@ export async function POST(request: Request) {
         .where(
           and(eq(messageThreads.investorId, investorId), eq(messageThreads.buyerUserId, buyerId)),
         )
+    })
+
+    await afterRealtorEndsBuyerConnection({
+      buyerId,
+      investorId,
+      endNote,
     })
 
     return NextResponse.json({ ok: true })

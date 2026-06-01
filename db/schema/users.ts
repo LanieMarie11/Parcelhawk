@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -21,6 +21,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastActiveAt: timestamp("last_active_at"),
   subscriptionStatus: text("subscription_status").notNull().default("free"),
+  /** When true, the user receives account and listing updates by email. */
+  emailNotifications: boolean("email_notifications").notNull().default(true),
 });
 
 export const investors = pgTable("investors", {
@@ -38,4 +40,6 @@ export const investors = pgTable("investors", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
   lastActiveAt: timestamp("last_active_at"),
+  /** When true, the investor receives saved-search and portal updates by email. */
+  emailNotifications: boolean("email_notifications").notNull().default(true),
 });

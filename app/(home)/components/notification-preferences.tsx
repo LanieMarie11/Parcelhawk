@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { toast } from "sonner"
 
 function Toggle({
   enabled,
   onToggle,
   id,
+  disabled,
 }: {
   enabled: boolean
   onToggle: () => void
   id: string
+  disabled?: boolean
 }) {
   return (
     <button
@@ -17,8 +20,9 @@ function Toggle({
       role="switch"
       id={id}
       aria-checked={enabled}
+      disabled={disabled}
       onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ${
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
         enabled ? "bg-brand-green" : "bg-muted"
       }`}
     >
@@ -34,8 +38,75 @@ function Toggle({
 
 export default function NotificationPreferences() {
   const [emailNotifications, setEmailNotifications] = useState(true)
-  const [pushNotifications, setPushNotifications] = useState(true)
-  const [smsUpdates, setSmsUpdates] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSettings() {
+      try {
+        const response = await fetch("/api/buyer/notifications/settings", { method: "GET" })
+        const data = (await response.json().catch(() => ({}))) as {
+          emailNotifications?: boolean
+          error?: string
+        }
+        if (!response.ok) {
+          throw new Error(data.error ?? "Failed to load notification settings")
+        }
+        if (!cancelled && typeof data.emailNotifications === "boolean") {
+          setEmailNotifications(data.emailNotifications)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(
+            error instanceof Error ? error.message : "Failed to load notification settings",
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadSettings()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleEmailNotificationsToggle = useCallback(async () => {
+    const previous = emailNotifications
+    const next = !previous
+    setEmailNotifications(next)
+    setIsSaving(true)
+
+    try {
+      const response = await fetch("/api/buyer/notifications/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailNotifications: next }),
+      })
+      const data = (await response.json().catch(() => ({}))) as {
+        emailNotifications?: boolean
+        error?: string
+      }
+      if (!response.ok) {
+        throw new Error(data.error ?? "Failed to update notification settings")
+      }
+      if (typeof data.emailNotifications === "boolean") {
+        setEmailNotifications(data.emailNotifications)
+      }
+    } catch (error) {
+      setEmailNotifications(previous)
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update notification settings",
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }, [emailNotifications])
 
   return (
     <section id="notifications" className="rounded-lg border border-border bg-card p-6">
@@ -50,7 +121,7 @@ export default function NotificationPreferences() {
         {/* Email Notifications */}
         <div className="flex items-center justify-between">
           <div>
-            <label htmlFor="email-notif" className="text-sm font-semibold text-card-foreground">
+            <label htmlFor="email-notif" className="text-sm font-semibold text-card-foreground cursor-pointer">
               Email Notifications
             </label>
             <p className="text-sm text-muted-foreground">
@@ -60,14 +131,15 @@ export default function NotificationPreferences() {
           <Toggle
             id="email-notif"
             enabled={emailNotifications}
-            onToggle={() => setEmailNotifications(!emailNotifications)}
+            disabled={isLoading || isSaving}
+            onToggle={() => void handleEmailNotificationsToggle()}
           />
         </div>
 
         {/* Push Notifications */}
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <div>
-            <label htmlFor="push-notif" className="text-sm font-semibold text-card-foreground">
+            <label htmlFor="push-notif" className="text-sm font-semibold text-card-foreground cursor-pointer">
               Push Notifications
             </label>
             <p className="text-sm text-muted-foreground">
@@ -79,12 +151,12 @@ export default function NotificationPreferences() {
             enabled={pushNotifications}
             onToggle={() => setPushNotifications(!pushNotifications)}
           />
-        </div>
+        </div> */}
 
         {/* SMS Updates */}
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <div>
-            <label htmlFor="sms-notif" className="text-sm font-semibold text-card-foreground">
+            <label htmlFor="sms-notif" className="text-sm font-semibold text-card-foreground cursor-pointer">
               SMS Updates
             </label>
             <p className="text-sm text-muted-foreground">
@@ -96,7 +168,7 @@ export default function NotificationPreferences() {
             enabled={smsUpdates}
             onToggle={() => setSmsUpdates(!smsUpdates)}
           />
-        </div>
+        </div> */}
       </div>
     </section>
   )

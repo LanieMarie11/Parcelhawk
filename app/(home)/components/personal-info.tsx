@@ -232,13 +232,13 @@ export default function PersonalInfo() {
         {/* About */}
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <label htmlFor="about" className="text-sm text-muted-foreground">
-            About
+            About (What you're looking for)
           </label>
           <textarea
             id="about"
             value={about}
             onChange={(e) => setAbout(e.target.value)}
-            placeholder="What you're looking for"
+            placeholder="Example: I'm looking for 10-20 acres in Colorado with road access, utilites nearby, and a budget under $250,000."
             rows={4}
             className="resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
           />

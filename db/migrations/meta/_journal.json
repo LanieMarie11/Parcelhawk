@@ -141,6 +141,20 @@
       "when": 1779992226555,
       "tag": "0019_fancy_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1780324167169,
+      "tag": "0020_mushy_scarecrow",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1780326498040,
+      "tag": "0021_great_rattler",
+      "breakpoints": true
     }
   ]
 }

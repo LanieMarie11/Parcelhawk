@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm"
+import { db } from "@/db"
+import { investors } from "@/db/schema"
 import { escapeHtml, sendToRealtorInbox } from "@/lib/email/resend-realtor-inbox"
 
 const END_REASON_LABELS: Record<string, string> = {
@@ -11,6 +14,7 @@ const END_REASON_LABELS: Record<string, string> = {
 export type BuyerEndedRealtorConnectionNotificationPayload = {
   buyerName: string
   realtorName: string
+  investorId: string
   realtorEmail: string
   /** Stored `end_reason` key from `buyer_investor_links`. */
   reason: string
@@ -29,6 +33,16 @@ function reasonLabelForEmail(reason: string): string {
 export async function sendBuyerEndedRealtorConnectionNotification(
   payload: BuyerEndedRealtorConnectionNotificationPayload
 ): Promise<void> {
+  const [investor] = await db
+    .select({ emailNotifications: investors.emailNotifications })
+    .from(investors)
+    .where(eq(investors.id, payload.investorId))
+    .limit(1)
+
+  if (!investor?.emailNotifications) {
+    return
+  }
+
   const buyer = payload.buyerName.trim() || "(unknown buyer)"
   const realtor = payload.realtorName.trim() || "there"
   const reasonLabel = reasonLabelForEmail(payload.reason.trim())
