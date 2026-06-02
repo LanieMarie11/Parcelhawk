@@ -6,14 +6,18 @@ import { db } from "@/db"
 import {
   buyerInvestorLinks,
   favorites,
+  investors,
   messageThreads,
   messages,
+  notifications,
   savedSearches,
   users,
   viewingRequests,
 } from "@/db/schema"
-import { eq, inArray } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
+import { sendBuyerAccountDeletedConfirmation } from "@/lib/email/send-buyer-account-deleted-confirmation"
+import { sendBuyerDeletedAccountNotification } from "@/lib/email/send-buyer-deleted-account-notification"
 
 function getUserId(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null
@@ -104,7 +108,13 @@ export async function DELETE() {
   }
 
   const [user] = await db
-    .select({ id: users.id })
+    .select({
+      id: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      email: users.email,
+      emailNotifications: users.emailNotifications,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1)
@@ -113,7 +123,64 @@ export async function DELETE() {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
+  const buyerName = `${user.firstName} ${user.lastName}`.trim() || "(unknown buyer)"
+
+  const activeLinks = await db
+    .select({
+      linkId: buyerInvestorLinks.id,
+      investorId: buyerInvestorLinks.investorId,
+      investorFirstName: investors.firstName,
+      investorLastName: investors.lastName,
+      investorEmail: investors.email,
+    })
+    .from(buyerInvestorLinks)
+    .innerJoin(investors, eq(buyerInvestorLinks.investorId, investors.id))
+    .where(and(eq(buyerInvestorLinks.buyerId, userId), eq(buyerInvestorLinks.status, "active")))
+
+  const realtorEmailPayloads = activeLinks
+    .filter((link) => link.investorEmail?.trim())
+    .map((link) => ({
+      buyerName,
+      realtorName:
+        `${link.investorFirstName} ${link.investorLastName}`.trim() || "there",
+      investorId: link.investorId,
+      realtorEmail: link.investorEmail.trim(),
+    }))
+
   await db.transaction(async (tx) => {
+    const removedNotification = {
+      type: "link_invitation" as const,
+      userId,
+      title: "Buyer removed from your network",
+      body: `${buyerName} deleted their ParcelHawk account and is no longer connected to you.`,
+      metadata: {
+        type: "link-invitation" as const,
+        sender: "buyer" as const,
+        status: "removed",
+        buyerName,
+        endedBy: "buyer" as const,
+        endReason: "account_deleted",
+      },
+      updatedAt: new Date(),
+    }
+
+    for (const link of activeLinks) {
+      await tx
+        .insert(notifications)
+        .values({
+          ...removedNotification,
+          investorId: link.investorId,
+          buyerInvestorLinkId: link.linkId,
+        })
+        .onConflictDoUpdate({
+          target: [notifications.userId, notifications.buyerInvestorLinkId],
+          set: {
+            ...removedNotification,
+            investorId: link.investorId,
+          },
+        })
+    }
+
     const buyerThreadRows = await tx
       .select({ id: messageThreads.id })
       .from(messageThreads)
@@ -130,7 +197,29 @@ export async function DELETE() {
     await tx.delete(favorites).where(eq(favorites.userId, userId))
     await tx.delete(savedSearches).where(eq(savedSearches.userId, userId))
     await tx.delete(users).where(eq(users.id, userId))
+    await tx.delete(notifications).where(eq(notifications.userId, userId))
   })
+
+  const buyerEmail = user.email?.trim() ?? ""
+  if (buyerEmail) {
+    try {
+      await sendBuyerAccountDeletedConfirmation({
+        buyerEmail,
+        buyerName,
+        emailNotifications: user.emailNotifications,
+      })
+    } catch (emailError) {
+      console.error("sendBuyerAccountDeletedConfirmation:", emailError)
+    }
+  }
+
+  for (const payload of realtorEmailPayloads) {
+    try {
+      await sendBuyerDeletedAccountNotification(payload)
+    } catch (emailError) {
+      console.error("sendBuyerDeletedAccountNotification:", emailError)
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }

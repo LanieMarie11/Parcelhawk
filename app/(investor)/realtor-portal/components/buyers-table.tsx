@@ -36,13 +36,23 @@ export function BuyersTable({
   onSelectBuyer,
 }: BuyersTableProps) {
   const [showAllRows, setShowAllRows] = useState(false);
+  const scorePriority: Record<BuyerRow["score"], number> = {
+    Hot: 0,
+    Warm: 1,
+    Cold: 2,
+  };
   const activeBuyerCount = buyerRows.length;
+  const sortedBuyerRows = useMemo(() => {
+    return [...buyerRows].sort(
+      (a, b) => scorePriority[a.score] - scorePriority[b.score]
+    );
+  }, [buyerRows]);
   const visibleBuyerRows = useMemo(() => {
-    if (showAllRows || buyerRows.length <= DEFAULT_VISIBLE_ROWS) {
-      return buyerRows;
+    if (showAllRows || sortedBuyerRows.length <= DEFAULT_VISIBLE_ROWS) {
+      return sortedBuyerRows;
     }
-    return buyerRows.slice(0, DEFAULT_VISIBLE_ROWS);
-  }, [buyerRows, showAllRows]);
+    return sortedBuyerRows.slice(0, DEFAULT_VISIBLE_ROWS);
+  }, [sortedBuyerRows, showAllRows]);
   const hasMoreRows = buyerRows.length > DEFAULT_VISIBLE_ROWS;
   const scoreTextClass: Record<BuyerRow["score"], string> = {
     Hot: "text-rose-600",

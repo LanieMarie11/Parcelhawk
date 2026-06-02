@@ -50,11 +50,11 @@ export default async function RealtorPortalSettingsPage() {
               {/* <LandPreferences /> */}
             </section>
             <section id="notification-preferences">
-              {/* <NotificationPreferences /> */}
+              <NotificationPreferences />
             </section>
-            <section id="saved-search-alerts">
+            {/* <section id="saved-search-alerts">
               <SavedSearchAlerts />
-            </section>
+            </section> */}
             <section id="invite-link-setting">
               <InviteLinkSetting />
             </section>

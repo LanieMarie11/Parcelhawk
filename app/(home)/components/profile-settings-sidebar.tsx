@@ -6,8 +6,10 @@ const navItems = [
   { href: "#personal-info", label: "Personal Info" },
   { href: "#land-preferences", label: "Land Preferences" },
   { href: "#notification-preferences", label: "Notification Preferences" },
-  { href: "#saved-search-alerts", label: "Saved Search Alerts" },
+  // { href: "#saved-search-alerts", label: "Saved Search Alerts" },
+  { href: "#realtor-connection", label: "Realtor Connection" },
   { href: "#security", label: "Security" },
+  { href: "#account-danger-zone", label: "Account Danger Zone" },
 ]
 
 export default function ProfileSettingsSidebar() {

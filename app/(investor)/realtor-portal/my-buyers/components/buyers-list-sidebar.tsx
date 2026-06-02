@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUpDown, Users } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowUpDown, Check } from "lucide-react";
 import MessageMembersIcon from "@/components/icons/message-members";
 import { buyerIntentScore } from "@/lib/buyer-intent-score";
 import { LastActiveText } from "./last-active-text";
@@ -34,6 +35,39 @@ export function BuyersListSidebar({
   selectedId,
   onSelectId,
 }: BuyersListSidebarProps) {
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<"hot" | "warm" | "cold">("hot");
+  const sortMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!sortMenuRef.current?.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const sortedBuyers = useMemo(() => {
+    const baseOrder: Array<"hot" | "warm" | "cold"> = ["hot", "warm", "cold"];
+    const prioritizedOrder = [sortBy, ...baseOrder.filter((score) => score !== sortBy)];
+    const priorityMap = new Map(prioritizedOrder.map((score, index) => [score, index]));
+
+    return [...buyers].sort((a, b) => {
+      const aScore = scoreBadge(a);
+      const bScore = scoreBadge(b);
+      return (priorityMap.get(aScore) ?? 99) - (priorityMap.get(bScore) ?? 99);
+    });
+  }, [buyers, sortBy]);
+
+  const sortOptions: Array<{ value: "hot" | "warm" | "cold"; label: string }> = [
+    { value: "hot", label: "Hot buyers" },
+    { value: "cold", label: "Cold buyers" },
+    { value: "warm", label: "Warm buyers" },
+  ];
+
   return (
     <aside className="flex w-full flex-col border-r-0 border-zinc-100 lg:w-[min(320px,30%)] lg:shrink-0 lg:border-r lg:pr-4">
       <header className="flex items-center border-b w-full justify-between gap-2 pb-3">
@@ -41,16 +75,51 @@ export function BuyersListSidebar({
           <MessageMembersIcon />
           My buyers
         </h2>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50"
-        >
-          <ArrowUpDown className="size-3.5" />
-          Sort by
-        </button>
+        <div className="relative" ref={sortMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsSortOpen((prev) => !prev)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50"
+            aria-haspopup="menu"
+            aria-expanded={isSortOpen}
+          >
+            <ArrowUpDown className="size-3.5" />
+            Sort by
+          </button>
+          {isSortOpen ? (
+            <div
+              role="menu"
+              className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[190px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg"
+            >
+              {sortOptions.map((option) => {
+                const active = option.value === sortBy;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={active}
+                    onClick={() => {
+                      setSortBy(option.value);
+                      setIsSortOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-5 py-2.5 text-left text-[14px] transition-colors ${
+                      active
+                        ? "bg-[#A8D7B7] text-[#1F4F35]"
+                        : "text-zinc-700 hover:bg-zinc-50"
+                    }`}
+                  >
+                    <span>{option.label}</span>
+                    {active ? <Check className="size-5 text-[#0FA958]" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
       </header>
       <div className="-mx-2 min-h-0 flex-1 overflow-y-auto pb-2">
-        {buyers.map((b) => {
+        {sortedBuyers.map((b) => {
           const active = b.id === selectedId;
           const score = scoreBadge(b);
           const rowClassName = [

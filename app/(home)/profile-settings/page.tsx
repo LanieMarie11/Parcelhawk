@@ -51,9 +51,9 @@ export default async function ProfileSettingsPage() {
             <section id="notification-preferences">
               <NotificationPreferences />
             </section>
-            <section id="saved-search-alerts">
+            {/* <section id="saved-search-alerts">
               <SavedSearchAlerts />
-            </section>
+            </section> */}
             <section id="security">
               <Security />
             </section>
