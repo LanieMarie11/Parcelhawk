@@ -200,7 +200,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
         <p className="mt-5 text-center text-base text-muted-foreground">
           {"Don't have an account? "}
           <a
-            href="#"
+            href="/sign-up"
             className="text-brand-green hover:text-brand-green-hover"
           >
             Join For Free

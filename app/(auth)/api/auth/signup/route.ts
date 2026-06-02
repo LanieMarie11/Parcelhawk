@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
-import { buyerInvestorLinks, investors, messageThreads, users } from "@/db/schema";
+import { buyerInvestorLinks, investors, messageThreads, notifications, users } from "@/db/schema";
 import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-connected-notification";
 import { generateReferralCode } from "@/lib/referral-code";
 import { eq } from "drizzle-orm";
@@ -110,12 +110,15 @@ export async function POST(request: Request) {
           .set({ referralId: effectiveReferralUrl })
           .where(eq(users.id, createdId));
 
-        await db.insert(buyerInvestorLinks).values({
-          buyerId: createdId,
-          investorId: referrer.id,
-          status: "active",
-          linkedVia,
-        });
+        const [link] = await db
+          .insert(buyerInvestorLinks)
+          .values({
+            buyerId: createdId,
+            investorId: referrer.id,
+            status: "active",
+            linkedVia,
+          })
+          .returning({ id: buyerInvestorLinks.id });
 
         await db
           .insert(messageThreads)
@@ -130,7 +133,39 @@ export async function POST(request: Request) {
         const buyerDisplayName =
           `${normalizedFirstName} ${normalizedLastName}`.trim() || "(unknown buyer)";
         const realtorDisplayName =
-          `${referrer.firstName} ${referrer.lastName}`.trim() || "there";
+          `${referrer.firstName} ${referrer.lastName}`.trim() || "A realtor";
+
+        if (linkedVia === "default") {
+          await db.insert(notifications).values({
+            type: "link_invitation",
+            userId: createdId,
+            investorId: referrer.id,
+            buyerInvestorLinkId: link.id,
+            title: "New buyer connected",
+            body: `${buyerDisplayName} signed up and was connected to your account on ParcelHawk.`,
+            metadata: {
+              type: "link-invitation",
+              sender: "buyer",
+              buyerName: buyerDisplayName,
+              status: "active",
+            },
+          });
+        } else {
+          await db.insert(notifications).values({
+            type: "link_invitation",
+            userId: createdId,
+            investorId: referrer.id,
+            buyerInvestorLinkId: link.id,
+            title: "Realtor invitation",
+            body: `${realtorDisplayName} invited you to link your account on ParcelHawk.`,
+            metadata: {
+              type: "link-invitation",
+              sender: "realtor",
+              investorName: realtorDisplayName,
+              status: "active",
+            },
+          });
+        }
 
         await sendBuyerConnectedToRealtorNotification({
           buyerName: buyerDisplayName,

@@ -4,11 +4,13 @@ import { useEffect, useState } from "react"
 
 const navItems = [
   { href: "#personal-info", label: "Personal Info" },
-  { href: "#land-preferences", label: "Land Preferences" },
-  { href: "#notification-preferences", label: "Notification Preferences" },
-  { href: "#saved-search-alerts", label: "Saved Search Alerts" },
+  // { href: "#land-preferences", label: "Land Preferences" },
+  // { href: "#notification-preferences", label: "Notification Preferences" },
+  // { href: "#saved-search-alerts", label: "Saved Search Alerts" },
   { href: "#invite-link-setting", label: "Invite Link" },
   { href: "#security", label: "Security" },
+  { href: "#buyer-connection-setting", label: "Buyer Connection" },
+  { href: "#account-danger-zone", label: "Account Danger Zone" },
 ]
 
 export default function SettingsSidebar() {
@@ -36,7 +38,7 @@ export default function SettingsSidebar() {
 
   return (
     <aside className="hidden lg:block">
-      <div className="sticky top-24">
+      <div className="sticky top-6 self-start">
         <nav className="space-y-2">
           {navItems.map((item) => (
             <a
