@@ -43,13 +43,13 @@ export function LinkedBuyersPanel({
             Linked Buyers
           </p>
         </div>
-        <button
+        {/* <button
           type="button"
           className="inline-flex items-center gap-2 rounded-2xl border border-zinc-300 bg-[#f7f8fa] px-3 py-1.5 text-sm font-semibold text-[#3e6540] transition-colors hover:bg-[#eef2f0]"
         >
           <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden />
           Sort by
-        </button>
+        </button> */}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

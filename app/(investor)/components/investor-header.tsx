@@ -19,8 +19,8 @@ type NavItem = {
 const realtorNavItems: readonly NavItem[] = [
   { href: "/realtor-portal", label: "Overview" },
   { href: "/realtor-portal/my-buyers", label: "My buyers" },
-  { href: "/realtor-portal/buyer-intel", label: "Buyer intel" },
-  { href: "/realtor-portal/curated-parcels", label: "Curated parcels" },
+  // { href: "/realtor-portal/buyer-intel", label: "Buyer intel" },
+  // { href: "/realtor-portal/curated-parcels", label: "Curated parcels" },
   { href: "/realtor-portal/analytics", label: "Analytics" },
   { href: "/realtor-portal/messages", label: "Messages" },
   { href: "/realtor-portal/invite-links", label: "Invite links" },
@@ -29,8 +29,8 @@ const realtorNavItems: readonly NavItem[] = [
 
 const investorNavItems: readonly NavItem[] = [
   { href: "/investor-portal", label: "Overview" },
-  { href: "/investor-portal/curated-parcels", label: "Curated parcels" },
-  { href: "/investor-portal/analytics", label: "Analytics" },
+  // { href: "/investor-portal/curated-parcels", label: "Curated parcels" },
+  // { href: "/investor-portal/analytics", label: "Analytics" },
   { href: "/realtor-portal/settings", label: "Settings" },
 ];
 
