@@ -127,10 +127,17 @@ export async function POST(request: Request) {
     }
 
     const [investor] = await db
-      .select({ referralUrl: investors.referralUrl })
+      .select({
+        referralUrl: investors.referralUrl,
+        firstName: investors.firstName,
+        lastName: investors.lastName,
+      })
       .from(investors)
       .where(eq(investors.id, investorId))
       .limit(1)
+
+    const realtorName =
+      `${investor?.firstName ?? ""} ${investor?.lastName ?? ""}`.trim() || "(unknown realtor)"
 
     await db.transaction(async (tx) => {
       await tx
@@ -171,8 +178,8 @@ export async function POST(request: Request) {
         buyerInvestorLinkId: link.id,
         title: "Realtor connection ended",
         body: endNote
-          ? `Your realtor connection was ended. Reason: ${endNote}`
-          : "Your realtor connection was ended.",
+          ? `${realtorName} ended connection with buyer. Reason: ${endNote}`
+          : `${realtorName} ended connection with buyer.`,
         metadata: {
           type: "link-invitation",
           sender: "realtor",
