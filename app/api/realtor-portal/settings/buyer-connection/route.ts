@@ -158,6 +158,12 @@ export async function POST(request: Request) {
           .where(and(eq(users.id, buyerId), eq(users.referralId, investor.referralUrl)))
       }
 
+      await tx
+        .delete(notifications)
+        .where(
+          and(eq(notifications.userId, buyerId), eq(notifications.investorId, investorId)),
+        )
+
       await tx.insert(notifications).values({
         type: "link_invitation",
         userId: buyerId,
