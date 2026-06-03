@@ -228,6 +228,9 @@ export async function GET() {
       .leftJoin(investors, eq(notifications.investorId, investors.id))
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
       .leftJoin(landListings, eq(notifications.listingId, landListings.id))
+      .where(
+        and(eq(notifications.userId, buyerUserId), isNull(notifications.dismissedAt)),
+      )
       .orderBy(desc(notifications.createdAt));
 
     return NextResponse.json({
