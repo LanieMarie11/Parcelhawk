@@ -2,7 +2,15 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
-import { buyerInvestorLinks, investors, messageThreads, messages, notifications, users } from "@/db/schema"
+import {
+  buyerInvestorLinks,
+  investors,
+  messageThreads,
+  messages,
+  notifications,
+  users,
+  viewingRequests,
+} from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { sendBuyerEndedRealtorConnectionNotification } from "@/lib/email/send-buyer-ended-realtor-connection-notification"
 
@@ -152,6 +160,12 @@ export async function POST(request: Request) {
         .set({ referralId: null, updatedAt: now })
         .where(eq(users.id, buyerId))
 
+      await tx
+        .delete(notifications)
+        .where(
+          and(eq(notifications.userId, buyerId), eq(notifications.investorId, link.investorId)),
+        )
+
       await tx.insert(notifications).values({
         type: "link_invitation",
         userId: buyerId,
@@ -171,6 +185,12 @@ export async function POST(request: Request) {
           endNote: endNote ?? undefined,
         },
       })
+
+      await tx
+        .delete(viewingRequests)
+        .where(
+          and(eq(viewingRequests.realtorId, link.investorId), eq(viewingRequests.buyerId, buyerId)),
+        )
 
       const pairThreadRows = await tx
         .select({ id: messageThreads.id })
