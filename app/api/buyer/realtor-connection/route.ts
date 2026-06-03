@@ -142,6 +142,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No active realtor connection found" }, { status: 409 })
     }
 
+    const [buyerRow] = await db
+      .select({
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(eq(users.id, buyerId))
+      .limit(1)
+
+    const buyerName =
+      `${buyerRow?.firstName ?? ""} ${buyerRow?.lastName ?? ""}`.trim() || "(unknown buyer)"
+
     await db.transaction(async (tx) => {
       await tx
         .update(buyerInvestorLinks)
@@ -173,8 +185,8 @@ export async function POST(request: Request) {
         buyerInvestorLinkId: link.id,
         title: "Realtor connection ended",
         body: endNote
-          ? `You ended your realtor connection. Reason: ${endNote}`
-          : "You ended your realtor connection.",
+          ? `${buyerName} ended connection with realtor. Reason: ${endNote}`
+          : `${buyerName} ended connection with realtor.`,
         metadata: {
           type: "link-invitation",
           sender: "buyer",
