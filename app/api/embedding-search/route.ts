@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { getEmbedding } from "@/lib/embedding";
 import { getBuyerViewingRequestListingIds } from "@/lib/get-buyer-viewing-request-listing-ids";
 import {
+  extractFiltersFromPrompt,
   extractFiltersWithLlm,
   type SearchQueryFilters,
 } from "@/lib/searchQueryExtraction";
@@ -44,160 +45,26 @@ function getTargetAcres(filters: SearchQueryFilters | undefined): number | null 
   return single != null && single > 0 ? single : null;
 }
 
+const AI_MATCHING_SCORE_TOTAL = 100;
+const SEMANTIC_SCORE_TOTAL = 70;
+const ACREAGE_SCORE_TOTAL = 30;
+
 function getAcreageMatchPoints(listingAcres: number | null, targetAcres: number | null): number | null {
   if (listingAcres == null || targetAcres == null || targetAcres <= 0) return null;
   const ratio = Math.abs(listingAcres - targetAcres) / targetAcres;
-  if (ratio <= 0.1) return 20;
-  if (ratio <= 0.25) return 15;
-  if (ratio <= 0.5) return 10;
+  if (ratio <= 0.1) return ACREAGE_SCORE_TOTAL;
+  if (ratio <= 0.25) return Math.round(ACREAGE_SCORE_TOTAL * 0.75);
+  if (ratio <= 0.5) return Math.round(ACREAGE_SCORE_TOTAL * 0.5);
   return 0;
 }
 
 function getSemanticMatchPoints(distance: number, minDistance: number, maxDistance: number): number {
   if (!Number.isFinite(distance)) return 0;
   if (!Number.isFinite(minDistance) || !Number.isFinite(maxDistance)) return 0;
-  if (maxDistance <= minDistance) return 50;
+  if (maxDistance <= minDistance) return SEMANTIC_SCORE_TOTAL;
   const normalized = (distance - minDistance) / (maxDistance - minDistance);
   const similarity = 1 - Math.min(Math.max(normalized, 0), 1);
-  return Math.round(similarity * 50);
-}
-
-const FEATURE_SCORE_TOTAL = 30;
-const SEMANTIC_SCORE_TOTAL = 50;
-const ACREAGE_SCORE_TOTAL = 20;
-const BASE_SIGNAL_WEIGHTS = {
-  semantic: SEMANTIC_SCORE_TOTAL,
-  acreage: ACREAGE_SCORE_TOTAL,
-  feature: FEATURE_SCORE_TOTAL,
-} as const;
-
-function getRedistributedSignalWeights(active: { acreage: boolean; feature: boolean }) {
-  const enabledWeightSum =
-    BASE_SIGNAL_WEIGHTS.semantic +
-    (active.acreage ? BASE_SIGNAL_WEIGHTS.acreage : 0) +
-    (active.feature ? BASE_SIGNAL_WEIGHTS.feature : 0);
-
-  // Semantic is always considered active.
-  // Semantic is always considered active.
-  if (enabledWeightSum <= 0) {
-    return {
-      semantic: BASE_SIGNAL_WEIGHTS.semantic,
-      acreage: 0,
-      feature: 0,
-    };
-  }
-
-  const scale = 100 / enabledWeightSum;
-  return {
-    semantic: BASE_SIGNAL_WEIGHTS.semantic * scale,
-    acreage: active.acreage ? BASE_SIGNAL_WEIGHTS.acreage * scale : 0,
-    feature: active.feature ? BASE_SIGNAL_WEIGHTS.feature * scale : 0,
-  };
-}
-
-const FEATURE_DESCRIPTION_PATTERNS = {
-  roadAccessConfirmed: {
-    positive: [
-      /road access/i,
-      /\baccess road\b/i,
-      /\bpaved road\b/i,
-      /\bgravel road\b/i,
-      /\bdriveway access\b/i,
-      /\blegal access\b/i,
-      /\bmaintained road\b/i,
-      /\bcounty road frontage\b/i,
-      /\bhighway frontage\b/i,
-      /\beasy access\b/i,
-      /\baccessible by road\b/i,
-    ],
-    negative: [
-      /no road access/i,
-      /without road access/i,
-      /\blandlocked\b/i,
-      /\bno legal access\b/i,
-      /\baccess unknown\b/i,
-      /\beasement required for access\b/i,
-      /\bprivate easement required\b/i,
-      /\blocked gate\b/i,
-    ],
-  },
-  noFloodZone: {
-    positive: [
-      /not in (a )?flood zone/i,
-      /outside (the )?flood zone/i,
-      /no flood zone/i,
-      /non[- ]flood zone/i,
-      /outside (the )?fema floodplain/i,
-      /not in (the )?floodplain/i,
-      /\bx zone\b/i,
-      /\bno flood risk\b/i,
-      /\bhigh and dry\b/i,
-    ],
-    negative: [
-      /in (a )?flood zone/i,
-      /\bflood zone\b/i,
-      /\bfema flood\b/i,
-      /\bin (the )?floodplain\b/i,
-      /\b100[- ]year floodplain\b/i,
-      /\bflood[- ]prone\b/i,
-      /\bsubject to flooding\b/i,
-      /\bwetland/i,
-    ],
-  },
-  utilitiesNearby: {
-    positive: [
-      /utilities (nearby|available)/i,
-      /power (nearby|at (the )?(road|street))/i,
-      /\belectric(ity)? at (the )?(road|street)\b/i,
-      /\bpower at (the )?property line\b/i,
-      /\butilities at (the )?street\b/i,
-      /\bwater (and )?sewer nearby\b/i,
-      /\bpublic utilities nearby\b/i,
-      /\belectric service available\b/i,
-    ],
-    negative: [
-      /\bno utilities\b/i,
-      /\butilities not available\b/i,
-      /\boff[- ]grid only\b/i,
-      /\bno electric(ity)?\b/i,
-      /\bno power nearby\b/i,
-      /\bno public utilities\b/i,
-      /\bwell and septic required\b/i,
-      /\bseptic required\b/i,
-    ],
-  },
-} as const;
-
-type FeatureKey = keyof typeof FEATURE_DESCRIPTION_PATTERNS;
-
-function parseTrueFeatureKeys(passedFeatureFilters: unknown): FeatureKey[] {
-  if (!passedFeatureFilters || typeof passedFeatureFilters !== "object") return [];
-  const filters = passedFeatureFilters as Record<string, unknown>;
-  return (Object.keys(FEATURE_DESCRIPTION_PATTERNS) as FeatureKey[]).filter(
-    (key) => filters[key] === true
-  );
-}
-
-function getFeatureEvidence(description: string, featureKey: FeatureKey): "positive" | "negative" | "unknown" {
-  const { positive, negative } = FEATURE_DESCRIPTION_PATTERNS[featureKey];
-  if (negative.some((re) => re.test(description))) return "negative";
-  if (positive.some((re) => re.test(description))) return "positive";
-  return "unknown";
-}
-
-function getFeatureMatchScore(descriptionRaw: unknown, requiredFeatures: FeatureKey[]): number {
-  if (requiredFeatures.length === 0) return 0;
-  const description = typeof descriptionRaw === "string" ? descriptionRaw : "";
-  const pointsPerFeature = FEATURE_SCORE_TOTAL / requiredFeatures.length;
-
-  let total = 0;
-  for (const featureKey of requiredFeatures) {
-    const evidence = getFeatureEvidence(description, featureKey);
-    if (evidence === "positive") total += pointsPerFeature;
-    else if (evidence === "unknown") total += pointsPerFeature * 0.5;
-  }
-
-  return Math.round(total);
+  return Math.round(similarity * SEMANTIC_SCORE_TOTAL);
 }
 
 function buildSqlFilterConditions(filters: SearchQueryFilters) {
@@ -290,17 +157,16 @@ function buildPromptFiltersPayload(
 }
 
 /**
- * POST: prompt + optional feature flags. LLM extracts SQL filters from the prompt.
- * Body: { prompt: string, features?: object }
+ * POST: natural-language search. LLM extracts SQL filters from the prompt.
+ * Body: { prompt: string }
  * Returns { listings, promptFilters } where promptFilters mirrors extracted state/county/price/acres.
  * Vector search uses embedding text from the same LLM call (semantic remainder), not the raw prompt.
+ * aiMatchingScore max 100: semantic (0–70) + acreage (0–30) when acres in query; else semantic scaled to 100.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
-    const passedFeatureFilters = body?.features;
-    console.log("embedding-search passedFeatureFilters", passedFeatureFilters);
     if (!prompt) {
       return NextResponse.json({ error: "Missing or empty prompt" }, { status: 400 });
     }
@@ -314,7 +180,8 @@ export async function POST(request: NextRequest) {
       embeddingQueryText = extraction.embeddingQueryText;
       console.log("embedding-search llmExtractedFilters", extractedFilters, "embeddingQueryText", embeddingQueryText);
     } catch (llmError) {
-      console.error("LLM filter extraction failed, continuing with embedding-only search:", llmError);
+      console.error("LLM filter extraction failed, using heuristic filters:", llmError);
+      extractedFilters = extractFiltersFromPrompt(prompt);
     }
 
     // SQL filter: get listing IDs that match extracted filters (price, acres, activities, propertyType).
@@ -384,7 +251,6 @@ export async function POST(request: NextRequest) {
     const minDistance = distances.length > 0 ? Math.min(...distances) : 0;
     const maxDistance = distances.length > 0 ? Math.max(...distances) : 0;
     const targetAcres = getTargetAcres(extractedFilters);
-    const requiredFeatureKeys = parseTrueFeatureKeys(passedFeatureFilters);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
@@ -404,11 +270,6 @@ export async function POST(request: NextRequest) {
     }
 
     const hasTargetAcres = targetAcres != null && targetAcres > 0;
-    const hasRequiredFeatureKeys = requiredFeatureKeys.length > 0;
-    const redistributedWeights = getRedistributedSignalWeights({
-      acreage: hasTargetAcres,
-      feature: hasRequiredFeatureKeys,
-    });
 
     const list = listings
       .map((row) => {
@@ -423,22 +284,10 @@ export async function POST(request: NextRequest) {
                 parseNonNegativeNumber((row as { acres?: unknown } | null | undefined)?.acres),
                 targetAcres
               ) ?? 0);
-        const featureMatchScore =
-          !hasRequiredFeatureKeys
-            ? 0
-            : getFeatureMatchScore(
-                (row as { description?: unknown } | null | undefined)?.description,
-                requiredFeatureKeys
-              );
-        const semanticNormalized = semanticMatchScore / SEMANTIC_SCORE_TOTAL;
-        const acreageNormalized = acreageMatchScore / ACREAGE_SCORE_TOTAL;
-        const featureNormalized = featureMatchScore / FEATURE_SCORE_TOTAL;
-        const aiMatchingScore = Math.round(
-          semanticNormalized * redistributedWeights.semantic +
-            acreageNormalized * redistributedWeights.acreage +
-            featureNormalized * redistributedWeights.feature
-        );
-        console.log("👍semanticMatchScore", semanticMatchScore, "acreageMatchScore", acreageMatchScore, "featureMatchScore", featureMatchScore, "aiMatchingScore", aiMatchingScore);
+        const aiMatchingScore = hasTargetAcres
+          ? semanticMatchScore + acreageMatchScore
+          : Math.round((semanticMatchScore / SEMANTIC_SCORE_TOTAL) * AI_MATCHING_SCORE_TOTAL);
+        console.log("👍semanticMatchScore", semanticMatchScore, "acreageMatchScore", acreageMatchScore, "aiMatchingScore", aiMatchingScore);
 
         return {
           ...row,
@@ -446,7 +295,6 @@ export async function POST(request: NextRequest) {
           hasViewingRequest: viewingRequestListingIds.has(row.id),
           semanticMatchScore,
           acreageMatchScore,
-          featureMatchScore,
           aiMatchingScore,
         };
       })

@@ -250,7 +250,8 @@ async function callVertexLlm(prompt: string): Promise<string> {
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0,
-      maxOutputTokens: 384,
+      maxOutputTokens: 1024,
+      responseMimeType: "application/json",
     },
   };
 
@@ -296,19 +297,25 @@ function stripJsonFromMarkdown(text: string): string {
   return s.trim();
 }
 
-export async function extractFiltersWithLlm(userPrompt: string): Promise<ExtractFiltersWithLlmResult> {
-  const trimmedPrompt = userPrompt.trim();
-  const extractionPrompt = buildSearchExtractionPrompt(trimmedPrompt);
-  const raw = await callVertexLlm(extractionPrompt);
+function parseLlmExtractionJson(raw: string): LlmExtractionJson | null {
   const jsonStr = stripJsonFromMarkdown(raw);
-
-  let parsed: LlmExtractionJson;
   try {
-    parsed = JSON.parse(jsonStr) as LlmExtractionJson;
-  } catch (err) {
-    throw new Error(`Failed to parse LLM extraction JSON: ${(err as Error).message}`);
+    return JSON.parse(jsonStr) as LlmExtractionJson;
+  } catch {
+    const start = jsonStr.indexOf("{");
+    const end = jsonStr.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(jsonStr.slice(start, end + 1)) as LlmExtractionJson;
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
+}
 
+function mapLlmJsonToResult(parsed: LlmExtractionJson): ExtractFiltersWithLlmResult {
   const filters: SearchQueryFilters = {};
 
   const toNumber = (value: unknown): number | undefined => {
@@ -393,5 +400,25 @@ export async function extractFiltersWithLlm(userPrompt: string): Promise<Extract
       : null;
 
   return { filters, embeddingQueryText };
+}
+
+export async function extractFiltersWithLlm(userPrompt: string): Promise<ExtractFiltersWithLlmResult> {
+  const trimmedPrompt = userPrompt.trim();
+  const extractionPrompt = buildSearchExtractionPrompt(trimmedPrompt);
+  const raw = await callVertexLlm(extractionPrompt);
+  const parsed = parseLlmExtractionJson(raw);
+
+  if (!parsed) {
+    console.warn(
+      "LLM extraction JSON parse failed, using heuristic filter extraction. Raw (first 500 chars):",
+      raw.slice(0, 500)
+    );
+    return {
+      filters: extractFiltersFromPrompt(trimmedPrompt),
+      embeddingQueryText: trimmedPrompt,
+    };
+  }
+
+  return mapLlmJsonToResult(parsed);
 }
 

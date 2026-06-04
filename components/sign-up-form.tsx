@@ -170,6 +170,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: createdUserId,
+            about: prefs.about,
             budget: prefs.budget,
             acreage: prefs.acreage,
             purpose: prefs.purpose,
@@ -360,6 +361,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
           onContinue={handleContinueFromPreferences}
           onSkip={() => {
             setCompletedPreferences({
+              about: "",
               budget: null,
               acreage: null,
               purpose: null,
