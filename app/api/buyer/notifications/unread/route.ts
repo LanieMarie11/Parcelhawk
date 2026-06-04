@@ -47,9 +47,8 @@ export async function GET() {
         .where(
           and(
             eq(notifications.userId, buyerUserId),
-            isNull(notifications.readAt),
-            isNull(notifications.dismissedAt),
-            sql`${notifications.metadata} ->> 'sender' = 'realtor'`,
+            isNull(notifications.buyerReadAt),
+            isNull(notifications.buyerDeleteAt),
           ),
         ),
     ]);

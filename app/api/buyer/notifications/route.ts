@@ -91,11 +91,8 @@ function investorInitials(firstName: string | null, lastName: string | null): st
   return initials || "?";
 }
 
-function isBuyerUnread(metadata: NotificationMetadata | null, readAt: Date | null): boolean {
-  if (metadata?.sender === "buyer") {
-    return false;
-  }
-  return readAt == null;
+function isBuyerUnread(buyerReadAt: Date | null): boolean {
+  return buyerReadAt == null;
 }
 
 function mapNotificationRow(row: {
@@ -103,7 +100,7 @@ function mapNotificationRow(row: {
   type: "viewing_request" | "link_invitation";
   title: string | null;
   body: string | null;
-  readAt: Date | null;
+  buyerReadAt: Date | null;
   createdAt: Date;
   metadata: NotificationMetadata | null;
   investorFirstName: string | null;
@@ -128,46 +125,46 @@ function mapNotificationRow(row: {
   if (row.type === "link_invitation") {
     const isEnded = row.metadata?.status === "ended";
 
-    if (isEnded) {
+    
       return {
         id: row.id,
         title: row.title ?? "Realtor connection ended",
         timestamp: formatRelativeTime(row.createdAt),
-        readAt: row.readAt ? row.readAt.toISOString() : undefined,
+        readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
         category: "Invitation",
         description:
           row.body ??
           (investorName
             ? `Your connection with ${investorName} has ended.`
             : "Your realtor connection has ended."),
-        unread: isBuyerUnread(row.metadata, row.readAt),
+        unread: isBuyerUnread(row.buyerReadAt),
         avatar,
         actions: {
           type: "single",
           label: "View details",
         },
       };
-    }
+    
 
-    return {
-      id: row.id,
-      title: row.title ?? "New Realtor Connection Request",
-      timestamp: formatRelativeTime(row.createdAt),
-      readAt: row.readAt ? row.readAt.toISOString() : undefined,
-      category: "Invitation",
-      description:
-        row.body ??
-        (investorName
-          ? `${investorName} wants to connect with you as your dedicated land specialist.`
-          : "A realtor wants to connect with you on ParcelHawk."),
-      unread: isBuyerUnread(row.metadata, row.readAt),
-      avatar,
-      actions: {
-        type: "dual",
-        primary: { label: "Connect" },
-        secondary: { label: "Ignore" },
-      },
-    };
+    // return {
+    //   id: row.id,
+    //   title: row.title ?? "New Realtor Connection Request",
+    //   timestamp: formatRelativeTime(row.createdAt),
+    //   readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
+    //   category: "Invitation",
+    //   description:
+    //     row.body ??
+    //     (investorName
+    //       ? `${investorName} wants to connect with you as your dedicated land specialist.`
+    //       : "A realtor wants to connect with you on ParcelHawk."),
+    //   unread: isBuyerUnread(row.buyerReadAt),
+    //   avatar,
+    //   actions: {
+    //     type: "dual",
+    //     primary: { label: "Connect" },
+    //     secondary: { label: "Ignore" },
+    //   },
+    // };
   }
 
   const listingLabel = row.metadata?.listingTitle ?? row.listingTitle ?? "a parcel";
@@ -177,14 +174,14 @@ function mapNotificationRow(row: {
     id: row.id,
     title: row.title ?? "Viewing request update",
     timestamp: formatRelativeTime(row.createdAt),
-    readAt: row.readAt ? row.readAt.toISOString() : undefined,
+    readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
     category: "Viewing request",
     description:
       row.body ??
       (status
         ? `Your viewing request for ${listingLabel} is now ${status}.`
         : `There is an update on your viewing request for ${listingLabel}.`),
-    unread: isBuyerUnread(row.metadata, row.readAt),
+    unread: isBuyerUnread(row.buyerReadAt),
     actions: {
       type: "single",
       label: "View Details",
@@ -213,7 +210,7 @@ export async function GET() {
         type: notifications.type,
         title: notifications.title,
         body: notifications.body,
-        readAt: notifications.readAt,
+        buyerReadAt: notifications.buyerReadAt,
         createdAt: notifications.createdAt,
         metadata: notifications.metadata,
         listingId: notifications.listingId,
@@ -229,7 +226,7 @@ export async function GET() {
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
       .leftJoin(landListings, eq(notifications.listingId, landListings.id))
       .where(
-        and(eq(notifications.userId, buyerUserId), isNull(notifications.dismissedAt)),
+        and(eq(notifications.userId, buyerUserId), isNull(notifications.buyerDeleteAt)),
       )
       .orderBy(desc(notifications.createdAt));
 
@@ -286,10 +283,6 @@ export async function POST(request: Request) {
 
     if (!targetNotification) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 });
-    }
-
-    if (targetNotification.metadata?.sender === "buyer") {
-      return NextResponse.json({ ok: true, skipped: true });
     }
 
     let updated: { id: string } | undefined;
@@ -380,7 +373,7 @@ export async function POST(request: Request) {
 
         const [updatedNotification] = await tx
           .update(notifications)
-          .set({ readAt: now, updatedAt: now })
+          .set({ buyerReadAt: now, updatedAt: now })
           .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
           .returning({ id: notifications.id });
 
@@ -443,13 +436,13 @@ export async function POST(request: Request) {
     } else if (action === "ignore") {
       [updated] = await db
         .update(notifications)
-        .set({ dismissedAt: now, readAt: now, updatedAt: now })
+        .set({ buyerDeleteAt: now, buyerReadAt: now, updatedAt: now })
         .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
         .returning({ id: notifications.id });
     } else {
       [updated] = await db
         .update(notifications)
-        .set({ readAt: now, updatedAt: now })
+        .set({ buyerReadAt: now, updatedAt: now })
         .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
         .returning({ id: notifications.id });
     }
