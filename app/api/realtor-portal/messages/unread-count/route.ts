@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm"
 import { db } from "@/db"
-import { messages, messageThreads, notifications, type NotificationMetadata, viewingRequests } from "@/db/schema"
+import { messages, messageThreads, notifications, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -63,16 +63,19 @@ export async function GET() {
         ),
       )
 
-    const notificationRows = await db
-      .select({ metadata: notifications.metadata })
+    const [notificationUnreadResult] = await db
+      .select({ unreadCount: sql<number>`count(*)` })
       .from(notifications)
-      .where(and(eq(notifications.investorId, investorId), isNull(notifications.dismissedAt)))
+      .where(
+        and(
+          eq(notifications.investorId, investorId),
+          isNull(notifications.realtorReadAt),
+          isNull(notifications.realtorDeleteAt),
+          sql`${notifications.metadata} ->> 'sender' = 'buyer'`,
+        ),
+      )
 
-    const notificationUnreadCount = notificationRows.reduce((count, row) => {
-      const metadata = row.metadata as NotificationMetadata | null
-      if (metadata?.sender === "realtor") return count
-      return metadata?.realtorReadAt == null ? count + 1 : count
-    }, 0)
+    const notificationUnreadCount = Number(notificationUnreadResult?.unreadCount ?? 0)
 
     const unreadCount =
       Number(messageResult?.unreadCount ?? 0) + Number(viewingRequestResult?.unreadCount ?? 0)

@@ -7,7 +7,7 @@ import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   NotificationCard,
   type NotificationItem,
-} from "../../../components/notification-card"
+} from "../../../(buyer)/notifications/components/notification-card"
 
 const SORT_OPTIONS = ["Unread", "Newest", "Oldest", "All"] as const
 

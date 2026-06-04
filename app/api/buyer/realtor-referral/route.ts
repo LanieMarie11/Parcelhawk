@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/db"
-import { buyerInvestorLinks, investors, messageThreads, users } from "@/db/schema"
+import { buyerInvestorLinks, investors, messageThreads, notifications, users } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-connected-notification"
 
@@ -126,6 +126,7 @@ export async function POST(request: Request) {
             updatedAt: now,
           })
           .where(eq(buyerInvestorLinks.id, existingActiveLink.id))
+  // TODO : when buyer connected with new realtor, previous messages with russell has to be deleted?
 
         await tx.insert(buyerInvestorLinks).values({
           buyerId,
@@ -175,7 +176,37 @@ export async function POST(request: Request) {
       }
 
       const buyerName = `${buyer.firstName} ${buyer.lastName}`.trim() || "(unknown buyer)"
-      const realtorName = `${investor.firstName} ${investor.lastName}`.trim() || "there"
+      const realtorName =
+        `${investor.firstName} ${investor.lastName}`.trim() || "their realtor"
+
+      const [activeLink] = await tx
+        .select({ id: buyerInvestorLinks.id })
+        .from(buyerInvestorLinks)
+        .where(
+          and(
+            eq(buyerInvestorLinks.buyerId, buyerId),
+            eq(buyerInvestorLinks.investorId, investor.id),
+            eq(buyerInvestorLinks.status, "active"),
+          ),
+        )
+        .limit(1)
+
+      if (activeLink) {
+        await tx.insert(notifications).values({
+          type: "link_invitation",
+          userId: buyerId,
+          investorId: investor.id,
+          buyerInvestorLinkId: activeLink.id,
+          title: "New buyer connected",
+          body: `${buyerName} connected with ${realtorName} on ParcelHawk via ${realtorName}'s referral link.`,
+          metadata: {
+            type: "link-invitation",
+            sender: "buyer",
+            buyerName,
+            status: "active",
+          },
+        })
+      }
 
       return {
         ok: true as const,

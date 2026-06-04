@@ -7,7 +7,7 @@ import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   NotificationCard,
   type NotificationItem,
-} from "../../components/notification-card"
+} from "./components/notification-card"
 
 const SORT_OPTIONS = ["Unread", "Newest", "Oldest", "All"] as const
 
@@ -75,7 +75,7 @@ export default function BuyerNotificationsPage() {
 
   const markRead = (id: string) => {
     const target = findNotification(id)
-    if (target?.actions.type === "single" && !target.actions.href) {
+    if (target?.actions.type === "single") {
       void postNotificationAction(id, "read")
     }
     setNotifications((prev) =>

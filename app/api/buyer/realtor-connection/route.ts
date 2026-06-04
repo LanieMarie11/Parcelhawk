@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { and, desc, eq, inArray } from "drizzle-orm"
+import { and, desc, eq, inArray, or } from "drizzle-orm"
 import { db } from "@/db"
 import {
   buyerInvestorLinks,
@@ -172,31 +172,34 @@ export async function POST(request: Request) {
         .set({ referralId: null, updatedAt: now })
         .where(eq(users.id, buyerId))
 
-      await tx
-        .delete(notifications)
-        .where(
-          and(eq(notifications.userId, buyerId), eq(notifications.investorId, link.investorId)),
-        )
+      // await tx
+      //   .delete(notifications)
+      //   .where(
+      //     and(eq(notifications.userId, buyerId), eq(notifications.investorId, link.investorId)),
+      //   )
 
-      await tx.insert(notifications).values({
-        type: "link_invitation",
-        userId: buyerId,
-        investorId: link.investorId,
-        buyerInvestorLinkId: link.id,
-        title: "Realtor connection ended",
-        body: endNote
-          ? `${buyerName} ended connection with realtor. Reason: ${endNote}`
-          : `${buyerName} ended connection with realtor.`,
-        metadata: {
-          type: "link-invitation",
-          sender: "buyer",
-          status: "ended",
-          endedAt: now.toISOString(),
-          endedBy: "buyer",
-          endReason: reasonRaw,
-          endNote: endNote ?? undefined,
-        },
-      })
+      const [inserted] = await tx
+        .insert(notifications)
+        .values({
+          type: "link_invitation",
+          userId: buyerId,
+          investorId: link.investorId,
+          buyerInvestorLinkId: link.id,
+          title: "Realtor connection ended",
+          body: endNote
+            ? `${buyerName} ended connection with realtor. Reason: ${endNote}`
+            : `${buyerName} ended connection with realtor.`,
+          metadata: {
+            type: "link-invitation",
+            sender: "buyer",
+            status: "ended",
+            endedAt: now.toISOString(),
+            endedBy: "buyer",
+            endReason: reasonRaw,
+            endNote: endNote ?? undefined,
+          },
+        })
+        .returning({ id: notifications.id })
 
       await tx
         .delete(viewingRequests)

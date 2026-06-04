@@ -88,11 +88,14 @@ function formatBuyerName(
   return name.length > 0 ? name : "A buyer"
 }
 
-function isRealtorUnread(metadata: NotificationMetadata | null): boolean {
+function isRealtorUnread(
+  metadata: NotificationMetadata | null,
+  realtorReadAt: Date | null,
+): boolean {
   if (metadata?.sender === "realtor") {
     return false
   }
-  return metadata?.realtorReadAt == null
+  return realtorReadAt == null
 }
 
 function viewingRequestDetailsHref(
@@ -110,6 +113,7 @@ function mapNotificationRow(row: {
   type: "viewing_request" | "link_invitation"
   title: string | null
   body: string | null
+  realtorReadAt: Date | null
   createdAt: Date
   metadata: NotificationMetadata | null
   buyerUserId: string
@@ -125,8 +129,7 @@ function mapNotificationRow(row: {
     initials: buyerInitials(row.buyerFirstName, row.buyerLastName),
     bgColor: avatarColor(row.buyerUserId),
   }
-  const realtorReadAt = row.metadata?.realtorReadAt
-  const readAtIso = realtorReadAt ? new Date(realtorReadAt).toISOString() : undefined
+  const readAtIso = row.realtorReadAt ? row.realtorReadAt.toISOString() : undefined
 
   if (row.type === "link_invitation") {
     const isPending = row.metadata?.status === "pending" || row.metadata?.status == null
@@ -141,7 +144,7 @@ function mapNotificationRow(row: {
         description:
           row.body ??
           `You invited ${buyerName} to connect on ParcelHawk. Waiting for their response.`,
-        unread: isRealtorUnread(row.metadata),
+        unread: isRealtorUnread(row.metadata, row.realtorReadAt),
         avatar,
         actions: {
           type: "single",
@@ -158,7 +161,7 @@ function mapNotificationRow(row: {
       readAt: readAtIso,
       category: "Invitation",
       description: row.body ?? `${buyerName} updated their connection status.`,
-      unread: isRealtorUnread(row.metadata),
+      unread: isRealtorUnread(row.metadata, row.realtorReadAt),
       avatar,
       actions: {
         type: "single",
@@ -181,7 +184,7 @@ function mapNotificationRow(row: {
       status && status !== "pending"
         ? `${buyerName}'s viewing request for ${listingLabel} is now ${status}.`
         : `${buyerName} requested a viewing for ${listingLabel}.`,
-    unread: isRealtorUnread(row.metadata),
+    unread: isRealtorUnread(row.metadata, row.realtorReadAt),
     avatar,
     actions: {
       type: "single",
@@ -211,6 +214,7 @@ export async function GET() {
         type: notifications.type,
         title: notifications.title,
         body: notifications.body,
+        realtorReadAt: notifications.realtorReadAt,
         createdAt: notifications.createdAt,
         metadata: notifications.metadata,
         buyerUserId: notifications.userId,
@@ -225,7 +229,7 @@ export async function GET() {
       .innerJoin(users, eq(notifications.userId, users.id))
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
       .leftJoin(landListings, eq(notifications.listingId, landListings.id))
-      .where(and(eq(notifications.investorId, investorId), isNull(notifications.dismissedAt)))
+      .where(and(eq(notifications.investorId, investorId), isNull(notifications.realtorDeleteAt)))
       .orderBy(desc(notifications.createdAt))
 
     const notificationsList = rows
@@ -289,14 +293,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, skipped: true })
     }
 
-    const metadata: NotificationMetadata = {
-      ...(existing.metadata ?? {}),
-      realtorReadAt: now.toISOString(),
-    }
-
     const [updated] = await db
       .update(notifications)
-      .set({ metadata, readAt: now, updatedAt: now })
+      .set({ realtorReadAt: now, updatedAt: now })
       .where(and(eq(notifications.id, id), eq(notifications.investorId, investorId)))
       .returning({ id: notifications.id })
 

@@ -32,7 +32,6 @@ export type NotificationMetadata = {
   listingTitle?: string;
   investorName?: string;
   buyerName?: string;
-  realtorReadAt?: string;
   endedAt?: string;
   endedBy?: "realtor" | "buyer" | "system";
   endReason?: string;
@@ -66,15 +65,17 @@ export const notifications = pgTable(
     ),
     title: text("title"),
     body: text("body"),
-    readAt: timestamp("read_at", { withTimezone: true }),
-    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    buyerReadAt: timestamp("buyer_read_at", { withTimezone: true }),
+    realtorReadAt: timestamp("realtor_read_at", { withTimezone: true }),
+    buyerDeleteAt: timestamp("buyer_delete_at", { withTimezone: true }),
+    realtorDeleteAt: timestamp("realtor_delete_at", { withTimezone: true }),
     metadata: jsonb("metadata").$type<NotificationMetadata>(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("notifications_user_created_idx").on(table.userId, table.createdAt),
-    index("notifications_user_unread_idx").on(table.userId, table.readAt),
+    index("notifications_user_unread_idx").on(table.userId, table.buyerReadAt),
     uniqueIndex("notifications_viewing_request_recipient_idx").on(
       table.userId,
       table.viewingRequestId,
