@@ -60,6 +60,7 @@ const TIMEFRAME_OPTIONS = [
 ] as const
 
 export type SignUpPreferencesData = {
+  about: string
   budget: string | null
   acreage: string | null
   purpose: string | null
@@ -82,6 +83,7 @@ export function SignUpPreferencesStep({
   onContinue,
   onSkip,
 }: SignUpPreferencesStepProps) {
+  const [about, setAbout] = useState("")
   const [budget, setBudget] = useState<string | null>("$10K-$30K")
   const [acreage, setAcreage] = useState<string | null>(ACREAGE_OPTIONS[0])
   const [purpose, setPurpose] = useState<string | null>(null)
@@ -96,6 +98,21 @@ export function SignUpPreferencesStep({
         <p className="mt-1 text-base font-regular text-muted-foreground">
           &quot;Helps us find the right land and connect you with the right agents.&quot;
         </p>
+
+        {/* About */}
+        <div className="mt-6 flex flex-col gap-1.5">
+          <label htmlFor="about" className="text-sm text-muted-foreground">
+            About (What you&apos;re looking for)
+          </label>
+          <textarea
+            id="about"
+            value={about}
+            onChange={(e) => setAbout(e.target.value)}
+            placeholder="Example: I'm looking for 10-20 acres in Colorado with road access, utilites nearby, and a budget under $250,000."
+            rows={4}
+            className="resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+          />
+        </div>
 
         {/* Budget */}
         <div className="mt-6">
@@ -198,7 +215,7 @@ export function SignUpPreferencesStep({
           </button>
           <button
             type="button"
-            onClick={() => onContinue({ budget, acreage, purpose, timeframe })}
+            onClick={() => onContinue({ about, budget, acreage, purpose, timeframe })}
             className="w-full rounded-xl bg-brand-green py-3 text-base font-medium text-white shadow-md transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
           >
             Continue

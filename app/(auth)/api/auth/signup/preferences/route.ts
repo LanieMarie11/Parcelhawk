@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 
 type Body = {
   userId: string;
+  about?: string | null;
   budget: string | null;
   acreage: string | null;
   purpose: string | null;
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
     }
 
     const updates: {
+      about?: string | null;
       preferenceBudget?: string | null;
       preferenceAcreage?: string | null;
       preferencePurpose?: string | null;
@@ -31,6 +33,9 @@ export async function POST(request: Request) {
       updatedAt: Date;
     } = { updatedAt: new Date() };
 
+    if (body.about !== undefined) {
+      updates.about = body.about === "" ? null : body.about;
+    }
     if (body.budget !== undefined) {
       updates.preferenceBudget = body.budget;
     }

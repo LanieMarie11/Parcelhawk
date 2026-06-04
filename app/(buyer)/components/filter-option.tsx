@@ -118,7 +118,7 @@ export default function FilterOption({
       <span className="invisible select-none text-xs font-normal" aria-hidden>
         Price Range
       </span>
-      <div className="mt-1.5">
+      {/* <div className="mt-1.5">
         <button
           type="button"
           onClick={() => setOpen((prev) => !prev)}
@@ -138,7 +138,7 @@ export default function FilterOption({
             </span>
           )}
         </button>
-      </div>
+      </div> */}
 
       {open && (
         <div className="absolute left-0 top-full z-50 mt-2 flex w-full min-w-[320px] max-w-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
