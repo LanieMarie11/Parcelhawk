@@ -157,7 +157,7 @@ export async function POST(request: Request) {
             investorId: referrer.id,
             buyerInvestorLinkId: link.id,
             title: "Realtor invitation",
-            body: `${realtorDisplayName} invited you to link your account on ParcelHawk.`,
+            body: `${realtorDisplayName} invited ${buyerDisplayName} to link their account on ParcelHawk.`,
             metadata: {
               type: "link-invitation",
               sender: "realtor",

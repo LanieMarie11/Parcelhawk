@@ -108,7 +108,7 @@ export default function RealtorNotificationsPage() {
       <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-3xl font-ibm-plex-sans font-semibold tracking-tight text-[#111827]">
+            <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">
               Notifications
             </h1>
             <p className="mt-1 max-w-2xl text-base font-ibm-plex-sans text-[#6B7280]">

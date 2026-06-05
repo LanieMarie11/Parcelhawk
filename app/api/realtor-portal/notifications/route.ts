@@ -88,13 +88,7 @@ function formatBuyerName(
   return name.length > 0 ? name : "A buyer"
 }
 
-function isRealtorUnread(
-  metadata: NotificationMetadata | null,
-  realtorReadAt: Date | null,
-): boolean {
-  if (metadata?.sender === "realtor") {
-    return false
-  }
+function isRealtorUnread(realtorReadAt: Date | null): boolean {
   return realtorReadAt == null
 }
 
@@ -144,12 +138,11 @@ function mapNotificationRow(row: {
         description:
           row.body ??
           `You invited ${buyerName} to connect on ParcelHawk. Waiting for their response.`,
-        unread: isRealtorUnread(row.metadata, row.realtorReadAt),
+        unread: isRealtorUnread(row.realtorReadAt),
         avatar,
         actions: {
           type: "single",
           label: "View buyers",
-          href: "/realtor-portal/my-buyers",
         },
       }
     }
@@ -161,12 +154,11 @@ function mapNotificationRow(row: {
       readAt: readAtIso,
       category: "Invitation",
       description: row.body ?? `${buyerName} updated their connection status.`,
-      unread: isRealtorUnread(row.metadata, row.realtorReadAt),
+      unread: isRealtorUnread(row.realtorReadAt),
       avatar,
       actions: {
         type: "single",
         label: "View buyers",
-        href: "/realtor-portal/my-buyers",
       },
     }
   }
@@ -184,7 +176,7 @@ function mapNotificationRow(row: {
       status && status !== "pending"
         ? `${buyerName}'s viewing request for ${listingLabel} is now ${status}.`
         : `${buyerName} requested a viewing for ${listingLabel}.`,
-    unread: isRealtorUnread(row.metadata, row.realtorReadAt),
+    unread: isRealtorUnread(row.realtorReadAt),
     avatar,
     actions: {
       type: "single",
@@ -287,10 +279,6 @@ export async function POST(request: Request) {
 
     if (!existing) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 })
-    }
-
-    if (existing.metadata?.sender === "realtor") {
-      return NextResponse.json({ ok: true, skipped: true })
     }
 
     const [updated] = await db
