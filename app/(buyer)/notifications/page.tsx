@@ -7,7 +7,7 @@ import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   NotificationCard,
   type NotificationItem,
-} from "./components/notification-card"
+} from "../../../components/notification-card"
 
 const SORT_OPTIONS = ["Unread", "Newest", "Oldest", "All"] as const
 
@@ -15,7 +15,7 @@ type NotificationsResponse = {
   notifications?: NotificationItem[]
 }
 
-async function postNotificationAction(id: string, action: "connect" | "ignore" | "read") {
+async function postNotificationAction(id: string, action: "connect" | "ignore" | "read" | "delete") {
   await fetch("/api/buyer/notifications", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -99,6 +99,11 @@ export default function BuyerNotificationsPage() {
     markRead(id)
   }
 
+  const deleteNotification = (id: string) => {
+    void postNotificationAction(id, "delete")
+    setNotifications((prev) => prev.filter((item) => item.id !== id))
+  }
+
   if (loading) {
     return <PageLoadingIndicator />
   }
@@ -159,6 +164,7 @@ export default function BuyerNotificationsPage() {
                 onMarkRead={markRead}
                 onConnect={connectNotificationAction}
                 onIgnore={removeNotification}
+                onDelete={deleteNotification}
               />
             ))
           )}

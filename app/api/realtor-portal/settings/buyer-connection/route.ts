@@ -139,6 +139,18 @@ export async function POST(request: Request) {
     const realtorName =
       `${investor?.firstName ?? ""} ${investor?.lastName ?? ""}`.trim() || "(unknown realtor)"
 
+    const [buyerRow] = await db
+      .select({
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(eq(users.id, buyerId))
+      .limit(1)
+
+    const buyerName =
+      `${buyerRow?.firstName ?? ""} ${buyerRow?.lastName ?? ""}`.trim() || "(unknown buyer)"
+
     await db.transaction(async (tx) => {
       await tx
         .update(buyerInvestorLinks)
@@ -165,12 +177,6 @@ export async function POST(request: Request) {
           .where(and(eq(users.id, buyerId), eq(users.referralId, investor.referralUrl)))
       }
 
-      await tx
-        .delete(notifications)
-        .where(
-          and(eq(notifications.userId, buyerId), eq(notifications.investorId, investorId)),
-        )
-
       await tx.insert(notifications).values({
         type: "link_invitation",
         userId: buyerId,
@@ -178,8 +184,8 @@ export async function POST(request: Request) {
         buyerInvestorLinkId: link.id,
         title: "Realtor connection ended",
         body: endNote
-          ? `${realtorName} ended connection with buyer. Reason: ${endNote}`
-          : `${realtorName} ended connection with buyer.`,
+          ? `${realtorName} ended connection with ${buyerName}. Reason: ${endNote}`
+          : `${realtorName} ended connection with ${buyerName}.`,
         metadata: {
           type: "link-invitation",
           sender: "realtor",
@@ -212,11 +218,15 @@ export async function POST(request: Request) {
         )
     })
 
-    await afterRealtorEndsBuyerConnection({
-      buyerId,
-      investorId,
-      endNote,
-    })
+    try {
+      await afterRealtorEndsBuyerConnection({
+        buyerId,
+        investorId,
+        endNote,
+      })
+    } catch (hookError) {
+      console.error("afterRealtorEndsBuyerConnection:", hookError)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

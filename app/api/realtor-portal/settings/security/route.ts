@@ -2,16 +2,18 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
 import { compare, hash } from "bcryptjs"
+import { and, eq, inArray } from "drizzle-orm"
 import { db } from "@/db"
 import {
   buyerInvestorLinks,
   investors,
   messageThreads,
   messages,
+  users,
   viewingRequests,
 } from "@/db/schema"
-import { eq, inArray } from "drizzle-orm"
 import { authOptions } from "@/lib/auth"
+import { sendRealtorDeletedAccountNotification } from "@/lib/email/send-realtor-deleted-account-notification"
 
 type SessionUser = {
   id?: string
@@ -118,7 +120,11 @@ export async function DELETE() {
   }
 
   const [investor] = await db
-    .select({ id: investors.id })
+    .select({
+      id: investors.id,
+      firstName: investors.firstName,
+      lastName: investors.lastName,
+    })
     .from(investors)
     .where(eq(investors.id, userId))
     .limit(1)
@@ -126,6 +132,35 @@ export async function DELETE() {
   if (!investor) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
+
+  const realtorName =
+    `${investor.firstName} ${investor.lastName}`.trim() || "Your realtor"
+
+  const activeLinks = await db
+    .select({
+      buyerId: buyerInvestorLinks.buyerId,
+      buyerFirstName: users.firstName,
+      buyerLastName: users.lastName,
+      buyerEmail: users.email,
+    })
+    .from(buyerInvestorLinks)
+    .innerJoin(users, eq(buyerInvestorLinks.buyerId, users.id))
+    .where(
+      and(
+        eq(buyerInvestorLinks.investorId, userId),
+        eq(buyerInvestorLinks.status, "active"),
+      ),
+    )
+
+  const buyerEmailPayloads = activeLinks
+    .filter((link) => link.buyerEmail?.trim())
+    .map((link) => ({
+      buyerId: link.buyerId,
+      buyerEmail: link.buyerEmail.trim(),
+      buyerName:
+        `${link.buyerFirstName} ${link.buyerLastName}`.trim() || "there",
+      realtorName,
+    }))
 
   await db.transaction(async (tx) => {
     const investorThreadRows = await tx
@@ -143,6 +178,14 @@ export async function DELETE() {
 
     await tx.delete(investors).where(eq(investors.id, userId))
   })
+
+  for (const payload of buyerEmailPayloads) {
+    try {
+      await sendRealtorDeletedAccountNotification(payload)
+    } catch (emailError) {
+      console.error("sendRealtorDeletedAccountNotification:", emailError)
+    }
+  }
 
   return NextResponse.json({ ok: true })
 }
