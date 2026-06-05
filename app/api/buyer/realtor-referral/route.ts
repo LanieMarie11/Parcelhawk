@@ -70,52 +70,41 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Realtor not found for this referral URL" }, { status: 404 })
   }
 
-  const [existingLinkToInvestor] = await db
-    .select({ id: buyerInvestorLinks.id })
+  const activeLinks = await db
+    .select({
+      id: buyerInvestorLinks.id,
+      investorId: buyerInvestorLinks.investorId,
+      investorEmail: investors.email,
+    })
     .from(buyerInvestorLinks)
-    .where(
-      and(
-        eq(buyerInvestorLinks.buyerId, buyerId),
-        eq(buyerInvestorLinks.investorId, investor.id),
-        eq(buyerInvestorLinks.status, "active"),
-      ),
-    )
-    .limit(1)
+    .innerJoin(investors, eq(buyerInvestorLinks.investorId, investors.id))
+    .where(and(eq(buyerInvestorLinks.buyerId, buyerId), eq(buyerInvestorLinks.status, "active")))
+
+  const existingLinkToInvestor = activeLinks.find((link) => link.investorId === investor.id)
 
   if (existingLinkToInvestor) {
-    return NextResponse.json({ ok: true, alreadyConnected: true })
+    return NextResponse.json({ error: "You are already connected to this realtor" }, { status: 409 })
+  }
+
+  const existingOtherLink = activeLinks.find((link) => {
+    const existingEmail = link.investorEmail?.trim().toLowerCase() ?? ""
+    const isDefaultRealtor =
+      Boolean(DEFAULT_INVESTOR_EMAIL) && existingEmail === DEFAULT_INVESTOR_EMAIL
+    return !isDefaultRealtor
+  })
+
+  if (existingOtherLink) {
+    return NextResponse.json(
+      { error: "You are already connected to another realtor" },
+      { status: 409 },
+    )
   }
 
   const now = new Date()
 
   try {
     const result = await db.transaction(async (tx) => {
-      const [existingActiveLink] = await tx
-        .select({
-          id: buyerInvestorLinks.id,
-          investorId: buyerInvestorLinks.investorId,
-        })
-        .from(buyerInvestorLinks)
-        .where(
-          and(eq(buyerInvestorLinks.buyerId, buyerId), eq(buyerInvestorLinks.status, "active")),
-        )
-        .limit(1)
-
-      if (existingActiveLink && existingActiveLink.investorId !== investor.id) {
-        const [existingInvestor] = await tx
-          .select({ email: investors.email })
-          .from(investors)
-          .where(eq(investors.id, existingActiveLink.investorId))
-          .limit(1)
-
-        const existingEmail = existingInvestor?.email?.trim().toLowerCase() ?? ""
-        const isDefaultRealtor =
-          Boolean(DEFAULT_INVESTOR_EMAIL) && existingEmail === DEFAULT_INVESTOR_EMAIL
-
-        if (!isDefaultRealtor) {
-          return { error: "already_linked_other" as const }
-        }
-
+      if (activeLinks.length > 0) {
         // await tx
         //   .update(buyerInvestorLinks)
         //   .set({
@@ -126,22 +115,15 @@ export async function POST(request: Request) {
         //     updatedAt: now,
         //   })
         //   .where(eq(buyerInvestorLinks.id, existingActiveLink.id))
-  // TODO : when buyer connected with new realtor, previous messages with russell has to be deleted?
-
-        await tx.insert(buyerInvestorLinks).values({
-          buyerId,
-          investorId: investor.id,
-          status: "active",
-          linkedVia: "referral_link",
-        })
-      } else if (!existingActiveLink) {
-        await tx.insert(buyerInvestorLinks).values({
-          buyerId,
-          investorId: investor.id,
-          status: "active",
-          linkedVia: "referral_link",
-        })
+        // TODO : when buyer connected with new realtor, previous messages with russell has to be deleted?
       }
+
+      await tx.insert(buyerInvestorLinks).values({
+        buyerId,
+        investorId: investor.id,
+        status: "active",
+        linkedVia: "referral_link",
+      })
 
       await tx
         .update(users)
@@ -218,15 +200,6 @@ export async function POST(request: Request) {
         },
       }
     })
-
-    if ("error" in result) {
-      if (result.error === "already_linked_other") {
-        return NextResponse.json(
-          { error: "You are already connected to another realtor" },
-          { status: 409 },
-        )
-      }
-    }
 
     if (result.emailPayload) {
       try {

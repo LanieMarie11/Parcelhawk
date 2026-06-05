@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const [existingLink] = await db
+    const activeLinks = await db
       .select({
         id: buyerInvestorLinks.id,
         investorId: buyerInvestorLinks.investorId,
@@ -88,23 +88,24 @@ export async function POST(request: Request) {
       .from(buyerInvestorLinks)
       .innerJoin(investors, eq(buyerInvestorLinks.investorId, investors.id))
       .where(and(eq(buyerInvestorLinks.buyerId, buyer.id), eq(buyerInvestorLinks.status, "active")))
-      .limit(1)
+    const existingLinkToInvestor = activeLinks.find((link) => link.investorId === investorId)
 
-    if (existingLink) {
-      if (existingLink.investorId === investorId) {
-        return NextResponse.json({ error: "This buyer is already in your network" }, { status: 409 })
-      }
+    if (existingLinkToInvestor) {
+      return NextResponse.json({ error: "This buyer is already in your network" }, { status: 409 })
+    }
 
-      const existingEmail = existingLink.investorEmail?.trim().toLowerCase() ?? ""
+    const existingOtherLink = activeLinks.find((link) => {
+      const existingEmail = link.investorEmail?.trim().toLowerCase() ?? ""
       const isDefaultRealtor =
         Boolean(DEFAULT_INVESTOR_EMAIL) && existingEmail === DEFAULT_INVESTOR_EMAIL
+      return !isDefaultRealtor
+    })
 
-      if (!isDefaultRealtor) {
-        return NextResponse.json(
-          { error: "This buyer is already linked to another realtor" },
-          { status: 409 },
-        )
-      }
+    if (existingOtherLink) {
+      return NextResponse.json(
+        { error: "This buyer is already linked to another realtor" },
+        { status: 409 },
+      )
     }
 
     const now = new Date()
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
     const buyerName = `${buyer.firstName} ${buyer.lastName}`.trim() || "(unknown buyer)"
 
     const result = await db.transaction(async (tx) => {
-      if (existingLink) {
+      if (activeLinks.length > 0) {
         // await tx
         //   .update(buyerInvestorLinks)
         //   .set({
