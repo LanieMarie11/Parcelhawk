@@ -165,20 +165,11 @@ export async function DELETE() {
     }
 
     for (const link of activeLinks) {
-      await tx
-        .insert(notifications)
-        .values({
-          ...removedNotification,
-          investorId: link.investorId,
-          buyerInvestorLinkId: link.linkId,
-        })
-        .onConflictDoUpdate({
-          target: [notifications.userId, notifications.buyerInvestorLinkId],
-          set: {
-            ...removedNotification,
-            investorId: link.investorId,
-          },
-        })
+      await tx.insert(notifications).values({
+        ...removedNotification,
+        investorId: link.investorId,
+        buyerInvestorLinkId: link.linkId,
+      })
     }
 
     const buyerThreadRows = await tx

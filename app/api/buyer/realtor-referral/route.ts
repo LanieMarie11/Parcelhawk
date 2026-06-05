@@ -116,16 +116,16 @@ export async function POST(request: Request) {
           return { error: "already_linked_other" as const }
         }
 
-        await tx
-          .update(buyerInvestorLinks)
-          .set({
-            status: "ended",
-            endedAt: now,
-            endedBy: "buyer",
-            endReason: "found_different_realtor",
-            updatedAt: now,
-          })
-          .where(eq(buyerInvestorLinks.id, existingActiveLink.id))
+        // await tx
+        //   .update(buyerInvestorLinks)
+        //   .set({
+        //     status: "ended",
+        //     endedAt: now,
+        //     endedBy: "buyer",
+        //     endReason: "found_different_realtor",
+        //     updatedAt: now,
+        //   })
+        //   .where(eq(buyerInvestorLinks.id, existingActiveLink.id))
   // TODO : when buyer connected with new realtor, previous messages with russell has to be deleted?
 
         await tx.insert(buyerInvestorLinks).values({
