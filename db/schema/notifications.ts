@@ -80,7 +80,7 @@ export const notifications = pgTable(
       table.userId,
       table.viewingRequestId,
     ),
-    uniqueIndex("notifications_link_invitation_recipient_idx").on(
+    index("notifications_link_invitation_recipient_idx").on(
       table.userId,
       table.buyerInvestorLinkId,
     ),

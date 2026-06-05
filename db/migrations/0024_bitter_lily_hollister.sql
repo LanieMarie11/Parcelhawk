@@ -1,0 +1,2 @@
+DROP INDEX "notifications_link_invitation_recipient_idx";--> statement-breakpoint
+CREATE INDEX "notifications_link_invitation_recipient_idx" ON "notifications" USING btree ("user_id","buyer_investor_link_id");
