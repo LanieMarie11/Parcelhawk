@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { Trash2 } from "lucide-react"
 
 export type NotificationCategory =
   | "Parcel match"
@@ -34,6 +35,7 @@ type NotificationCardProps = {
   onMarkRead?: (id: string) => void
   onIgnore?: (id: string) => void
   onConnect?: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
 function isExternalHref(href: string): boolean {
@@ -86,6 +88,7 @@ export function NotificationCard({
   onMarkRead,
   onIgnore,
   onConnect,
+  onDelete,
 }: NotificationCardProps) {
   const { unread, title, timestamp, category, description, avatar, actions, readAt } = notification
 
@@ -185,6 +188,16 @@ export function NotificationCard({
             <span className="text-xs text-[#6B7280]">
               {readAtLabel ? `Read on ${readAtLabel}` : "Read"}
             </span>
+          ) : null}
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={() => onDelete(notification.id)}
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#EE5A5A] transition-colors hover:bg-red-50"
+              aria-label="Delete notification"
+            >
+              <Trash2 className="size-4" />
+            </button>
           ) : null}
         </div>
       </div>

@@ -262,7 +262,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Notification id is required" }, { status: 400 })
   }
 
-  if (action !== "read") {
+  if (action !== "read" && action !== "delete") {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   }
 
@@ -279,6 +279,20 @@ export async function POST(request: Request) {
 
     if (!existing) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 })
+    }
+
+    if (action === "delete") {
+      const [deleted] = await db
+        .update(notifications)
+        .set({ realtorReadAt: now, realtorDeleteAt: now, updatedAt: now })
+        .where(and(eq(notifications.id, id), eq(notifications.investorId, investorId)))
+        .returning({ id: notifications.id })
+
+      if (!deleted) {
+        return NextResponse.json({ error: "Notification not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({ ok: true })
     }
 
     const [updated] = await db
