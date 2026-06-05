@@ -71,7 +71,6 @@ export async function GET() {
           eq(notifications.investorId, investorId),
           isNull(notifications.realtorReadAt),
           isNull(notifications.realtorDeleteAt),
-          sql`${notifications.metadata} ->> 'sender' = 'buyer'`,
         ),
       )
 
