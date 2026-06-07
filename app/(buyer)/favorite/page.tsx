@@ -104,7 +104,6 @@ function FavoritePropertyCard({
   onViewingRequestSent: (listingId: number) => void
   isRemovingFavorite: boolean
 }) {
-  const { data: session } = useSession()
   const [isParcelPreviewOpen, setIsParcelPreviewOpen] = useState(false)
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false)
@@ -220,29 +219,37 @@ function FavoritePropertyCard({
           ))}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsOrderReportOpen(true)}
+              className="min-w-0 flex-1 rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
+            >
+              Order Report
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsViewRequestOpen(true)}
+              className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
+            >
+              View Request
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRemoveConfirmOpen(true)}
+              disabled={isRemovingFavorite}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#EE5A5A] transition-colors hover:bg-red-50"
+              aria-label="Remove from favorites"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
           <button
             type="button"
-            onClick={() => setIsOrderReportOpen(true)}
-            className="flex-1 rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
+            className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
           >
-            Order Report
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsViewRequestOpen(true)}
-            className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
-          >
-            View Request
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsRemoveConfirmOpen(true)}
-            disabled={isRemovingFavorite}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[#EE5A5A] transition-colors hover:bg-red-50"
-            aria-label="Remove from favorites"
-          >
-            <Trash2 className="h-4 w-4" />
+            Utility Search
           </button>
         </div>
       </div>
@@ -281,10 +288,8 @@ function FavoritePropertyCard({
     <OrderPropertyReportModal
       open={isOrderReportOpen}
       onClose={() => setIsOrderReportOpen(false)}
+      listingId={listing.id}
       propertySubtitle={listing.name}
-      defaultFullName={session?.user?.name ?? ""}
-      defaultEmail={session?.user?.email ?? ""}
-      defaultParcelAddress={(locationLine || listing.name || "").trim()}
     />
 
     {isRemoveConfirmOpen ? (
