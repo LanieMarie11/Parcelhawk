@@ -1,38 +1,83 @@
 "use client"
 
-import { FileText, X } from "lucide-react"
+import { FileText, Loader2, X } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { toast } from "sonner"
+
+const BUYER_PROPERTY_REPORTS_PATH = "/api/buyer/property-reports"
+
+export type PropertyReportResponse = {
+  ok: true
+  listingId: number
+}
+
+async function submitPropertyReportOrder(listingId: number): Promise<PropertyReportResponse> {
+  const res = await fetch(BUYER_PROPERTY_REPORTS_PATH, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ listingId }),
+  })
+  const data = (await res.json().catch(() => ({}))) as PropertyReportResponse & { error?: string }
+
+  if (!res.ok) {
+    throw new Error(typeof data.error === "string" ? data.error : "Request failed")
+  }
+
+  if (data.ok !== true || typeof data.listingId !== "number") {
+    throw new Error("Invalid response from server")
+  }
+
+  return { ok: true, listingId: data.listingId }
+}
 
 export type OrderPropertyReportModalProps = {
   open: boolean
   onClose: () => void
+  listingId: number
   /** Shown under the main title (e.g. listing name). */
   propertySubtitle: string
-  defaultFullName?: string
-  defaultEmail?: string
-  defaultParcelAddress?: string
 }
+
+type RequestState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success"; data: PropertyReportResponse }
+  | { status: "error"; message: string }
 
 export function OrderPropertyReportModal({
   open,
   onClose,
+  listingId,
   propertySubtitle,
-  defaultFullName = "",
-  defaultEmail = "",
-  defaultParcelAddress = "",
 }: OrderPropertyReportModalProps) {
   const titleId = useId()
-  const [fullName, setFullName] = useState("")
-  const [email, setEmail] = useState("")
-  const [parcelAddress, setParcelAddress] = useState("")
+  const [requestState, setRequestState] = useState<RequestState>({ status: "idle" })
 
   useEffect(() => {
-    if (!open) return
-    setFullName(defaultFullName.trim())
-    setEmail(defaultEmail.trim())
-    setParcelAddress(defaultParcelAddress.trim())
-  }, [open, defaultFullName, defaultEmail, defaultParcelAddress])
+    if (!open) {
+      setRequestState({ status: "idle" })
+      return
+    }
+
+    let cancelled = false
+    setRequestState({ status: "loading" })
+
+    void submitPropertyReportOrder(listingId)
+      .then((data) => {
+        if (!cancelled) setRequestState({ status: "success", data })
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setRequestState({
+            status: "error",
+            message: error instanceof Error ? error.message : "Failed to submit report request",
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, listingId])
 
   if (!open) return null
 
@@ -74,75 +119,43 @@ export function OrderPropertyReportModal({
         </div>
 
         <div className="p-4">
-          <div className="rounded-xl border border-emerald-200/90 bg-[#EDFCEA] px-3.5 py-3">
-            <div className="flex gap-2.5">
-              <span className="text-lg leading-none" aria-hidden>
-                🚧
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[#2D5A36]">Coming Soon</p>
-                <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#4b5563]">
-                  Full report generation is in development. Register your interest below and we will reach out as soon
-                  as it&apos;s ready.
-                </p>
-              </div>
+          {requestState.status === "loading" ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-brand-green" aria-hidden />
+              <p className="text-sm text-muted-foreground">Submitting report request...</p>
             </div>
-          </div>
+          ) : null}
 
-          <div className="space-y-3 pt-8">
-            <label className="block">
-              <span className="text-md font-ibm-plex-sans font-regular text-[#001225]">Full name</span>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter full name"
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-[#f3f4f6] px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-300"
-              />
-            </label>
-            <label className="block">
-              <span className="text-md font-ibm-plex-sans font-regular text-[#001225]">Email Address</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Jane@example.com"
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-[#f3f4f6] px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-300"
-              />
-            </label>
-            <label className="block">
-              <span className="text-md font-ibm-plex-sans font-regular text-[#001225]">Parcel Address / Location</span>
-              <input
-                type="text"
-                value={parcelAddress}
-                onChange={(e) => setParcelAddress(e.target.value)}
-                placeholder="Example Location"
-                className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-[#f3f4f6] px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-300"
-              />
-            </label>
-          </div>
+          {requestState.status === "success" ? (
+            <div className="rounded-xl border border-emerald-200/90 bg-[#EDFCEA] px-3.5 py-3">
+              <p className="text-sm font-semibold text-[#2D5A36]">Request submitted</p>
+              <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#4b5563]">
+                Your property report request was received for listing ID{" "}
+                <span className="font-medium">{requestState.data.listingId}</span>.
+              </p>
+              <pre className="mt-3 overflow-x-auto rounded-lg bg-white/80 p-3 text-xs text-[#374151]">
+                {JSON.stringify(requestState.data, null, 2)}
+              </pre>
+            </div>
+          ) : null}
 
-          <div className="flex gap-2 pt-6 pb-4">
+          {requestState.status === "error" ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
+              <p className="text-sm font-semibold text-[#B3261E]">Request failed</p>
+              <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#7f1d1d]">
+                {requestState.message}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="pt-6 pb-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-ibm-plex-sans font-medium text-[#374151] transition-colors hover:bg-zinc-50"
+              disabled={requestState.status === "loading"}
+              className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (!email.trim()) {
-                  toast.error("Please enter your email address.")
-                  return
-                }
-                toast.success("Thanks — we'll notify you when property reports are available.")
-                onClose()
-              }}
-              className="min-w-[52%] flex-1 rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover"
-            >
-              Register Interest
+              Close
             </button>
           </div>
         </div>
