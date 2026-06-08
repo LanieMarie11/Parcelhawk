@@ -8,6 +8,7 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { formatPropertyLocation } from "@/app/(buyer)/components/property-card"
 import { OrderPropertyReportModal } from "@/app/(buyer)/favorite/components/order-property-report-modal"
+import { UtilitySearchModal } from "@/app/(buyer)/favorite/components/utility-search-modal"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
 import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
@@ -108,6 +109,7 @@ function FavoritePropertyCard({
   const [isViewRequestOpen, setIsViewRequestOpen] = useState(false)
   const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false)
   const [isOrderReportOpen, setIsOrderReportOpen] = useState(false)
+  const [isUtilitySearchOpen, setIsUtilitySearchOpen] = useState(false)
   const satelliteUrl = resolveListingSatellitePreviewUrl(listing) ?? null
   const cardImageSrc = getFavoriteCardImageSrc(listing)
   const priceText = formatPrice(listing.price)
@@ -247,6 +249,7 @@ function FavoritePropertyCard({
           </div>
           <button
             type="button"
+            onClick={() => setIsUtilitySearchOpen(true)}
             className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-zinc-50"
           >
             Utility Search
@@ -288,6 +291,13 @@ function FavoritePropertyCard({
     <OrderPropertyReportModal
       open={isOrderReportOpen}
       onClose={() => setIsOrderReportOpen(false)}
+      listingId={listing.id}
+      propertySubtitle={listing.name}
+    />
+
+    <UtilitySearchModal
+      open={isUtilitySearchOpen}
+      onClose={() => setIsUtilitySearchOpen(false)}
       listingId={listing.id}
       propertySubtitle={listing.name}
     />
