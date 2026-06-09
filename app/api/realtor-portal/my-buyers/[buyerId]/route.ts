@@ -32,11 +32,9 @@ function formatPrice(value: string | null): string {
   return `$${Math.round(amount).toLocaleString("en-US")}`;
 }
 
-function formatAcreage(value: string | null): string {
-  if (!value) return "-";
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return "-";
-  return `${amount} ac`;
+function formatAcreage(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${value} ac`;
 }
 
 function buildSubtitle(city: string | null, state: string | null): string {
