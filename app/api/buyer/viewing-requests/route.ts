@@ -5,7 +5,7 @@ import { db } from "@/db"
 import {
   favorites,
   investors,
-  landListings,
+  landUpdatedListings,
   notifications,
   users,
   viewingRequests,
@@ -93,14 +93,14 @@ export async function POST(request: Request) {
 
     const [listingRow] = await db
       .select({
-        id: landListings.id,
-        title: landListings.title,
-        address1: landListings.address1,
-        city: landListings.city,
-        stateAbbreviation: landListings.stateAbbreviation,
+        id: landUpdatedListings.id,
+        title: landUpdatedListings.title,
+        address1: landUpdatedListings.address1,
+        city: landUpdatedListings.city,
+        stateAbbreviation: landUpdatedListings.stateAbbreviation,
       })
-      .from(landListings)
-      .where(eq(landListings.id, listingId))
+      .from(landUpdatedListings)
+      .where(eq(landUpdatedListings.id, listingId))
       .limit(1)
 
     if (!listingRow) {

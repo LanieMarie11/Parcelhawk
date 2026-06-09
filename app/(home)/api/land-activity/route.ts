@@ -1,9 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { and, arrayContains, desc, eq, gte, lte, or } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landListings } from "@/db/schema";
+import { favorites, landUpdatedListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import { jsonbArrayContains } from "@/lib/land-updated-listing-filters";
 
 function parseNumParam(value: string | null): number | null {
   if (value == null || value.trim() === "") return null;
@@ -24,36 +25,46 @@ export async function GET(request: NextRequest) {
 
     const conditions = [];
     if (type) {
-      conditions.push(arrayContains(landListings.activities, [type]));
+      conditions.push(jsonbArrayContains(landUpdatedListings.activities, type));
     }
     if (activities.length > 0) {
-      conditions.push(or(...activities.map((a) => arrayContains(landListings.activities, [a])))!);
+      conditions.push(
+        or(...activities.map((a) => jsonbArrayContains(landUpdatedListings.activities, a)))!
+      );
     }
     if (propertyTypes.length > 0) {
-      conditions.push(or(...propertyTypes.map((t) => arrayContains(landListings.propertyType, [t])))!);
+      conditions.push(
+        or(
+          ...propertyTypes.map((t) => jsonbArrayContains(landUpdatedListings.propertyType, t))
+        )!
+      );
     }
     if (minPrice != null) {
-      conditions.push(gte(landListings.price, String(minPrice)));
+      conditions.push(gte(landUpdatedListings.price, String(minPrice)));
     }
     if (maxPrice != null) {
-      conditions.push(lte(landListings.price, String(maxPrice)));
+      conditions.push(lte(landUpdatedListings.price, String(maxPrice)));
     }
     if (minAcres != null) {
-      conditions.push(gte(landListings.acres, String(minAcres)));
+      conditions.push(gte(landUpdatedListings.acres, minAcres));
     }
     if (maxAcres != null) {
-      conditions.push(lte(landListings.acres, String(maxAcres)));
+      conditions.push(lte(landUpdatedListings.acres, maxAcres));
     }
 
     const rows =
       conditions.length > 0
         ? await db
             .select()
-            .from(landListings)
+            .from(landUpdatedListings)
             .where(and(...conditions))
-            .orderBy(desc(landListings.listingDate))
+            .orderBy(desc(landUpdatedListings.listedDate))
             .limit(100)
-        : await db.select().from(landListings).orderBy(desc(landListings.listingDate)).limit(8);
+        : await db
+            .select()
+            .from(landUpdatedListings)
+            .orderBy(desc(landUpdatedListings.listedDate))
+            .limit(8);
 
     const session = await getServerSession(authOptions);
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;

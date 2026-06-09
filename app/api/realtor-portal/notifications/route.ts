@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { and, desc, eq, isNull } from "drizzle-orm"
 import { db } from "@/db"
 import {
-  landListings,
+  landUpdatedListings,
   notifications,
   users,
   viewingRequests,
@@ -213,14 +213,14 @@ export async function GET() {
         buyerFirstName: users.firstName,
         buyerLastName: users.lastName,
         listingId: notifications.listingId,
-        listingTitle: landListings.title,
-        listingUrl: landListings.url,
+        listingTitle: landUpdatedListings.title,
+        listingUrl: landUpdatedListings.url,
         viewingStatus: viewingRequests.status,
       })
       .from(notifications)
       .innerJoin(users, eq(notifications.userId, users.id))
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
-      .leftJoin(landListings, eq(notifications.listingId, landListings.id))
+      .leftJoin(landUpdatedListings, eq(notifications.listingId, landUpdatedListings.id))
       .where(and(eq(notifications.investorId, investorId), isNull(notifications.realtorDeleteAt)))
       .orderBy(desc(notifications.createdAt))
 

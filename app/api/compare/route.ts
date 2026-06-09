@@ -3,12 +3,13 @@ import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
 import { and, eq, inArray, type InferSelectModel } from "drizzle-orm"
 import { db } from "@/db"
-import { favorites, landListings } from "@/db/schema"
+import { favorites, landUpdatedListings } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
 import { summarizeComparedListingsWithLlm } from "@/lib/ai-description-summary"
+import { jsonbArrayFirst } from "@/lib/land-updated-listing-filters"
 
-type LandListing = InferSelectModel<typeof landListings>
+type LandListing = InferSelectModel<typeof landUpdatedListings>
 type CompareListingRow = Pick<
   LandListing,
   | "id"
@@ -18,13 +19,11 @@ type CompareListingRow = Pick<
   | "city"
   | "county"
   | "stateAbbreviation"
-  | "listingDate"
+  | "listedDate"
   | "latitude"
   | "longitude"
-  | "photos"
   | "propertyType"
   | "propertyAmenities"
-  | "brokerCompanyName"
   | "description"
   | "url"
 >
@@ -66,25 +65,23 @@ export async function POST(request: Request) {
 
   const rows: CompareListingRow[] = await db
     .select({
-      id: landListings.id,
-      title: landListings.title,
-      price: landListings.price,
-      acres: landListings.acres,
-      city: landListings.city,
-      county: landListings.county,
-      stateAbbreviation: landListings.stateAbbreviation,
-      listingDate: landListings.listingDate,
-      latitude: landListings.latitude,
-      longitude: landListings.longitude,
-      photos: landListings.photos,
-      propertyType: landListings.propertyType,
-      propertyAmenities: landListings.propertyAmenities,
-      brokerCompanyName: landListings.brokerCompanyName,
-      description: landListings.description,
-      url: landListings.url,
+      id: landUpdatedListings.id,
+      title: landUpdatedListings.title,
+      price: landUpdatedListings.price,
+      acres: landUpdatedListings.acres,
+      city: landUpdatedListings.city,
+      county: landUpdatedListings.county,
+      stateAbbreviation: landUpdatedListings.stateAbbreviation,
+      listedDate: landUpdatedListings.listedDate,
+      latitude: landUpdatedListings.latitude,
+      longitude: landUpdatedListings.longitude,
+      propertyType: landUpdatedListings.propertyType,
+      propertyAmenities: landUpdatedListings.propertyAmenities,
+      description: landUpdatedListings.description,
+      url: landUpdatedListings.url,
     })
     .from(favorites)
-    .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
+    .innerJoin(landUpdatedListings, eq(favorites.landListingId, landUpdatedListings.id))
     .where(
       and(
         eq(favorites.userId, userId),
@@ -109,11 +106,11 @@ export async function POST(request: Request) {
               .join(", ")
           : ""
       const daysOnMarket =
-        row.listingDate != null
+        row.listedDate != null
           ? Math.max(
               0,
               Math.floor(
-                (Date.now() - new Date(row.listingDate).getTime()) /
+                (Date.now() - new Date(row.listedDate).getTime()) /
                   (1000 * 60 * 60 * 24)
               )
             )
@@ -122,7 +119,7 @@ export async function POST(request: Request) {
       const descriptionText = descriptionToText(row.description)
       const inferredFeatures = await inferFeaturesFromDescriptionWithLlm(descriptionText)
 
-      const photoFallback = row.photos?.[0] ?? "/placeholder.svg"
+      const photoFallback = "/placeholder.svg"
 
       return {
         id: row.id,
@@ -140,9 +137,9 @@ export async function POST(request: Request) {
         utilities: inferredFeatures.utilities === "Not provided"
           ? amenities || "Not provided"
           : inferredFeatures.utilities,
-        zoning: row.propertyType?.[0] ?? "Not provided",
+        zoning: jsonbArrayFirst(row.propertyType) ?? "Not provided",
         aiMatchScore: Math.max(60, 92 - index * 4),
-        source: row.brokerCompanyName || "Land listing source",
+        source: "Land listing source",
         daysOnMarket: daysOnMarket != null ? `${daysOnMarket} days` : "N/A",
       }
     })
