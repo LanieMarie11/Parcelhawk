@@ -1,6 +1,6 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { landListings, viewingRequests } from "@/db/schema";
+import { landUpdatedListings, viewingRequests } from "@/db/schema";
 import { buildLandListingFullAddress } from "@/lib/format-thread-message";
 import type { ThreadViewingRowForMerge } from "@/lib/thread-timeline";
 
@@ -18,19 +18,19 @@ export async function fetchViewingRowsWithListingsForThread(
       completedAt: viewingRequests.completedAt,
       createdAt: viewingRequests.createdAt,
       updatedAt: viewingRequests.updatedAt,
-      listingPrice: landListings.price,
-      listingAcres: landListings.acres,
-      address1: landListings.address1,
-      city: landListings.city,
-      stateAbbreviation: landListings.stateAbbreviation,
-      stateName: landListings.stateName,
-      zip: landListings.zip,
-      url: landListings.url,
-      latitude: landListings.latitude,
-      longitude: landListings.longitude,
+      listingPrice: landUpdatedListings.price,
+      listingAcres: landUpdatedListings.acres,
+      address1: landUpdatedListings.address1,
+      city: landUpdatedListings.city,
+      stateAbbreviation: landUpdatedListings.stateAbbreviation,
+      stateName: landUpdatedListings.stateName,
+      zip: landUpdatedListings.zip,
+      url: landUpdatedListings.url,
+      latitude: landUpdatedListings.latitude,
+      longitude: landUpdatedListings.longitude,
     })
     .from(viewingRequests)
-    .leftJoin(landListings, eq(viewingRequests.listingId, landListings.id))
+    .leftJoin(landUpdatedListings, eq(viewingRequests.listingId, landUpdatedListings.id))
     .where(and(eq(viewingRequests.buyerId, buyerId), eq(viewingRequests.realtorId, realtorId)))
     .orderBy(asc(viewingRequests.createdAt));
 

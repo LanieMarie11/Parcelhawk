@@ -1,5 +1,5 @@
 import { index, integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { landListings } from "./listings";
+import { landUpdatedListings } from "./updated-listing";
 import { investors, users } from "./users";
 
 export const viewingRequestStatusEnum = pgEnum("viewing_request_status", [
@@ -25,7 +25,7 @@ export const viewingRequests = pgTable(
       .references(() => investors.id, { onDelete: "cascade" }),
     listingId: integer("listing_id")
       .notNull()
-      .references(() => landListings.id, { onDelete: "cascade" }),
+      .references(() => landUpdatedListings.id, { onDelete: "cascade" }),
     status: viewingRequestStatusEnum("status").notNull().default("pending"),
     scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),

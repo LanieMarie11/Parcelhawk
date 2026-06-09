@@ -1,6 +1,6 @@
 /**
  * Vertex AI text embedding (768 dimensions) for semantic search.
- * Uses text-embedding-005 to match land_listing_embeddings schema.
+ * Uses text-embedding-005 to match land_updated_listings_embeddings schema.
  * Auth: GOOGLE_CLOUD_SERVICE_ACCOUNT_KEY (one-line JSON service account).
  */
 import { GoogleAuth } from "google-auth-library";

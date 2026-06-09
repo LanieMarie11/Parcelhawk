@@ -5,7 +5,7 @@ import { db } from "@/db";
 import {
   buyerInvestorLinks,
   favorites,
-  landListings,
+  landUpdatedListings,
   messageThreads,
   messages,
   savedSearches,
@@ -32,11 +32,9 @@ function formatPrice(value: string | null): string {
   return `$${Math.round(amount).toLocaleString("en-US")}`;
 }
 
-function formatAcreage(value: string | null): string {
-  if (!value) return "-";
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) return "-";
-  return `${amount} ac`;
+function formatAcreage(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${value} ac`;
 }
 
 function buildSubtitle(city: string | null, state: string | null): string {
@@ -185,20 +183,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
     const favoriteRows = await db
       .select({
         favoriteId: favorites.id,
-        listingId: landListings.id,
+        listingId: landUpdatedListings.id,
         createdAt: favorites.createdAt,
-        photo: landListings.photos,
-        url: landListings.url,
-        price: landListings.price,
-        city: landListings.city,
-        state: landListings.stateAbbreviation,
-        address: landListings.address1,
-        acreage: landListings.acres,
-        latitude: landListings.latitude,
-        longitude: landListings.longitude,
+        url: landUpdatedListings.url,
+        price: landUpdatedListings.price,
+        city: landUpdatedListings.city,
+        state: landUpdatedListings.stateAbbreviation,
+        address: landUpdatedListings.address1,
+        acreage: landUpdatedListings.acres,
+        latitude: landUpdatedListings.latitude,
+        longitude: landUpdatedListings.longitude,
       })
       .from(favorites)
-      .innerJoin(landListings, eq(landListings.id, favorites.landListingId))
+      .innerJoin(landUpdatedListings, eq(landUpdatedListings.id, favorites.landListingId))
       .where(eq(favorites.userId, buyerId))
       .orderBy(desc(favorites.createdAt));
 
@@ -245,7 +242,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
 
     const savedProperties = favoriteRows.map((fav) => ({
       id: String(fav.favoriteId),
-      thumbnailSrc: fav.photo?.[0] ?? "",
+      thumbnailSrc: "",
       url: fav.url ?? undefined,
       price: formatPrice(fav.price),
       subtitle: buildSubtitle(fav.city, fav.state),

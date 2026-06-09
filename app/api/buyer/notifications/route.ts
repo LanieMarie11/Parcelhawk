@@ -5,7 +5,7 @@ import { db } from "@/db";
 import {
   buyerInvestorLinks,
   investors,
-  landListings,
+  landUpdatedListings,
   messageThreads,
   notifications,
   users,
@@ -217,14 +217,14 @@ export async function GET() {
         investorId: notifications.investorId,
         investorFirstName: investors.firstName,
         investorLastName: investors.lastName,
-        listingTitle: landListings.title,
-        listingUrl: landListings.url,
+        listingTitle: landUpdatedListings.title,
+        listingUrl: landUpdatedListings.url,
         viewingStatus: viewingRequests.status,
       })
       .from(notifications)
       .leftJoin(investors, eq(notifications.investorId, investors.id))
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
-      .leftJoin(landListings, eq(notifications.listingId, landListings.id))
+      .leftJoin(landUpdatedListings, eq(notifications.listingId, landUpdatedListings.id))
       .where(
         and(eq(notifications.userId, buyerUserId), isNull(notifications.buyerDeleteAt)),
       )

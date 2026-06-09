@@ -1,5 +1,5 @@
 import { integer, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
-import { landListings } from "./listings";
+import { landUpdatedListings } from "./updated-listing";
 import { users } from "./users";
 
 export const favorites = pgTable(
@@ -11,7 +11,7 @@ export const favorites = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     landListingId: integer("land_listing_id")
       .notNull()
-      .references(() => landListings.id, { onDelete: "cascade" }),
+      .references(() => landUpdatedListings.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

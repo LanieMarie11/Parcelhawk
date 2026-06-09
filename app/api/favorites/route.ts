@@ -5,11 +5,12 @@ import { db } from "@/db";
 import {
   buyerInvestorLinks,
   favorites,
-  landListings,
+  landUpdatedListings,
   viewingRequests,
 } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { authOptions } from "@/lib/auth";
+import { jsonbArrayFirst } from "@/lib/land-updated-listing-filters";
 
 function getUserId(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null;
@@ -26,28 +27,27 @@ export async function GET() {
     const [rows, linkRow] = await Promise.all([
       db
         .select({
-          id: landListings.id,
-          title: landListings.title,
-          price: landListings.price,
-          acres: landListings.acres,
-          address1: landListings.address1,
-          city: landListings.city,
-          stateAbbreviation: landListings.stateAbbreviation,
-          stateName: landListings.stateName,
-          zip: landListings.zip,
-          latitude: landListings.latitude,
-          longitude: landListings.longitude,
-          photos: landListings.photos,
-          propertyType: landListings.propertyType,
-          url: landListings.url,
-          description: landListings.description,
-          updatedAt: landListings.updatedAt,
+          id: landUpdatedListings.id,
+          title: landUpdatedListings.title,
+          price: landUpdatedListings.price,
+          acres: landUpdatedListings.acres,
+          address1: landUpdatedListings.address1,
+          city: landUpdatedListings.city,
+          stateAbbreviation: landUpdatedListings.stateAbbreviation,
+          stateName: landUpdatedListings.stateName,
+          zip: landUpdatedListings.zip,
+          latitude: landUpdatedListings.latitude,
+          longitude: landUpdatedListings.longitude,
+          propertyType: landUpdatedListings.propertyType,
+          url: landUpdatedListings.url,
+          description: landUpdatedListings.description,
+          updatedAt: landUpdatedListings.updatedAt,
           createdAt: favorites.createdAt,
         })
         .from(favorites)
-        .innerJoin(landListings, eq(favorites.landListingId, landListings.id))
+        .innerJoin(landUpdatedListings, eq(favorites.landListingId, landUpdatedListings.id))
         .where(eq(favorites.userId, userId))
-        .orderBy(desc(landListings.listingDate)),
+        .orderBy(desc(landUpdatedListings.listedDate)),
       db
         .select({ investorId: buyerInvestorLinks.investorId })
         .from(buyerInvestorLinks)
@@ -84,8 +84,8 @@ export async function GET() {
 
     const listings = rows.map((row) => ({
       id: row.id,
-      images: row.photos ?? undefined,
-      category: row.propertyType?.[0],
+      images: undefined,
+      category: jsonbArrayFirst(row.propertyType),
       categoryColor: "#3b8a6e",
       name: row.title ?? "",
       price: row.price != null ? String(row.price) : "",

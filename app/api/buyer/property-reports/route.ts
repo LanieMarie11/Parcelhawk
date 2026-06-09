@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landListings } from "@/db/schema";
+import { favorites, landUpdatedListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 
 function parseListingId(value: unknown): number | null {
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
     }
 
     const [listingRow] = await db
-      .select({ id: landListings.id })
-      .from(landListings)
-      .where(eq(landListings.id, listingId))
+      .select({ id: landUpdatedListings.id })
+      .from(landUpdatedListings)
+      .where(eq(landUpdatedListings.id, listingId))
       .limit(1);
 
     if (!listingRow) {
