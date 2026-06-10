@@ -35,6 +35,7 @@ export type BuyerNotificationItem = {
   readAt?: string;
   category: string;
   description: string;
+  endReason?: string;
   unread: boolean;
   avatar?: {
     initials: string;
@@ -42,6 +43,22 @@ export type BuyerNotificationItem = {
   };
   actions: BuyerNotificationAction;
 };
+
+const END_REASON_LABELS: Record<string, string> = {
+  not_responsive_enough: "Not responsive enough",
+  search_area_changed: "Search area changed",
+  found_different_realtor: "Found a different realtor",
+  not_good_fit: "Not a good fit",
+  other: "Other",
+  realtor_removed: "Realtor removed connection",
+  account_deleted: "Account deleted",
+};
+
+function formatEndReason(reason: string | undefined): string | undefined {
+  const key = reason?.trim();
+  if (!key) return undefined;
+  return END_REASON_LABELS[key] ?? key;
+}
 
 const AVATAR_COLORS = ["#FDE68A", "#BFDBFE", "#FECACA", "#BBF7D0", "#E9D5FF"];
 
@@ -137,6 +154,7 @@ function mapNotificationRow(row: {
           (investorName
             ? `Your connection with ${investorName} has ended.`
             : "Your realtor connection has ended."),
+        endReason: formatEndReason(row.metadata?.endReason),
         unread: isBuyerUnread(row.buyerReadAt),
         avatar,
         actions: {

@@ -16,6 +16,7 @@ export type NotificationItem = {
   readAt?: string
   category: NotificationCategory
   description: string
+  endReason?: string
   unread: boolean
   avatar?: {
     initials: string
@@ -90,7 +91,8 @@ export function NotificationCard({
   onConnect,
   onDelete,
 }: NotificationCardProps) {
-  const { unread, title, timestamp, category, description, avatar, actions, readAt } = notification
+  const { unread, title, timestamp, category, description, endReason, avatar, actions, readAt } =
+    notification
 
   const readAtLabel =
     !unread && readAt
@@ -150,6 +152,11 @@ export function NotificationCard({
             </div>
             <p className="mt-1.5 text-sm leading-relaxed text-[#6B7280]">
               {description}
+              {endReason ? (
+                <span className="mt-1 block">
+                  Reason: {endReason}
+                </span>
+              ) : null}
             </p>
           </div>
         </div>
