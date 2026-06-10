@@ -50,7 +50,11 @@ export async function POST(request: Request) {
     }
 
     const [listingRow] = await db
-      .select({ id: landUpdatedListings.id })
+      .select({
+        id: landUpdatedListings.id,
+        latitude: landUpdatedListings.latitude,
+        longitude: landUpdatedListings.longitude,
+      })
       .from(landUpdatedListings)
       .where(eq(landUpdatedListings.id, listingId))
       .limit(1);
@@ -59,9 +63,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
-    
+    const { latitude, longitude } = listingRow;
+    if (latitude == null || longitude == null) {
+      return NextResponse.json(
+        { error: "Listing does not have coordinates" },
+        { status: 422 },
+      );
+    }
 
-    return NextResponse.json({ ok: true, listingId });
+    const landPortalToken = process.env.LANDPORTAL?.trim();
+    if (!landPortalToken) {
+      return NextResponse.json(
+        { error: "Property report service is not configured" },
+        { status: 503 },
+      );
+    }
+
+    const propertyDataUrl = new URL(
+      "https://landportal.com/wp-json/lp-rest-api/v1/property-data",
+    );
+    propertyDataUrl.searchParams.set("lat", String(latitude));
+    propertyDataUrl.searchParams.set("lng", String(longitude));
+
+    console.log("propertyDataUrl", propertyDataUrl.toString());
+
+    const propertyDataRes = await fetch(propertyDataUrl.toString(), {
+      headers: { Authorization: `Bearer ${landPortalToken}` },
+      cache: "no-store",
+    });
+
+    if (!propertyDataRes.ok) {
+      const errorBody = await propertyDataRes.text().catch(() => "");
+      console.error(
+        "LandPortal property-data error:",
+        propertyDataRes.status,
+        errorBody,
+      );
+      return NextResponse.json(
+        { error: "Failed to fetch property data" },
+        { status: 502 },
+      );
+    }
+
+    const propertyData = await propertyDataRes.json();
+
+    return NextResponse.json({ ok: true, listingId, propertyData });
   } catch (err) {
     console.error("Property report POST error:", err);
     return NextResponse.json({ error: "Failed to submit report request" }, { status: 500 });

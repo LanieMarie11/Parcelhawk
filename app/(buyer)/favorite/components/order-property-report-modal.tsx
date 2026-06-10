@@ -8,6 +8,7 @@ const BUYER_PROPERTY_REPORTS_PATH = "/api/buyer/property-reports"
 export type PropertyReportResponse = {
   ok: true
   listingId: number
+  propertyData: unknown
 }
 
 async function submitPropertyReportOrder(listingId: number): Promise<PropertyReportResponse> {
@@ -22,11 +23,11 @@ async function submitPropertyReportOrder(listingId: number): Promise<PropertyRep
     throw new Error(typeof data.error === "string" ? data.error : "Request failed")
   }
 
-  if (data.ok !== true || typeof data.listingId !== "number") {
+  if (data.ok !== true || typeof data.listingId !== "number" || !("propertyData" in data)) {
     throw new Error("Invalid response from server")
   }
 
-  return { ok: true, listingId: data.listingId }
+  return { ok: true, listingId: data.listingId, propertyData: data.propertyData }
 }
 
 export type OrderPropertyReportModalProps = {
@@ -87,7 +88,7 @@ export function OrderPropertyReportModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -122,19 +123,19 @@ export function OrderPropertyReportModal({
           {requestState.status === "loading" ? (
             <div className="flex flex-col items-center justify-center gap-3 py-10">
               <Loader2 className="h-8 w-8 animate-spin text-brand-green" aria-hidden />
-              <p className="text-sm text-muted-foreground">Submitting report request...</p>
+              <p className="text-sm text-muted-foreground">Fetching property data...</p>
             </div>
           ) : null}
 
           {requestState.status === "success" ? (
             <div className="rounded-xl border border-emerald-200/90 bg-[#EDFCEA] px-3.5 py-3">
-              <p className="text-sm font-semibold text-[#2D5A36]">Request submitted</p>
+              <p className="text-sm font-semibold text-[#2D5A36]">Property data loaded</p>
               <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#4b5563]">
-                Your property report request was received for listing ID{" "}
+                Report for listing ID{" "}
                 <span className="font-medium">{requestState.data.listingId}</span>.
               </p>
-              <pre className="mt-3 overflow-x-auto rounded-lg bg-white/80 p-3 text-xs text-[#374151]">
-                {JSON.stringify(requestState.data, null, 2)}
+              <pre className="mt-3 max-h-72 overflow-auto rounded-lg bg-white/80 p-3 text-xs text-[#374151]">
+                {JSON.stringify(requestState.data.propertyData, null, 2)}
               </pre>
             </div>
           ) : null}
