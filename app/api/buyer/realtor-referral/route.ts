@@ -2,9 +2,8 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/db"
-import { buyerInvestorLinks, investors, messageThreads, notifications, users } from "@/db/schema"
+import { buyerInvestorLinks, investors, notifications, users } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
-import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-connected-notification"
 
 const DEFAULT_INVESTOR_EMAIL = process.env.DEFAULT_EMAIL?.trim().toLowerCase() ?? ""
 
@@ -60,7 +59,6 @@ export async function POST(request: Request) {
       referralUrl: investors.referralUrl,
       firstName: investors.firstName,
       lastName: investors.lastName,
-      email: investors.email,
     })
     .from(investors)
     .where(eq(investors.referralUrl, referralToken))
@@ -100,114 +98,37 @@ export async function POST(request: Request) {
     )
   }
 
-  const now = new Date()
-
   try {
-    const result = await db.transaction(async (tx) => {
-      if (activeLinks.length > 0) {
-        // await tx
-        //   .update(buyerInvestorLinks)
-        //   .set({
-        //     status: "ended",
-        //     endedAt: now,
-        //     endedBy: "buyer",
-        //     endReason: "found_different_realtor",
-        //     updatedAt: now,
-        //   })
-        //   .where(eq(buyerInvestorLinks.id, existingActiveLink.id))
-        // TODO : when buyer connected with new realtor, previous messages with russell has to be deleted?
-      }
+    const [buyer] = await db
+      .select({
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(users)
+      .where(eq(users.id, buyerId))
+      .limit(1)
 
-      await tx.insert(buyerInvestorLinks).values({
+    const buyerName = `${buyer?.firstName ?? ""} ${buyer?.lastName ?? ""}`.trim() || "(unknown buyer)"
+    const realtorName =
+      `${investor.firstName} ${investor.lastName}`.trim() || "their realtor"
+
+    await db.insert(notifications).values({
+      type: "link_invitation",
+      userId: buyerId,
+      investorId: investor.id,
+      title: "New buyer connected",
+      body: `${buyerName} connected with ${realtorName} on ParcelHawk via ${realtorName}'s referral link.`,
+      metadata: {
+        type: "link-invitation",
+        sender: "buyer",
         buyerId,
         investorId: investor.id,
-        status: "active",
+        buyerName,
+        referralToken,
         linkedVia: "referral_link",
-      })
-
-      await tx
-        .update(users)
-        .set({ referralId: investor.referralUrl, updatedAt: now })
-        .where(eq(users.id, buyerId))
-
-      await tx
-        .insert(messageThreads)
-        .values({
-          investorId: investor.id,
-          buyerUserId: buyerId,
-        })
-        .onConflictDoNothing({
-          target: [messageThreads.investorId, messageThreads.buyerUserId],
-        })
-
-      if (!investor.email?.trim()) {
-        return { ok: true as const, emailPayload: undefined }
-      }
-
-      const [buyer] = await tx
-        .select({
-          firstName: users.firstName,
-          lastName: users.lastName,
-        })
-        .from(users)
-        .where(eq(users.id, buyerId))
-        .limit(1)
-
-      if (!buyer) {
-        return { ok: true as const, emailPayload: undefined }
-      }
-
-      const buyerName = `${buyer.firstName} ${buyer.lastName}`.trim() || "(unknown buyer)"
-      const realtorName =
-        `${investor.firstName} ${investor.lastName}`.trim() || "their realtor"
-
-      const [activeLink] = await tx
-        .select({ id: buyerInvestorLinks.id })
-        .from(buyerInvestorLinks)
-        .where(
-          and(
-            eq(buyerInvestorLinks.buyerId, buyerId),
-            eq(buyerInvestorLinks.investorId, investor.id),
-            eq(buyerInvestorLinks.status, "active"),
-          ),
-        )
-        .limit(1)
-
-      if (activeLink) {
-        await tx.insert(notifications).values({
-          type: "link_invitation",
-          userId: buyerId,
-          investorId: investor.id,
-          buyerInvestorLinkId: activeLink.id,
-          title: "New buyer connected",
-          body: `${buyerName} connected with ${realtorName} on ParcelHawk via ${realtorName}'s referral link.`,
-          metadata: {
-            type: "link-invitation",
-            sender: "buyer",
-            buyerName,
-            status: "active",
-          },
-        })
-      }
-
-      return {
-        ok: true as const,
-        emailPayload: {
-          buyerName,
-          realtorName,
-          investorId: investor.id,
-          realtorEmail: investor.email.trim(),
-        },
-      }
+        status: "pending",
+      },
     })
-
-    if (result.emailPayload) {
-      try {
-        await sendBuyerConnectedToRealtorNotification(result.emailPayload)
-      } catch (emailError) {
-        console.error("sendBuyerConnectedToRealtorNotification:", emailError)
-      }
-    }
 
     return NextResponse.json({ ok: true })
   } catch (error) {

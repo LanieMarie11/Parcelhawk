@@ -164,6 +164,20 @@ export async function POST(request: Request) {
     const buyerName =
       `${buyerRow?.firstName ?? ""} ${buyerRow?.lastName ?? ""}`.trim() || "(unknown buyer)"
 
+    let defaultReferralId: string | null = null
+    if (DEFAULT_INVESTOR_EMAIL) {
+      const [defaultInvestor] = await db
+        .select({ referralUrl: investors.referralUrl })
+        .from(investors)
+        .where(eq(investors.email, DEFAULT_INVESTOR_EMAIL))
+        .limit(1)
+
+      const referralUrl = defaultInvestor?.referralUrl?.trim()
+      if (referralUrl) {
+        defaultReferralId = referralUrl
+      }
+    }
+
     await db.transaction(async (tx) => {
       await tx
         .update(buyerInvestorLinks)
@@ -179,7 +193,7 @@ export async function POST(request: Request) {
 
       await tx
         .update(users)
-        .set({ referralId: null, updatedAt: now })
+        .set({ referralId: defaultReferralId, updatedAt: now })
         .where(eq(users.id, buyerId))
 
       // await tx

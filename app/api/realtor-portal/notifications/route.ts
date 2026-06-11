@@ -10,6 +10,7 @@ import {
   type NotificationMetadata,
 } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
+import { finalizeBuyerRealtorReferralConnection } from "@/lib/finalize-buyer-realtor-referral-connection"
 
 type SessionUser = {
   id?: string
@@ -31,12 +32,29 @@ export type RealtorNotificationItem = {
   readAt?: string
   category: string
   description: string
+  endReason?: string
   unread: boolean
   avatar?: {
     initials: string
     bgColor: string
   }
   actions: RealtorNotificationAction
+}
+
+const END_REASON_LABELS: Record<string, string> = {
+  not_responsive_enough: "Not responsive enough",
+  search_area_changed: "Search area changed",
+  found_different_realtor: "Found a different realtor",
+  not_good_fit: "Not a good fit",
+  other: "Other",
+  realtor_removed: "Realtor removed connection",
+  account_deleted: "Account deleted",
+}
+
+function formatEndReason(reason: string | undefined): string | undefined {
+  const key = reason?.trim()
+  if (!key) return undefined
+  return END_REASON_LABELS[key] ?? key
 }
 
 const AVATAR_COLORS = ["#FDE68A", "#BFDBFE", "#FECACA", "#BBF7D0", "#E9D5FF"]
@@ -129,6 +147,29 @@ function mapNotificationRow(row: {
     const isPending = row.metadata?.status === "pending" || row.metadata?.status == null
 
     if (isPending) {
+      if (row.metadata?.sender === "buyer") {
+        return {
+          id: row.id,
+          title: row.title ?? "New buyer connection request",
+          timestamp: formatRelativeTime(row.createdAt),
+          readAt: readAtIso,
+          category: "Invitation",
+          description:
+            row.body ??
+            `${buyerName} wants to connect with you on ParcelHawk via your referral link.`,
+          unread: isRealtorUnread(row.realtorReadAt),
+          avatar,
+          actions: {
+            type: "dual",
+            primary: {
+              label: "Connect",
+            },
+            secondary: {
+              label: "Ignore",
+            },
+          },
+        } as RealtorNotificationItem
+      }
       return {
         id: row.id,
         title: row.title ?? "Connection invite sent",
@@ -147,13 +188,20 @@ function mapNotificationRow(row: {
       }
     }
 
+    const isEnded = row.metadata?.status === "ended"
+
     return {
       id: row.id,
-      title: row.title ?? "Buyer connection update",
+      title: row.title ?? (isEnded ? "Buyer connection ended" : "Buyer connection update"),
       timestamp: formatRelativeTime(row.createdAt),
       readAt: readAtIso,
       category: "Invitation",
-      description: row.body ?? `${buyerName} updated their connection status.`,
+      description:
+        row.body ??
+        (isEnded
+          ? `${buyerName} ended their connection with you.`
+          : `${buyerName} updated their connection status.`),
+      endReason: isEnded ? formatEndReason(row.metadata?.endReason) : undefined,
       unread: isRealtorUnread(row.realtorReadAt),
       avatar,
       actions: {
@@ -262,7 +310,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Notification id is required" }, { status: 400 })
   }
 
-  if (action !== "read" && action !== "delete") {
+  if (
+    action !== "connect" &&
+    action !== "ignore" &&
+    action !== "read" &&
+    action !== "delete"
+  ) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 })
   }
 
@@ -271,6 +324,8 @@ export async function POST(request: Request) {
     const [existing] = await db
       .select({
         id: notifications.id,
+        type: notifications.type,
+        userId: notifications.userId,
         metadata: notifications.metadata,
       })
       .from(notifications)
@@ -289,6 +344,71 @@ export async function POST(request: Request) {
         .returning({ id: notifications.id })
 
       if (!deleted) {
+        return NextResponse.json({ error: "Notification not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+
+    if (action === "connect") {
+      if (existing.type !== "link_invitation") {
+        return NextResponse.json({ error: "Notification does not support connect" }, { status: 409 })
+      }
+
+      const isPending =
+        existing.metadata?.status === "pending" || existing.metadata?.status == null
+      if (!isPending || existing.metadata?.sender !== "buyer") {
+        return NextResponse.json({ error: "Notification is not a pending connection request" }, {
+          status: 409,
+        })
+      }
+
+      const buyerId = existing.metadata?.buyerId?.trim() || existing.userId
+      if (!buyerId) {
+        return NextResponse.json({ error: "Notification is missing buyer reference" }, { status: 409 })
+      }
+
+      const result = await finalizeBuyerRealtorReferralConnection({ buyerId, investorId })
+
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 409 })
+      }
+
+      const [updated] = await db
+        .update(notifications)
+        .set({
+          realtorReadAt: now,
+          updatedAt: now,
+          metadata: {
+            ...existing.metadata,
+            status: "active",
+          },
+        })
+        .where(and(eq(notifications.id, id), eq(notifications.investorId, investorId)))
+        .returning({ id: notifications.id })
+
+      if (!updated) {
+        return NextResponse.json({ error: "Notification not found" }, { status: 404 })
+      }
+
+      return NextResponse.json({ ok: true })
+    }
+
+    if (action === "ignore") {
+      const [updated] = await db
+        .update(notifications)
+        .set({
+          realtorReadAt: now,
+          updatedAt: now,
+          metadata: {
+            ...existing.metadata,
+            status: "active",
+          },
+        })
+        .where(and(eq(notifications.id, id), eq(notifications.investorId, investorId)))
+        .returning({ id: notifications.id })
+
+      if (!updated) {
         return NextResponse.json({ error: "Notification not found" }, { status: 404 })
       }
 
