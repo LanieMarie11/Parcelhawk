@@ -150,12 +150,11 @@ function mapNotificationRow(row: {
       if (row.metadata?.sender === "buyer") {
         return {
           id: row.id,
-          title: row.title ?? "New buyer connection request",
+          title: "New buyer connection request",
           timestamp: formatRelativeTime(row.createdAt),
           readAt: readAtIso,
           category: "Invitation",
           description:
-            row.body ??
             `${buyerName} wants to connect with you on ParcelHawk via your referral link.`,
           unread: isRealtorUnread(row.realtorReadAt),
           avatar,
@@ -167,6 +166,23 @@ function mapNotificationRow(row: {
             secondary: {
               label: "Ignore",
             },
+          },
+        } as RealtorNotificationItem
+      }
+      if (row.metadata?.sender === "realtor") {
+        return {
+          id: row.id,
+          title: row.title ?? "New buyer connection request",
+          timestamp: formatRelativeTime(row.createdAt),
+          readAt: readAtIso,
+          category: "Invitation",
+          description:
+            `You invited ${buyerName} to connect on ParcelHawk. Waiting for their response.`,
+          unread: isRealtorUnread(row.realtorReadAt),
+          avatar,
+          actions: {
+            type: "single",
+            label: "View buyers",
           },
         } as RealtorNotificationItem
       }

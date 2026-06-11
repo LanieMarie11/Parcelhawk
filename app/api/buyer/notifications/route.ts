@@ -136,29 +136,66 @@ function mapNotificationRow(row: {
           bgColor: avatarColor(row.investorId ?? investorName),
         }
       : undefined;
+  const readAtIso = row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined;
 
   if (row.type === "link_invitation") {
     const isPending = row.metadata?.status === "pending" || row.metadata?.status == null;
     const isEnded = row.metadata?.status === "ended";
 
-    if (isPending && row.metadata?.sender === "realtor") {
+    if (isPending) {
+      if (row.metadata?.sender === "realtor") {
+        return {
+          id: row.id,
+          title: "New Realtor Connection Request",
+          timestamp: formatRelativeTime(row.createdAt),
+          readAt: readAtIso,
+          category: "Invitation",
+          description: investorName
+            ? `${investorName} wants to connect with you as your dedicated land specialist.`
+            : "A realtor wants to connect with you on ParcelHawk.",
+          unread: isBuyerUnread(row.buyerReadAt),
+          avatar,
+          actions: {
+            type: "dual",
+            primary: {
+              label: "Connect",
+            },
+            secondary: {
+              label: "Ignore",
+            },
+          },
+        };
+      }
+      if (row.metadata?.sender === "buyer") {
+        return {
+          id: row.id,
+          title: row.title ?? "New realtor connection request",
+          timestamp: formatRelativeTime(row.createdAt),
+          readAt: readAtIso,
+          category: "Invitation",
+          description: `You requested to connect with ${investorName || "a realtor"} on ParcelHawk. Waiting for their response.`,
+          unread: isBuyerUnread(row.buyerReadAt),
+          avatar,
+          actions: {
+            type: "single",
+            label: "View details",
+          },
+        };
+      }
       return {
         id: row.id,
-        title: row.title ?? "New Realtor Connection Request",
+        title: row.title ?? "Connection request sent",
         timestamp: formatRelativeTime(row.createdAt),
-        readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
+        readAt: readAtIso,
         category: "Invitation",
         description:
           row.body ??
-          (investorName
-            ? `${investorName} wants to connect with you as your dedicated land specialist.`
-            : "A realtor wants to connect with you on ParcelHawk."),
+          `You requested to connect with ${investorName || "a realtor"} on ParcelHawk. Waiting for their response.`,
         unread: isBuyerUnread(row.buyerReadAt),
         avatar,
         actions: {
-          type: "dual",
-          primary: { label: "Connect" },
-          secondary: { label: "Ignore" },
+          type: "single",
+          label: "View details",
         },
       };
     }
