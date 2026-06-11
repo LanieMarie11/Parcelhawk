@@ -28,6 +28,7 @@ const ALLOWED_REASONS = new Set([
 ])
 
 const OTHER_NOTE_MAX = 2000
+const DEFAULT_INVESTOR_EMAIL = process.env.DEFAULT_EMAIL?.trim().toLowerCase() ?? ""
 
 function normalizeOtherNote(raw: unknown): string | null {
   if (raw == null) return null
@@ -127,19 +128,28 @@ export async function POST(request: Request) {
 
   try {
     const now = new Date()
-// TODO : default has to be connected with Russell
     const [link] = await db
       .select({
         id: buyerInvestorLinks.id,
         investorId: buyerInvestorLinks.investorId,
+        investorEmail: investors.email,
       })
       .from(buyerInvestorLinks)
+      .innerJoin(investors, eq(buyerInvestorLinks.investorId, investors.id))
       .where(and(eq(buyerInvestorLinks.buyerId, buyerId), eq(buyerInvestorLinks.status, "active")))
       .orderBy(desc(buyerInvestorLinks.linkedAt))
       .limit(1)
 
     if (!link) {
       return NextResponse.json({ error: "No active realtor connection found" }, { status: 409 })
+    }
+
+    const investorEmail = link.investorEmail?.trim().toLowerCase() ?? ""
+    if (DEFAULT_INVESTOR_EMAIL && investorEmail === DEFAULT_INVESTOR_EMAIL) {
+      return NextResponse.json(
+        { error: "Cannot end connection with your default realtor" },
+        { status: 403 },
+      )
     }
 
     const [buyerRow] = await db
@@ -153,6 +163,20 @@ export async function POST(request: Request) {
 
     const buyerName =
       `${buyerRow?.firstName ?? ""} ${buyerRow?.lastName ?? ""}`.trim() || "(unknown buyer)"
+
+    let defaultReferralId: string | null = null
+    if (DEFAULT_INVESTOR_EMAIL) {
+      const [defaultInvestor] = await db
+        .select({ referralUrl: investors.referralUrl })
+        .from(investors)
+        .where(eq(investors.email, DEFAULT_INVESTOR_EMAIL))
+        .limit(1)
+
+      const referralUrl = defaultInvestor?.referralUrl?.trim()
+      if (referralUrl) {
+        defaultReferralId = referralUrl
+      }
+    }
 
     await db.transaction(async (tx) => {
       await tx
@@ -169,7 +193,7 @@ export async function POST(request: Request) {
 
       await tx
         .update(users)
-        .set({ referralId: null, updatedAt: now })
+        .set({ referralId: defaultReferralId, updatedAt: now })
         .where(eq(users.id, buyerId))
 
       // await tx

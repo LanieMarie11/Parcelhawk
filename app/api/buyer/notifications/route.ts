@@ -3,16 +3,14 @@ import { getServerSession } from "next-auth";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
-  buyerInvestorLinks,
   investors,
   landUpdatedListings,
-  messageThreads,
   notifications,
   users,
   viewingRequests,
 } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
-import { sendBuyerConnectedToRealtorNotification } from "@/lib/email/send-buyer-connected-notification";
+import { finalizeRealtorInvitationConnection } from "@/lib/finalize-realtor-invitation-connection";
 import type { NotificationMetadata } from "@/db/schema/notifications";
 
 type SessionUser = {
@@ -35,6 +33,7 @@ export type BuyerNotificationItem = {
   readAt?: string;
   category: string;
   description: string;
+  endReason?: string;
   unread: boolean;
   avatar?: {
     initials: string;
@@ -42,6 +41,22 @@ export type BuyerNotificationItem = {
   };
   actions: BuyerNotificationAction;
 };
+
+const END_REASON_LABELS: Record<string, string> = {
+  not_responsive_enough: "Not responsive enough",
+  search_area_changed: "Search area changed",
+  found_different_realtor: "Found a different realtor",
+  not_good_fit: "Not a good fit",
+  other: "Other",
+  realtor_removed: "Realtor removed connection",
+  account_deleted: "Account deleted",
+};
+
+function formatEndReason(reason: string | undefined): string | undefined {
+  const key = reason?.trim();
+  if (!key) return undefined;
+  return END_REASON_LABELS[key] ?? key;
+}
 
 const AVATAR_COLORS = ["#FDE68A", "#BFDBFE", "#FECACA", "#BBF7D0", "#E9D5FF"];
 
@@ -123,9 +138,32 @@ function mapNotificationRow(row: {
       : undefined;
 
   if (row.type === "link_invitation") {
+    const isPending = row.metadata?.status === "pending" || row.metadata?.status == null;
     const isEnded = row.metadata?.status === "ended";
 
-    
+    if (isPending && row.metadata?.sender === "realtor") {
+      return {
+        id: row.id,
+        title: row.title ?? "New Realtor Connection Request",
+        timestamp: formatRelativeTime(row.createdAt),
+        readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
+        category: "Invitation",
+        description:
+          row.body ??
+          (investorName
+            ? `${investorName} wants to connect with you as your dedicated land specialist.`
+            : "A realtor wants to connect with you on ParcelHawk."),
+        unread: isBuyerUnread(row.buyerReadAt),
+        avatar,
+        actions: {
+          type: "dual",
+          primary: { label: "Connect" },
+          secondary: { label: "Ignore" },
+        },
+      };
+    }
+
+    if (isEnded) {
       return {
         id: row.id,
         title: row.title ?? "Realtor connection ended",
@@ -137,6 +175,7 @@ function mapNotificationRow(row: {
           (investorName
             ? `Your connection with ${investorName} has ended.`
             : "Your realtor connection has ended."),
+        endReason: formatEndReason(row.metadata?.endReason),
         unread: isBuyerUnread(row.buyerReadAt),
         avatar,
         actions: {
@@ -144,27 +183,26 @@ function mapNotificationRow(row: {
           label: "View details",
         },
       };
-    
+    }
 
-    // return {
-    //   id: row.id,
-    //   title: row.title ?? "New Realtor Connection Request",
-    //   timestamp: formatRelativeTime(row.createdAt),
-    //   readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
-    //   category: "Invitation",
-    //   description:
-    //     row.body ??
-    //     (investorName
-    //       ? `${investorName} wants to connect with you as your dedicated land specialist.`
-    //       : "A realtor wants to connect with you on ParcelHawk."),
-    //   unread: isBuyerUnread(row.buyerReadAt),
-    //   avatar,
-    //   actions: {
-    //     type: "dual",
-    //     primary: { label: "Connect" },
-    //     secondary: { label: "Ignore" },
-    //   },
-    // };
+    return {
+      id: row.id,
+      title: row.title ?? "Realtor connection update",
+      timestamp: formatRelativeTime(row.createdAt),
+      readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
+      category: "Invitation",
+      description:
+        row.body ??
+        (investorName
+          ? `There is an update on your connection with ${investorName}.`
+          : "There is an update on your realtor connection."),
+      unread: isBuyerUnread(row.buyerReadAt),
+      avatar,
+      actions: {
+        type: "single",
+        label: "View details",
+      },
+    };
   }
 
   const listingLabel = row.metadata?.listingTitle ?? row.listingTitle ?? "a parcel";
@@ -275,6 +313,8 @@ export async function POST(request: Request) {
     const [targetNotification] = await db
       .select({
         id: notifications.id,
+        type: notifications.type,
+        investorId: notifications.investorId,
         metadata: notifications.metadata,
       })
       .from(notifications)
@@ -300,157 +340,61 @@ export async function POST(request: Request) {
     }
 
     let updated: { id: string } | undefined;
-    let connectedEmailPayload:
-      | {
-          buyerName: string;
-          realtorName: string;
-          investorId: string;
-          realtorEmail: string;
-        }
-      | undefined;
 
     if (action === "connect") {
-      const result = await db.transaction(async (tx) => {
-        const [notification] = await tx
-          .select({
-            id: notifications.id,
-            investorId: notifications.investorId,
-          })
-          .from(notifications)
-          .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
-          .limit(1);
-
-        if (!notification) {
-          return { error: "not_found" as const };
-        }
-
-        if (!notification.investorId) {
-          return { error: "missing_investor" as const };
-        }
-
-        const [investor] = await tx
-          .select({
-            referralUrl: investors.referralUrl,
-            firstName: investors.firstName,
-            lastName: investors.lastName,
-            email: investors.email,
-          })
-          .from(investors)
-          .where(eq(investors.id, notification.investorId))
-          .limit(1);
-
-        if (!investor?.referralUrl) {
-          return { error: "missing_referral" as const };
-        }
-
-        const [existingActiveLink] = await tx
-          .select({
-            id: buyerInvestorLinks.id,
-            investorId: buyerInvestorLinks.investorId,
-          })
-          .from(buyerInvestorLinks)
-          .where(
-            and(
-              eq(buyerInvestorLinks.buyerId, buyerUserId),
-              eq(buyerInvestorLinks.status, "active"),
-            ),
-          )
-          .limit(1);
-
-        if (existingActiveLink && existingActiveLink.investorId !== notification.investorId) {
-          return { error: "already_linked_other" as const };
-        }
-
-        if (!existingActiveLink) {
-          await tx.insert(buyerInvestorLinks).values({
-            buyerId: buyerUserId,
-            investorId: notification.investorId,
-            status: "active",
-            linkedVia: "invitation",
-          });
-        }
-
-        await tx
-          .update(users)
-          .set({ referralId: investor.referralUrl, updatedAt: now })
-          .where(eq(users.id, buyerUserId));
-
-        await tx
-          .insert(messageThreads)
-          .values({
-            investorId: notification.investorId,
-            buyerUserId,
-          })
-          .onConflictDoNothing({
-            target: [messageThreads.investorId, messageThreads.buyerUserId],
-          });
-
-        const [updatedNotification] = await tx
-          .update(notifications)
-          .set({ buyerReadAt: now, updatedAt: now })
-          .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
-          .returning({ id: notifications.id });
-
-        let emailPayload:
-          | {
-              buyerName: string;
-              realtorName: string;
-              investorId: string;
-              realtorEmail: string;
-            }
-          | undefined;
-        if (investor.email?.trim()) {
-          const [buyer] = await tx
-            .select({
-              firstName: users.firstName,
-              lastName: users.lastName,
-            })
-            .from(users)
-            .where(eq(users.id, buyerUserId))
-            .limit(1);
-
-          if (buyer) {
-            const buyerDisplayName =
-              `${buyer.firstName} ${buyer.lastName}`.trim() || "(unknown buyer)";
-            const realtorDisplayName =
-              `${investor.firstName} ${investor.lastName}`.trim() || "there";
-            emailPayload = {
-              buyerName: buyerDisplayName,
-              realtorName: realtorDisplayName,
-              investorId: notification.investorId,
-              realtorEmail: investor.email.trim(),
-            };
-          }
-        }
-
-        return { updated: updatedNotification, emailPayload };
-      });
-
-      if ("error" in result) {
-        if (result.error === "not_found") {
-          return NextResponse.json({ error: "Notification not found" }, { status: 404 });
-        }
-        if (result.error === "missing_investor") {
-          return NextResponse.json(
-            { error: "Notification is missing investor reference" },
-            { status: 409 },
-          );
-        }
-        if (result.error === "already_linked_other") {
-          return NextResponse.json(
-            { error: "Buyer is already linked to another realtor" },
-            { status: 409 },
-          );
-        }
-        return NextResponse.json({ error: "Investor referral link not found" }, { status: 404 });
+      if (targetNotification.type !== "link_invitation") {
+        return NextResponse.json({ error: "Notification does not support connect" }, { status: 409 });
       }
 
-      updated = result.updated;
-      connectedEmailPayload = result.emailPayload;
+      const isPending =
+        targetNotification.metadata?.status === "pending" ||
+        targetNotification.metadata?.status == null;
+      if (!isPending || targetNotification.metadata?.sender !== "realtor") {
+        return NextResponse.json({ error: "Notification is not a pending invitation" }, {
+          status: 409,
+        });
+      }
+
+      const investorId =
+        targetNotification.metadata?.investorId?.trim() || targetNotification.investorId;
+      if (!investorId) {
+        return NextResponse.json({ error: "Notification is missing investor reference" }, {
+          status: 409,
+        });
+      }
+
+      const result = await finalizeRealtorInvitationConnection({
+        buyerId: buyerUserId,
+        investorId,
+      });
+
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: 409 });
+      }
+
+      [updated] = await db
+        .update(notifications)
+        .set({
+          buyerReadAt: now,
+          updatedAt: now,
+          metadata: {
+            ...targetNotification.metadata,
+            status: "active",
+          },
+        })
+        .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
+        .returning({ id: notifications.id });
     } else if (action === "ignore") {
       [updated] = await db
         .update(notifications)
-        .set({ buyerDeleteAt: now, buyerReadAt: now, updatedAt: now })
+        .set({
+          buyerReadAt: now,
+          updatedAt: now,
+          metadata: {
+            ...targetNotification.metadata,
+            status: "active",
+          },
+        })
         .where(and(eq(notifications.id, id), eq(notifications.userId, buyerUserId)))
         .returning({ id: notifications.id });
     } else {
@@ -463,14 +407,6 @@ export async function POST(request: Request) {
 
     if (!updated) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 });
-    }
-
-    if (action === "connect" && connectedEmailPayload) {
-      try {
-        await sendBuyerConnectedToRealtorNotification(connectedEmailPayload);
-      } catch (emailError) {
-        console.error("sendBuyerConnectedToRealtorNotification:", emailError);
-      }
     }
 
     return NextResponse.json({ ok: true });

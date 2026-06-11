@@ -21,6 +21,7 @@ type SessionUser = {
 
 const END_NOTE_MAX = 2000
 const END_REASON = "realtor_removed"
+const DEFAULT_INVESTOR_EMAIL = process.env.DEFAULT_EMAIL?.trim().toLowerCase() ?? ""
 
 function normalizeEndNote(raw: unknown): string | null {
   if (raw == null) return null
@@ -82,6 +83,22 @@ export async function POST(request: Request) {
 
   if (sessionUser.role !== "investor") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  if (DEFAULT_INVESTOR_EMAIL) {
+    const [investorRow] = await db
+      .select({ email: investors.email })
+      .from(investors)
+      .where(eq(investors.id, investorId))
+      .limit(1)
+
+    const investorEmail = investorRow?.email?.trim().toLowerCase() ?? ""
+    if (investorEmail === DEFAULT_INVESTOR_EMAIL) {
+      return NextResponse.json(
+        { error: "Cannot manage buyer connections as the default realtor" },
+        { status: 403 },
+      )
+    }
   }
 
   let body: { buyerId?: unknown; reasonNote?: unknown }
@@ -151,6 +168,20 @@ export async function POST(request: Request) {
     const buyerName =
       `${buyerRow?.firstName ?? ""} ${buyerRow?.lastName ?? ""}`.trim() || "(unknown buyer)"
 
+    let defaultReferralId: string | null = null
+    if (DEFAULT_INVESTOR_EMAIL) {
+      const [defaultInvestor] = await db
+        .select({ referralUrl: investors.referralUrl })
+        .from(investors)
+        .where(eq(investors.email, DEFAULT_INVESTOR_EMAIL))
+        .limit(1)
+
+      const referralUrl = defaultInvestor?.referralUrl?.trim()
+      if (referralUrl) {
+        defaultReferralId = referralUrl
+      }
+    }
+
     await db.transaction(async (tx) => {
       await tx
         .update(buyerInvestorLinks)
@@ -173,7 +204,7 @@ export async function POST(request: Request) {
       if (investor?.referralUrl) {
         await tx
           .update(users)
-          .set({ referralId: null, updatedAt: now })
+          .set({ referralId: defaultReferralId, updatedAt: now })
           .where(and(eq(users.id, buyerId), eq(users.referralId, investor.referralUrl)))
       }
 

@@ -32,6 +32,10 @@ export type NotificationMetadata = {
   listingTitle?: string;
   investorName?: string;
   buyerName?: string;
+  buyerId?: string;
+  investorId?: string;
+  referralToken?: string;
+  linkedVia?: string;
   endedAt?: string;
   endedBy?: "realtor" | "buyer" | "system";
   endReason?: string;

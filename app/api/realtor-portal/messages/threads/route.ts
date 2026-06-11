@@ -206,6 +206,8 @@ export async function GET() {
       }
     })
 
+    console.log("threads", threads)
+
     return NextResponse.json({ threads })
   } catch (error) {
     console.error("Realtor message threads fetch error:", error)

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useSession } from "next-auth/react"
 import { ChevronDown } from "lucide-react"
+import { toast } from "sonner"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import {
   NotificationCard,
@@ -15,12 +16,29 @@ type NotificationsResponse = {
   notifications?: NotificationItem[]
 }
 
+const ACTION_SUCCESS_MESSAGES: Record<"connect" | "ignore" | "delete", string> = {
+  connect: "Buyer connected successfully",
+  ignore: "Connection request ignored",
+  delete: "Notification deleted",
+}
+
 async function postNotificationAction(id: string, action: "connect" | "ignore" | "read" | "delete") {
-  await fetch("/api/realtor-portal/notifications", {
+  const res = await fetch("/api/realtor-portal/notifications", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, action }),
   })
+  const data = (await res.json().catch(() => ({}))) as { error?: string }
+
+  if (!res.ok) {
+    const message = typeof data.error === "string" ? data.error : "Request failed"
+    toast.error(message)
+    throw new Error(message)
+  }
+
+  if (action in ACTION_SUCCESS_MESSAGES) {
+    toast.success(ACTION_SUCCESS_MESSAGES[action as keyof typeof ACTION_SUCCESS_MESSAGES])
+  }
 }
 
 export default function RealtorNotificationsPage() {
@@ -83,25 +101,43 @@ export default function RealtorNotificationsPage() {
     )
   }
 
-  const connectNotificationAction = (id: string) => {
+  const connectNotificationAction = async (id: string) => {
     const target = findNotification(id)
-    if (target?.actions.type === "dual" && target.actions.primary.label === "Connect") {
-      void postNotificationAction(id, "connect")
+    if (target?.actions.type !== "dual" || target.actions.primary.label !== "Connect") {
+      return true
     }
-    markRead(id)
+
+    try {
+      await postNotificationAction(id, "connect")
+      markRead(id)
+      return true
+    } catch {
+      return false
+    }
   }
 
-  const removeNotification = (id: string) => {
+  const removeNotification = async (id: string) => {
     const target = findNotification(id)
-    if (target?.actions.type === "dual") {
-      void postNotificationAction(id, "ignore")
+    if (target?.actions.type !== "dual") {
+      return true
     }
-    markRead(id)
+
+    try {
+      await postNotificationAction(id, "ignore")
+      markRead(id)
+      return true
+    } catch {
+      return false
+    }
   }
 
-  const deleteNotification = (id: string) => {
-    void postNotificationAction(id, "delete")
-    setNotifications((prev) => prev.filter((item) => item.id !== id))
+  const deleteNotification = async (id: string) => {
+    try {
+      await postNotificationAction(id, "delete")
+      setNotifications((prev) => prev.filter((item) => item.id !== id))
+    } catch {
+      // Error toast shown in postNotificationAction
+    }
   }
 
   if (loading) {
