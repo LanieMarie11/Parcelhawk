@@ -150,7 +150,7 @@ function mapNotificationRow(row: {
       if (row.metadata?.sender === "buyer") {
         return {
           id: row.id,
-          title: "New buyer connection request",
+          title: "New realtor connection request",
           timestamp: formatRelativeTime(row.createdAt),
           readAt: readAtIso,
           category: "Invitation",
@@ -172,7 +172,7 @@ function mapNotificationRow(row: {
       if (row.metadata?.sender === "realtor") {
         return {
           id: row.id,
-          title: row.title ?? "New buyer connection request",
+          title: "New buyer connection request",
           timestamp: formatRelativeTime(row.createdAt),
           readAt: readAtIso,
           category: "Invitation",
