@@ -3,7 +3,41 @@ import { getServerSession } from "next-auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { favorites, landUpdatedListings } from "@/db/schema";
+import { runUtilityDueDiligenceWithLlm } from "@/lib/ai-utility-due-diligence";
 import { authOptions } from "@/lib/auth";
+import type { UtilityDueDiligencePromptParams } from "@/lib/prompt/utility";
+
+function formatListingAddress(listing: {
+  address1: string | null;
+  city: string | null;
+  zip: string | null;
+}): string | null {
+  const parts = [listing.address1, listing.city, listing.zip].filter(
+    (part): part is string => typeof part === "string" && part.trim().length > 0,
+  );
+
+  return parts.length > 0 ? parts.map((part) => part.trim()).join(", ") : null;
+}
+
+function listingToUtilityPromptParams(listing: {
+  address1: string | null;
+  city: string | null;
+  zip: string | null;
+  county: string | null;
+  stateAbbreviation: string | null;
+  stateName: string | null;
+  latitude: number | null;
+  longitude: number | null;
+}): UtilityDueDiligencePromptParams {
+  return {
+    address: formatListingAddress(listing),
+    county: listing.county,
+    state: listing.stateAbbreviation ?? listing.stateName,
+    apn: null,
+    latitude: listing.latitude,
+    longitude: listing.longitude,
+  };
+}
 
 function parseListingId(value: unknown): number | null {
   if (typeof value === "number" && Number.isInteger(value) && value > 0) {
@@ -50,7 +84,17 @@ export async function POST(request: Request) {
     }
 
     const [listingRow] = await db
-      .select({ id: landUpdatedListings.id })
+      .select({
+        id: landUpdatedListings.id,
+        address1: landUpdatedListings.address1,
+        city: landUpdatedListings.city,
+        zip: landUpdatedListings.zip,
+        county: landUpdatedListings.county,
+        stateAbbreviation: landUpdatedListings.stateAbbreviation,
+        stateName: landUpdatedListings.stateName,
+        latitude: landUpdatedListings.latitude,
+        longitude: landUpdatedListings.longitude,
+      })
       .from(landUpdatedListings)
       .where(eq(landUpdatedListings.id, listingId))
       .limit(1);
@@ -59,9 +103,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
-    
+    const promptParams = listingToUtilityPromptParams(listingRow);
+    const report = await runUtilityDueDiligenceWithLlm(promptParams);
 
-    return NextResponse.json({ ok: true, listingId });
+    if (!report) {
+      return NextResponse.json(
+        { error: "Failed to generate utility due diligence report" },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, listingId, report });
   } catch (err) {
     console.error("Utility search POST error:", err);
     return NextResponse.json({ error: "Failed to submit utility search request" }, { status: 500 });

@@ -132,3 +132,37 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  @page {
+    margin: 0.65in;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #utility-report-document,
+  #utility-report-document * {
+    visibility: visible;
+  }
+
+  #utility-report-document {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+
+  .utility-report-no-print {
+    display: none !important;
+  }
+}

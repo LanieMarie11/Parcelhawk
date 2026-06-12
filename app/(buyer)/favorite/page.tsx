@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { MapPin, Plus, Search, Sparkles, Trash2 } from "lucide-react"
+import { MapPin, Plus, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
@@ -617,60 +617,69 @@ function FavoritePageContent() {
               </div>
             )}
           </section>
+          <div>
+            <aside className="self-start rounded-2xl border border-border bg-white p-5 shadow-sm">
+              <div className="text-center">
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-[#EAEFEB] text-brand-green">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <h2 className="mt-3 text-xl font-semibold font-phudu text-[#2E3037]">AI COMPARISON</h2>
+                <p className="mx-auto mt-2 max-w-[280px] text-sm leading-relaxed text-[#6A6D79]">
+                  Select up to 3 properties using the{" "}
+                  <span className="font-semibold text-brand-green">Compare</span>{" "}
+                  button on each card to see an AI-powered side-by-side analysis.
+                </p>
 
-          <aside className="self-start rounded-2xl border border-border bg-white p-4">
-            <div className="rounded-xl border border-border bg-[#F7F7F7] p-5 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#4f5160]">
-                <Sparkles className="h-4 w-4" />
-              </div>
-              <h2 className="mt-3 text-xl font-semibold font-phudu text-[#2E3037]">AI COMPARISON</h2>
-              <p className="mx-auto mt-2 max-w-[260px] text-sm text-[#6A6D79]">
-                Select up to 2-5 properties using the{" "}
-                <span className="font-semibold text-[#2D5A36]">Compare</span>{" "}
-                button on each card to see an AI-powered side-by-side analysis.
-              </p>
-
-              <div className="mt-4 grid grid-cols-3 gap-2">
-                {[0, 1, 2].map((index) => {
-                  const selected = selectedCompareListings[index]
-                  return (
-                    <div
-                      key={index}
-                      className={`rounded-lg border border-dashed p-2 text-xs ${
-                        selected ? "border-[#04C0AF]/40 bg-[#EFFFFD] text-[#146C64]" : "border-border text-muted-foreground"
-                      }`}
-                    >
-                      <div className="mb-1 flex justify-center">
-                        <Plus className="h-3.5 w-3.5" />
+                <div className="mt-5 grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map((index) => {
+                    const selected = selectedCompareListings[index]
+                    return (
+                      <div
+                        key={index}
+                        className={`flex min-h-[76px] flex-col items-center justify-center rounded-lg border border-dashed px-2 py-3 text-xs ${
+                          selected
+                            ? "border-brand-green/40 bg-[#EAEFEB] text-brand-green"
+                            : "border-[#D5D7DE] bg-[#FAFAFA] text-[#8B8E98]"
+                        }`}
+                      >
+                        {!selected ? (
+                          <>
+                            <Plus className="mb-1.5 h-4 w-4" />
+                            <p>Add property {index + 1}</p>
+                          </>
+                        ) : (
+                          <p className="line-clamp-3 font-medium">{selected.name}</p>
+                        )}
                       </div>
-                      {selected ? (
-                        <p className="line-clamp-2">{selected.name}</p>
-                      ) : (
-                        <p>Add property {index + 1}</p>
-                      )}
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCompareProperties}
+                  disabled={selectedCompareListings.length < 2 || isComparing}
+                  className="mt-5 w-full rounded-lg bg-brand-green py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isComparing ? "Comparing..." : "Compare properties"}
+                </button>
+                {compareError ? <p className="mt-2 text-xs text-[#B3261E]">{compareError}</p> : null}
               </div>
 
-              <button
-                type="button"
-                onClick={handleCompareProperties}
-                disabled={selectedCompareListings.length < 2 || isComparing}
-                className="mt-4 w-full rounded-lg bg-brand-green py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isComparing ? "Comparing..." : "Compare properties"}
-              </button>
-              {compareError ? <p className="mt-2 text-xs text-[#B3261E]">{compareError}</p> : null}
+              
+            </aside>
+            <div className="mt-4 flex gap-3 rounded-xl border border-[#B0BECB] p-3 text-left">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#D1D8DF] text-[#002C58]">
+                <SlidersHorizontal className="h-4 w-4 " />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#002C58]">How AI Comparison Works</p>
+                <p className="mt-1 text-xs leading-relaxed font-ibm-plex-sans text-[#373940]">
+                  Click Compare on any of 2 properties card to add it here. ParcelHawk AI will analyze location fit, pricing, acreage, features, and investment potential side-by-side.
+                </p>
+              </div>
             </div>
-
-            <div className="mt-3 rounded-xl border border-[#BFD7EF] bg-[#F5FAFF] p-3">
-              <p className="text-sm font-semibold text-[#002C58]">How AI Comparison Works</p>
-              <p className="mt-1 text-xs text-[#58708C]">
-                Click Compare on any 2 of your saved properties. ParcelHawk AI compares location fit, pricing, acreage, and investment potential side-by-side.
-              </p>
-            </div>
-          </aside>
+          </div>
         </div>
       </div>
     </div>
