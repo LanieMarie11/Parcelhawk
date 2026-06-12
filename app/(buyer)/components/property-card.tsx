@@ -255,7 +255,7 @@ export function PropertyCard({
               <div className="flex items-center gap-2">
                 {acreage ? (
                   <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
-                    {String(acreage).trim()} ac
+                    {String(acreage).trim()} acres
                   </span>
                 ) : null}
                 {/* {category ? (
