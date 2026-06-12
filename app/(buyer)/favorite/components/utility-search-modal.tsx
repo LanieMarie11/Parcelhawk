@@ -1,13 +1,19 @@
 "use client"
 
-import { Loader2, Search, X } from "lucide-react"
+import { Download, Loader2, Printer, Search, X } from "lucide-react"
 import { useEffect, useId, useState } from "react"
+import {
+  downloadUtilityReportMarkdown,
+  printUtilityReport,
+  UtilityReportDocument,
+} from "./utility-report-document"
 
 const BUYER_UTILITY_SEARCHES_PATH = "/api/buyer/utility-searches"
 
 export type UtilitySearchResponse = {
   ok: true
   listingId: number
+  report: string
 }
 
 async function submitUtilitySearchRequest(listingId: number): Promise<UtilitySearchResponse> {
@@ -22,11 +28,15 @@ async function submitUtilitySearchRequest(listingId: number): Promise<UtilitySea
     throw new Error(typeof data.error === "string" ? data.error : "Request failed")
   }
 
-  if (data.ok !== true || typeof data.listingId !== "number") {
+  if (
+    data.ok !== true ||
+    typeof data.listingId !== "number" ||
+    typeof data.report !== "string"
+  ) {
     throw new Error("Invalid response from server")
   }
 
-  return { ok: true, listingId: data.listingId }
+  return { ok: true, listingId: data.listingId, report: data.report }
 }
 
 export type UtilitySearchModalProps = {
@@ -40,7 +50,7 @@ export type UtilitySearchModalProps = {
 type RequestState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; data: UtilitySearchResponse }
+  | { status: "success"; data: UtilitySearchResponse; generatedAt: Date }
   | { status: "error"; message: string }
 
 export function UtilitySearchModal({
@@ -63,7 +73,9 @@ export function UtilitySearchModal({
 
     void submitUtilitySearchRequest(listingId)
       .then((data) => {
-        if (!cancelled) setRequestState({ status: "success", data })
+        if (!cancelled) {
+          setRequestState({ status: "success", data, generatedAt: new Date() })
+        }
       })
       .catch((error) => {
         if (!cancelled) {
@@ -81,19 +93,21 @@ export function UtilitySearchModal({
 
   if (!open) return null
 
+  const reportData = requestState.status === "success" ? requestState.data : null
+
   return (
     <div
-      className="fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4"
+      className="utility-report-print-root fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl"
+        className="utility-report-print-dialog flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#f4f6f8] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="bg-brand-green px-5 pb-5 pt-5">
+        <div className="utility-report-no-print shrink-0 bg-brand-green px-5 pb-5 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ring-1 ring-white/10"
@@ -111,53 +125,86 @@ export function UtilitySearchModal({
             </button>
           </div>
           <div className="mt-5 min-w-0">
-            <h2 id={titleId} className="text-lg font-semibold font-ibm-plex-sans leading-tight tracking-tight text-white">
-              Utility Search
+            <h2
+              id={titleId}
+              className="text-lg font-semibold font-ibm-plex-sans leading-tight tracking-tight text-white"
+            >
+              Utility Due Diligence Report
             </h2>
-            <p className="mt-1.5 truncate text-sm font-regular font-ibm-plex-sans leading-snug text-white/95">{propertySubtitle}</p>
+            <p className="mt-1.5 truncate text-sm font-regular font-ibm-plex-sans leading-snug text-white/95">
+              {propertySubtitle}
+            </p>
           </div>
         </div>
 
-        <div className="p-4">
+        {reportData ? (
+          <div className="utility-report-no-print flex shrink-0 flex-wrap gap-2 border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
+            <button
+              type="button"
+              onClick={printUtilityReport}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 text-sm font-medium font-ibm-plex-sans text-white transition-colors hover:bg-brand-green-hover"
+            >
+              <Printer className="h-4 w-4" aria-hidden />
+              Download PDF
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                downloadUtilityReportMarkdown(
+                  reportData.report,
+                  propertySubtitle,
+                  reportData.listingId
+                )
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium font-ibm-plex-sans text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Download report (.md)
+            </button>
+          </div>
+        ) : null}
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
           {requestState.status === "loading" ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-10">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white py-16">
               <Loader2 className="h-8 w-8 animate-spin text-brand-green" aria-hidden />
-              <p className="text-sm text-muted-foreground">Submitting utility search request...</p>
+              <p className="text-sm font-ibm-plex-sans text-muted-foreground">
+                Generating utility due diligence report...
+              </p>
+              <p className="max-w-sm px-4 text-center text-xs text-zinc-500">
+                This may take a minute while we research infrastructure, utilities, and local
+                authorities for this parcel.
+              </p>
             </div>
           ) : null}
 
           {requestState.status === "success" ? (
-            <div className="rounded-xl border border-emerald-200/90 bg-[#EDFCEA] px-3.5 py-3">
-              <p className="text-sm font-semibold text-[#2D5A36]">Request submitted</p>
-              <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#4b5563]">
-                Your utility search request was received for listing ID{" "}
-                <span className="font-medium">{requestState.data.listingId}</span>.
-              </p>
-              <pre className="mt-3 overflow-x-auto rounded-lg bg-white/80 p-3 text-xs text-[#374151]">
-                {JSON.stringify(requestState.data, null, 2)}
-              </pre>
-            </div>
+            <UtilityReportDocument
+              report={requestState.data.report}
+              propertySubtitle={propertySubtitle}
+              generatedAt={requestState.generatedAt}
+            />
           ) : null}
 
           {requestState.status === "error" ? (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-3">
-              <p className="text-sm font-semibold text-[#B3261E]">Request failed</p>
-              <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#7f1d1d]">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4">
+              <p className="text-sm font-semibold text-[#B3261E]">Report failed</p>
+              <p className="mt-1 text-sm font-ibm-plex-sans leading-relaxed text-[#7f1d1d]">
                 {requestState.message}
               </p>
             </div>
           ) : null}
+        </div>
 
-          <div className="pt-6 pb-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={requestState.status === "loading"}
-              className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Close
-            </button>
-          </div>
+        <div className="utility-report-no-print shrink-0 border-t border-zinc-200 bg-white px-4 py-4 sm:px-5">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={requestState.status === "loading"}
+            className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
