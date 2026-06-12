@@ -224,7 +224,7 @@ function mapNotificationRow(row: {
 
     return {
       id: row.id,
-      title: row.title ?? "Realtor connection update",
+      title: "New Realtor connection update",
       timestamp: formatRelativeTime(row.createdAt),
       readAt: row.buyerReadAt ? row.buyerReadAt.toISOString() : undefined,
       category: "Invitation",

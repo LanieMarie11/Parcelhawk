@@ -182,7 +182,7 @@ function mapNotificationRow(row: {
           avatar,
           actions: {
             type: "single",
-            label: "View buyers",
+            label: "View details",
           },
         } as RealtorNotificationItem
       }
@@ -199,7 +199,7 @@ function mapNotificationRow(row: {
         avatar,
         actions: {
           type: "single",
-          label: "View buyers",
+          label: "View details",
         },
       }
     }
@@ -208,7 +208,7 @@ function mapNotificationRow(row: {
 
     return {
       id: row.id,
-      title: row.title ?? (isEnded ? "Buyer connection ended" : "Buyer connection update"),
+      title: (isEnded ? "Buyer connection ended" : "New Buyer connection update"),
       timestamp: formatRelativeTime(row.createdAt),
       readAt: readAtIso,
       category: "Invitation",
@@ -222,7 +222,7 @@ function mapNotificationRow(row: {
       avatar,
       actions: {
         type: "single",
-        label: "View buyers",
+        label: "View details",
       },
     }
   }

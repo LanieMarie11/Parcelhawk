@@ -107,6 +107,61 @@ function OutlineActionButton({
   )
 }
 
+function NotificationDetailsModal({
+  notification,
+  actionLabel,
+  onClose,
+}: {
+  notification: NotificationItem
+  actionLabel: string
+  onClose: () => void
+}) {
+  const { title, description, endReason, category, timestamp } = notification
+
+  return (
+    <div
+      className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 p-6"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[416px] rounded-xl bg-[#f6f7f8] p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notification-details-modal-title"
+      >
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h3
+            id="notification-details-modal-title"
+            className="font-phudu text-2xl font-medium tracking-tight text-[#030303]"
+          >
+            {title}
+          </h3>
+          <span className="text-sm text-muted-foreground">{timestamp}</span>
+          <span className="inline-flex items-center rounded-full border border-[#D9DADF] bg-[#F3F4F6] px-2.5 py-0.5 text-xs font-medium text-[#6B7280]">
+            {category}
+          </span>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{description}</p>
+        {endReason ? (
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Reason: {endReason}
+          </p>
+        ) : null}
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg bg-brand-green px-4 py-[10px] text-sm font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
+          >
+            {actionLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function NotificationActionModal({
   action,
   onClose,
@@ -170,6 +225,7 @@ export function NotificationCard({
   onDelete,
 }: NotificationCardProps) {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
   const { unread, title, timestamp, category, description, endReason, avatar, actions, readAt } =
     notification
@@ -202,6 +258,11 @@ export function NotificationCard({
     }
 
     setPendingAction(null)
+  }
+
+  const closeDetailsModal = () => {
+    handleAction()
+    setShowDetailsModal(false)
   }
 
   return (
@@ -260,7 +321,7 @@ export function NotificationCard({
               <OutlineActionButton
                 label={actions.label}
                 href={actions.href}
-                onClick={handleAction}
+                onClick={actions.href ? handleAction : () => setShowDetailsModal(true)}
               />
             ) : unread ? (
               <>
@@ -303,6 +364,14 @@ export function NotificationCard({
           action={pendingAction}
           onClose={() => setPendingAction(null)}
           onConfirm={confirmPendingAction}
+        />
+      ) : null}
+
+      {showDetailsModal ? (
+        <NotificationDetailsModal
+          notification={notification}
+          actionLabel={actions.type === "single" ? actions.label : "Got it"}
+          onClose={closeDetailsModal}
         />
       ) : null}
     </>

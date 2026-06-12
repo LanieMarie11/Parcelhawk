@@ -194,6 +194,11 @@ function FavoritePropertyCard({
       <div className="mt-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[20px] leading-none font-semibold text-foreground">{priceText}</p>
+          {acresValue ? (
+            <span className="rounded-full border border-border bg-background px-2 py-1 text-xs font-medium text-foreground">
+              {acresValue} acres
+            </span>
+          ) : null}
           {/* <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
             {aiScore}% match
           </span> */}

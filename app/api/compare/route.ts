@@ -42,6 +42,27 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(num) ? num : null
 }
 
+/** Parses `listed_date` text (e.g. "May 13, 2026 at 6:57 AM") for days-on-market math. */
+function parseListedDate(value: string | null | undefined): Date | null {
+  if (value == null) return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  const normalized = trimmed.includes(" at ") ? trimmed.replace(" at ", " ") : trimmed
+  const parsed = new Date(normalized)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function computeDaysOnMarket(listedDate: string | null | undefined): number | null {
+  const parsed = parseListedDate(listedDate)
+  if (!parsed) return null
+
+  return Math.max(
+    0,
+    Math.floor((Date.now() - parsed.getTime()) / (1000 * 60 * 60 * 24)),
+  )
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   const userId = getUserId(session)
@@ -105,16 +126,7 @@ export async function POST(request: Request) {
               .slice(0, 3)
               .join(", ")
           : ""
-      const daysOnMarket =
-        row.listedDate != null
-          ? Math.max(
-              0,
-              Math.floor(
-                (Date.now() - new Date(row.listedDate).getTime()) /
-                  (1000 * 60 * 60 * 24)
-              )
-            )
-          : null
+      const daysOnMarket = computeDaysOnMarket(row.listedDate)
 
       const descriptionText = descriptionToText(row.description)
       const inferredFeatures = await inferFeaturesFromDescriptionWithLlm(descriptionText)
