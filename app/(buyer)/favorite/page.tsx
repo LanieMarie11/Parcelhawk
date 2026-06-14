@@ -11,7 +11,10 @@ import { OrderPropertyReportModal } from "@/app/(buyer)/favorite/components/orde
 import { UtilitySearchModal } from "@/app/(buyer)/favorite/components/utility-search-modal"
 import { PageLoadingIndicator } from "@/components/page-loading-indicator"
 import type { ListingItem } from "@/components/property-map-list"
-import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
+import {
+  parseListingLatLon,
+  resolveListingSatellitePreviewUrl,
+} from "@/lib/parcel-satellite-preview-client"
 import { ViewRequestModal } from "../components/view-request-modal"
 
 const SORT_OPTIONS = [
@@ -127,6 +130,12 @@ function FavoritePropertyCard({
 
   const linkUrl = listing.url?.trim() ? listing.url : `/property?id=${listing.id}`
   const savedLabel = formatSavedRelativeLabel(listing.createdAt)
+  const previewLat = parseListingLatLon(listing.latitude)
+  const previewLng = parseListingLatLon(listing.longitude)
+  const googleMapsUrl =
+    previewLat != null && previewLng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${previewLat},${previewLng}`
+      : null
 
   return (
     <>
@@ -289,6 +298,16 @@ function FavoritePropertyCard({
               sizes="100vw"
             />
           </div>
+          {googleMapsUrl ? (
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 block w-full rounded-lg bg-brand-green py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
+            >
+              Open in Google Maps
+            </a>
+          ) : null}
         </div>
       </div>
     ) : null}

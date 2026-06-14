@@ -219,6 +219,8 @@ export function PropertyMapList({
                 detailUrl={listing.url ?? undefined}
                 description={listing.description}
                 parcelSatelliteMapDataUrl={resolveListingSatellitePreviewUrl(listing)}
+                latitude={listing.latitude}
+                longitude={listing.longitude}
                 updatedAt={listing.updatedAt ?? undefined}
                 variant="list"
                 onMouseEnter={() => setHoveredListingId(listing.id)}

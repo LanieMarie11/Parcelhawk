@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { Heart, MapPin, Maximize2 } from "lucide-react"
+import { parseListingLatLon } from "@/lib/parcel-satellite-preview-client"
 import { useSignInModal } from "@/lib/sign-in-modal-context"
 import { ViewRequestModal } from "./view-request-modal"
 
@@ -64,6 +65,8 @@ interface PropertyCardProps {
   description?: string | string[] | null
   /** Google Static Maps satellite + Regrid boundary (data URL); list variant only */
   parcelSatelliteMapDataUrl?: string | null
+  latitude?: number | null
+  longitude?: number | null
   /** When true, heart shows as favorited (e.g. from API isFavorite) */
   initialIsFavorite?: boolean
   /** When true, viewing request modal shows the sent confirmation state */
@@ -126,6 +129,8 @@ export function PropertyCard({
   aiMatchingScore,
   description,
   parcelSatelliteMapDataUrl,
+  latitude,
+  longitude,
   initialIsFavorite = false,
   hasViewingRequest = false,
   detailUrl,
@@ -188,6 +193,12 @@ export function PropertyCard({
   const numericAcres = Number(String(acreage).replace(/[^0-9.]/g, ""))
   const showPricePerAcre = Number.isFinite(numericPrice) && Number.isFinite(numericAcres) && numericAcres > 0
   const pricePerAcre = showPricePerAcre ? numericPrice / numericAcres : null
+  const previewLat = parseListingLatLon(latitude)
+  const previewLng = parseListingLatLon(longitude)
+  const googleMapsUrl =
+    previewLat != null && previewLng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${previewLat},${previewLng}`
+      : null
 
   if (variant === "list") {
     return (
@@ -345,6 +356,16 @@ export function PropertyCard({
                   sizes="100vw"
                 />
               </div>
+              {googleMapsUrl ? (
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block w-full rounded-lg bg-brand-green py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
+                >
+                  Open in Google Maps
+                </a>
+              ) : null}
             </div>
           </div>
         ) : null}
