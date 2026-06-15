@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landUpdatedListings } from "@/db/schema";
+import { favorites, mergedListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { getEmbedding } from "@/lib/embedding";
 import { jsonbArrayContains } from "@/lib/land-updated-listing-filters";
@@ -71,27 +71,27 @@ function getSemanticMatchPoints(distance: number, minDistance: number, maxDistan
 function buildSqlFilterConditions(filters: SearchQueryFilters) {
   const conditions = [];
   if (filters.minPrice != null) {
-    conditions.push(gte(landUpdatedListings.price, String(filters.minPrice)));
+    conditions.push(gte(mergedListings.price, String(filters.minPrice)));
   }
   if (filters.maxPrice != null) {
-    conditions.push(lte(landUpdatedListings.price, String(filters.maxPrice)));
+    conditions.push(lte(mergedListings.price, String(filters.maxPrice)));
   }
   if (filters.minAcres != null) {
-    conditions.push(gte(landUpdatedListings.acres, filters.minAcres));
+    conditions.push(gte(mergedListings.acres, filters.minAcres));
   }
   if (filters.maxAcres != null) {
-    conditions.push(lte(landUpdatedListings.acres, filters.maxAcres));
+    conditions.push(lte(mergedListings.acres, filters.maxAcres));
   }
   if (filters.activities != null && filters.activities.length > 0) {
     conditions.push(
-      or(...filters.activities.map((a) => jsonbArrayContains(landUpdatedListings.activities, a)))!
+      or(...filters.activities.map((a) => jsonbArrayContains(mergedListings.activities, a)))!
     );
   }
   if (filters.propertyTypes != null && filters.propertyTypes.length > 0) {
     conditions.push(
       or(
         ...filters.propertyTypes.map((t) =>
-          jsonbArrayContains(landUpdatedListings.propertyType, t)
+          jsonbArrayContains(mergedListings.propertyType, t)
         )
       )!
     );
@@ -101,7 +101,7 @@ function buildSqlFilterConditions(filters: SearchQueryFilters) {
     conditions.push(
       or(
         ...filters.stateNames.map((sn) =>
-          ilike(landUpdatedListings.stateName, toTokenContainsPattern(sn))
+          ilike(mergedListings.stateName, toTokenContainsPattern(sn))
         )
       )!
     );
@@ -111,7 +111,7 @@ function buildSqlFilterConditions(filters: SearchQueryFilters) {
     conditions.push(
       or(
         ...filters.stateAbbreviations.map((abbr) =>
-          ilike(landUpdatedListings.stateAbbreviation, toTokenContainsPattern(abbr))
+          ilike(mergedListings.stateAbbreviation, toTokenContainsPattern(abbr))
         )
       )!
     );
@@ -121,7 +121,7 @@ function buildSqlFilterConditions(filters: SearchQueryFilters) {
     conditions.push(
       or(
         ...filters.cities.map((city) =>
-          ilike(landUpdatedListings.city, toTokenContainsPattern(city))
+          ilike(mergedListings.city, toTokenContainsPattern(city))
         )
       )!
     );
@@ -131,7 +131,7 @@ function buildSqlFilterConditions(filters: SearchQueryFilters) {
     conditions.push(
       or(
         ...filters.counties.map((county) =>
-          ilike(landUpdatedListings.county, toTokenContainsPattern(county))
+          ilike(mergedListings.county, toTokenContainsPattern(county))
         )
       )!
     );
@@ -199,8 +199,8 @@ export async function POST(request: NextRequest) {
       const conditions = buildSqlFilterConditions(extractedFilters);
       if (conditions.length > 0) {
         const filtered = await db
-          .select({ id: landUpdatedListings.id })
-          .from(landUpdatedListings)
+          .select({ id: mergedListings.id })
+          .from(mergedListings)
           .where(and(...conditions));
         console.log("embedding-search sqlFilteredRowCount", filtered.length);
         allowedListingIds = filtered.map((r) => r.id);
@@ -226,10 +226,10 @@ export async function POST(request: NextRequest) {
       rows =
         allowedListingIds != null && allowedListingIds.length > 0
           ? ((await db.execute(
-              sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_updated_listings_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${SEMANTIC_PRESELECT_LIMIT}`
+              sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM merged_listings_embeddings WHERE listing_id IN (${sql.join(allowedListingIds.map((id) => sql`${id}`), sql`, `)}) ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${SEMANTIC_PRESELECT_LIMIT}`
             )) as { listing_id: number; distance: number }[])
           : ((await db.execute(
-              sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM land_updated_listings_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${SEMANTIC_PRESELECT_LIMIT}`
+              sql`SELECT listing_id, (embedding <=> ${vectorStr}::vector) AS distance FROM merged_listings_embeddings ORDER BY embedding <=> ${vectorStr}::vector LIMIT ${SEMANTIC_PRESELECT_LIMIT}`
             )) as { listing_id: number; distance: number }[]);
     }
 
@@ -248,8 +248,8 @@ export async function POST(request: NextRequest) {
     // Fetch full listings in the same order as vector search (by id order).
     const listings = await db
       .select()
-      .from(landUpdatedListings)
-      .where(inArray(landUpdatedListings.id, listingIds));
+      .from(mergedListings)
+      .where(inArray(mergedListings.id, listingIds));
 
     const distanceByListingId = new Map(
       rows.map((r) => [r.listing_id, Number(r.distance)] as const)

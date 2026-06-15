@@ -10,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { buyerInvestorLinks } from "./buyer-investor-links";
-import { landUpdatedListings } from "./updated-listing";
+import { mergedListings } from "./merged-listings";
 import { investors, users } from "./users";
 import { viewingRequests } from "./viewing-requests";
 
@@ -57,7 +57,7 @@ export const notifications = pgTable(
     investorId: uuid("investor_id").references(() => investors.id, {
       onDelete: "set null",
     }),
-    listingId: integer("listing_id").references(() => landUpdatedListings.id, {
+    listingId: integer("listing_id").references(() => mergedListings.id, {
       onDelete: "set null",
     }),
     viewingRequestId: uuid("viewing_request_id").references(() => viewingRequests.id, {

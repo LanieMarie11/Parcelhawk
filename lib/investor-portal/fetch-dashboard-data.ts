@@ -3,7 +3,7 @@ import { db } from "@/db";
 import {
   buyerInvestorLinks,
   favorites,
-  landUpdatedListings,
+  mergedListings,
   savedSearches,
 } from "@/db/schema";
 import type {
@@ -146,13 +146,13 @@ export async function fetchInvestorDashboardData(
     const topListingId = favoriteCounts[0].landListingId;
     const [listing] = await db
       .select({
-        acres: landUpdatedListings.acres,
-        city: landUpdatedListings.city,
-        county: landUpdatedListings.county,
-        stateAbbreviation: landUpdatedListings.stateAbbreviation,
+        acres: mergedListings.acres,
+        city: mergedListings.city,
+        county: mergedListings.county,
+        stateAbbreviation: mergedListings.stateAbbreviation,
       })
-      .from(landUpdatedListings)
-      .where(eq(landUpdatedListings.id, topListingId))
+      .from(mergedListings)
+      .where(eq(mergedListings.id, topListingId))
       .limit(1);
 
     if (listing) {

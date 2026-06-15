@@ -1,8 +1,8 @@
 import { sql } from "drizzle-orm";
-import { landUpdatedListings } from "@/db/schema";
+import { mergedListings } from "@/db/schema";
 
 export function jsonbArrayContains(
-  column: typeof landUpdatedListings.activities | typeof landUpdatedListings.propertyType,
+  column: typeof mergedListings.activities | typeof mergedListings.propertyType,
   value: string
 ) {
   return sql`${column} @> ${JSON.stringify([value])}::jsonb`;

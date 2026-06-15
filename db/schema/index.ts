@@ -7,7 +7,11 @@ export {
 } from "./buyer-investor-links";
 export { favorites, savedSearches } from "./favorites-saved-searches";
 export { landListingEmbeddings, landListings } from "./listings";
-export { landUpdatedListingEmbeddings, landUpdatedListings } from "./updated-listing";
+export {
+  redfinUpdatedListingEmbeddings,
+  redfinUpdatedListings,
+} from "./redfin-listings";
+export { mergedListingEmbeddings, mergedListings } from "./merged-listings";
 export { messages, messageSenderRoleEnum, messageThreads } from "./messages";
 export {
   notificationTypeEnum,
