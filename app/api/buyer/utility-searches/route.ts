@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landUpdatedListings } from "@/db/schema";
+import { favorites, mergedListings } from "@/db/schema";
 import { runUtilityDueDiligenceWithLlm } from "@/lib/ai-utility-due-diligence";
 import { authOptions } from "@/lib/auth";
 import type { UtilityDueDiligencePromptParams } from "@/lib/prompt/utility";
@@ -85,18 +85,18 @@ export async function POST(request: Request) {
 
     const [listingRow] = await db
       .select({
-        id: landUpdatedListings.id,
-        address1: landUpdatedListings.address1,
-        city: landUpdatedListings.city,
-        zip: landUpdatedListings.zip,
-        county: landUpdatedListings.county,
-        stateAbbreviation: landUpdatedListings.stateAbbreviation,
-        stateName: landUpdatedListings.stateName,
-        latitude: landUpdatedListings.latitude,
-        longitude: landUpdatedListings.longitude,
+        id: mergedListings.id,
+        address1: mergedListings.address1,
+        city: mergedListings.city,
+        zip: mergedListings.zip,
+        county: mergedListings.county,
+        stateAbbreviation: mergedListings.stateAbbreviation,
+        stateName: mergedListings.stateName,
+        latitude: mergedListings.latitude,
+        longitude: mergedListings.longitude,
       })
-      .from(landUpdatedListings)
-      .where(eq(landUpdatedListings.id, listingId))
+      .from(mergedListings)
+      .where(eq(mergedListings.id, listingId))
       .limit(1);
 
     if (!listingRow) {

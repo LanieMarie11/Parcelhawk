@@ -3,13 +3,13 @@ import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
 import { and, eq, inArray, type InferSelectModel } from "drizzle-orm"
 import { db } from "@/db"
-import { favorites, landUpdatedListings } from "@/db/schema"
+import { favorites, mergedListings } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
 import { summarizeComparedListingsWithLlm } from "@/lib/ai-description-summary"
 import { jsonbArrayFirst } from "@/lib/land-updated-listing-filters"
 
-type LandListing = InferSelectModel<typeof landUpdatedListings>
+type LandListing = InferSelectModel<typeof mergedListings>
 type CompareListingRow = Pick<
   LandListing,
   | "id"
@@ -86,23 +86,23 @@ export async function POST(request: Request) {
 
   const rows: CompareListingRow[] = await db
     .select({
-      id: landUpdatedListings.id,
-      title: landUpdatedListings.title,
-      price: landUpdatedListings.price,
-      acres: landUpdatedListings.acres,
-      city: landUpdatedListings.city,
-      county: landUpdatedListings.county,
-      stateAbbreviation: landUpdatedListings.stateAbbreviation,
-      listedDate: landUpdatedListings.listedDate,
-      latitude: landUpdatedListings.latitude,
-      longitude: landUpdatedListings.longitude,
-      propertyType: landUpdatedListings.propertyType,
-      propertyAmenities: landUpdatedListings.propertyAmenities,
-      description: landUpdatedListings.description,
-      url: landUpdatedListings.url,
+      id: mergedListings.id,
+      title: mergedListings.title,
+      price: mergedListings.price,
+      acres: mergedListings.acres,
+      city: mergedListings.city,
+      county: mergedListings.county,
+      stateAbbreviation: mergedListings.stateAbbreviation,
+      listedDate: mergedListings.listedDate,
+      latitude: mergedListings.latitude,
+      longitude: mergedListings.longitude,
+      propertyType: mergedListings.propertyType,
+      propertyAmenities: mergedListings.propertyAmenities,
+      description: mergedListings.description,
+      url: mergedListings.url,
     })
     .from(favorites)
-    .innerJoin(landUpdatedListings, eq(favorites.landListingId, landUpdatedListings.id))
+    .innerJoin(mergedListings, eq(favorites.landListingId, mergedListings.id))
     .where(
       and(
         eq(favorites.userId, userId),

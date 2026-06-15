@@ -5,7 +5,7 @@ import { db } from "@/db";
 import {
   buyerInvestorLinks,
   favorites,
-  landUpdatedListings,
+  mergedListings,
   viewingRequests,
 } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -27,27 +27,27 @@ export async function GET() {
     const [rows, linkRow] = await Promise.all([
       db
         .select({
-          id: landUpdatedListings.id,
-          title: landUpdatedListings.title,
-          price: landUpdatedListings.price,
-          acres: landUpdatedListings.acres,
-          address1: landUpdatedListings.address1,
-          city: landUpdatedListings.city,
-          stateAbbreviation: landUpdatedListings.stateAbbreviation,
-          stateName: landUpdatedListings.stateName,
-          zip: landUpdatedListings.zip,
-          latitude: landUpdatedListings.latitude,
-          longitude: landUpdatedListings.longitude,
-          propertyType: landUpdatedListings.propertyType,
-          url: landUpdatedListings.url,
-          description: landUpdatedListings.description,
-          updatedAt: landUpdatedListings.updatedAt,
+          id: mergedListings.id,
+          title: mergedListings.title,
+          price: mergedListings.price,
+          acres: mergedListings.acres,
+          address1: mergedListings.address1,
+          city: mergedListings.city,
+          stateAbbreviation: mergedListings.stateAbbreviation,
+          stateName: mergedListings.stateName,
+          zip: mergedListings.zip,
+          latitude: mergedListings.latitude,
+          longitude: mergedListings.longitude,
+          propertyType: mergedListings.propertyType,
+          url: mergedListings.url,
+          description: mergedListings.description,
+          updatedAt: mergedListings.updatedAt,
           createdAt: favorites.createdAt,
         })
         .from(favorites)
-        .innerJoin(landUpdatedListings, eq(favorites.landListingId, landUpdatedListings.id))
+        .innerJoin(mergedListings, eq(favorites.landListingId, mergedListings.id))
         .where(eq(favorites.userId, userId))
-        .orderBy(desc(landUpdatedListings.listedDate)),
+        .orderBy(desc(mergedListings.listedDate)),
       db
         .select({ investorId: buyerInvestorLinks.investorId })
         .from(buyerInvestorLinks)

@@ -12,7 +12,6 @@ export {
   redfinUpdatedListings,
 } from "./redfin-listings";
 export { mergedListingEmbeddings, mergedListings } from "./merged-listings";
-export { landUpdatedListingEmbeddings, landUpdatedListings } from "./updated-listing";
 export { messages, messageSenderRoleEnum, messageThreads } from "./messages";
 export {
   notificationTypeEnum,

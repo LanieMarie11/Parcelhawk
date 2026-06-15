@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, desc, eq, gte, lte, or } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landUpdatedListings } from "@/db/schema";
+import { favorites, mergedListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { jsonbArrayContains } from "@/lib/land-updated-listing-filters";
 
@@ -25,45 +25,45 @@ export async function GET(request: NextRequest) {
 
     const conditions = [];
     if (type) {
-      conditions.push(jsonbArrayContains(landUpdatedListings.activities, type));
+      conditions.push(jsonbArrayContains(mergedListings.activities, type));
     }
     if (activities.length > 0) {
       conditions.push(
-        or(...activities.map((a) => jsonbArrayContains(landUpdatedListings.activities, a)))!
+        or(...activities.map((a) => jsonbArrayContains(mergedListings.activities, a)))!
       );
     }
     if (propertyTypes.length > 0) {
       conditions.push(
         or(
-          ...propertyTypes.map((t) => jsonbArrayContains(landUpdatedListings.propertyType, t))
+          ...propertyTypes.map((t) => jsonbArrayContains(mergedListings.propertyType, t))
         )!
       );
     }
     if (minPrice != null) {
-      conditions.push(gte(landUpdatedListings.price, String(minPrice)));
+      conditions.push(gte(mergedListings.price, String(minPrice)));
     }
     if (maxPrice != null) {
-      conditions.push(lte(landUpdatedListings.price, String(maxPrice)));
+      conditions.push(lte(mergedListings.price, String(maxPrice)));
     }
     if (minAcres != null) {
-      conditions.push(gte(landUpdatedListings.acres, minAcres));
+      conditions.push(gte(mergedListings.acres, minAcres));
     }
     if (maxAcres != null) {
-      conditions.push(lte(landUpdatedListings.acres, maxAcres));
+      conditions.push(lte(mergedListings.acres, maxAcres));
     }
 
     const rows =
       conditions.length > 0
         ? await db
             .select()
-            .from(landUpdatedListings)
+            .from(mergedListings)
             .where(and(...conditions))
-            .orderBy(desc(landUpdatedListings.listedDate))
+            .orderBy(desc(mergedListings.listedDate))
             .limit(100)
         : await db
             .select()
-            .from(landUpdatedListings)
-            .orderBy(desc(landUpdatedListings.listedDate))
+            .from(mergedListings)
+            .orderBy(desc(mergedListings.listedDate))
             .limit(8);
 
     const session = await getServerSession(authOptions);

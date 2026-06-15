@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { and, asc, desc, eq, gt, gte, ilike, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { favorites, landUpdatedListings, users } from "@/db/schema";
+import { favorites, mergedListings, users } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
 import { getBuyerViewingRequestListingIds } from "@/lib/get-buyer-viewing-request-listing-ids";
 import {
@@ -53,28 +53,28 @@ export async function GET(request: NextRequest) {
     const conditions = [];
 
     // Exclude junk/invalid prices (0, 1, 2) from results
-    conditions.push(gt(landUpdatedListings.price, "2"));
+    conditions.push(gt(mergedListings.price, "2"));
 
     if (type) {
-      conditions.push(jsonbArrayContains(landUpdatedListings.propertyType, type));
+      conditions.push(jsonbArrayContains(mergedListings.propertyType, type));
     }
     // if (propertyTypes.length > 0) {
-    //   conditions.push(or(...propertyTypes.map((t) => arrayContains(landUpdatedListings.propertyType, [t])))!);
+    //   conditions.push(or(...propertyTypes.map((t) => arrayContains(mergedListings.propertyType, [t])))!);
     // }
     // if (activities.length > 0) {
-    //   conditions.push(or(...activities.map((a) => arrayContains(landUpdatedListings.activities, [a])))!);
+    //   conditions.push(or(...activities.map((a) => arrayContains(mergedListings.activities, [a])))!);
     // }
     if (minPrice != null) {
-      conditions.push(gte(landUpdatedListings.price, String(minPrice)));
+      conditions.push(gte(mergedListings.price, String(minPrice)));
     }
     if (maxPrice != null) {
-      conditions.push(lte(landUpdatedListings.price, String(maxPrice)));
+      conditions.push(lte(mergedListings.price, String(maxPrice)));
     }
     if (minAcres != null) {
-      conditions.push(gte(landUpdatedListings.acres, minAcres));
+      conditions.push(gte(mergedListings.acres, minAcres));
     }
     if (maxAcres != null) {
-      conditions.push(lte(landUpdatedListings.acres, maxAcres));
+      conditions.push(lte(mergedListings.acres, maxAcres));
     }
 
     // When the client sends no min/max for price or acres, apply signed-in user profile preferences.
@@ -96,18 +96,18 @@ export async function GET(request: NextRequest) {
         if (needBudgetFromUser && u?.preferenceBudget) {
           const br = PREFERENCE_BUDGET_TO_RANGE[u.preferenceBudget];
           if (br) {
-            conditions.push(gte(landUpdatedListings.price, String(br.min)));
+            conditions.push(gte(mergedListings.price, String(br.min)));
             if (br.max != null) {
-              conditions.push(lte(landUpdatedListings.price, String(br.max)));
+              conditions.push(lte(mergedListings.price, String(br.max)));
             }
           }
         }
         if (needAcresFromUser && u?.preferenceAcreage) {
           const ar = PREFERENCE_ACREAGE_TO_RANGE[u.preferenceAcreage];
           if (ar) {
-            conditions.push(gte(landUpdatedListings.acres, ar.min));
+            conditions.push(gte(mergedListings.acres, ar.min));
             if (ar.max != null) {
-              conditions.push(lte(landUpdatedListings.acres, ar.max));
+              conditions.push(lte(mergedListings.acres, ar.max));
             }
           }
         }
@@ -115,10 +115,10 @@ export async function GET(request: NextRequest) {
     }
 
     if (stateAbbrev && stateAbbrev.length >= 2) {
-      conditions.push(eq(landUpdatedListings.stateAbbreviation, stateAbbrev));
+      conditions.push(eq(mergedListings.stateAbbreviation, stateAbbrev));
     }
     if (county && county.length > 0) {
-      conditions.push(ilike(landUpdatedListings.county, county));
+      conditions.push(ilike(mergedListings.county, county));
     }
 
     // Location search: match "Dallas, TX" style (autocomplete) and single-field matches.
@@ -128,45 +128,45 @@ export async function GET(request: NextRequest) {
       const pattern = `%${location}%`;
       conditions.push(
         or(
-          sql`(${landUpdatedListings.city} || ', ' || ${landUpdatedListings.stateAbbreviation}) ILIKE ${pattern}`,
-          sql`(${landUpdatedListings.county} || ', ' || ${landUpdatedListings.stateAbbreviation}) ILIKE ${pattern}`,
-          ilike(landUpdatedListings.city, pattern),
-          ilike(landUpdatedListings.stateAbbreviation, pattern),
-          ilike(landUpdatedListings.stateName, pattern),
-          ilike(landUpdatedListings.county, pattern),
+          sql`(${mergedListings.city} || ', ' || ${mergedListings.stateAbbreviation}) ILIKE ${pattern}`,
+          sql`(${mergedListings.county} || ', ' || ${mergedListings.stateAbbreviation}) ILIKE ${pattern}`,
+          ilike(mergedListings.city, pattern),
+          ilike(mergedListings.stateAbbreviation, pattern),
+          ilike(mergedListings.stateName, pattern),
+          ilike(mergedListings.county, pattern),
         )!
       );
     }
 
-    const pricePerAcreAsc = sql`(${landUpdatedListings.price}::float / NULLIF(${landUpdatedListings.acres}::float, 0)) ASC`;
-    const pricePerAcreDesc = sql`(${landUpdatedListings.price}::float / NULLIF(${landUpdatedListings.acres}::float, 0)) DESC`;
+    const pricePerAcreAsc = sql`(${mergedListings.price}::float / NULLIF(${mergedListings.acres}::float, 0)) ASC`;
+    const pricePerAcreDesc = sql`(${mergedListings.price}::float / NULLIF(${mergedListings.acres}::float, 0)) DESC`;
 
     const orderBy =
       sort === "price-asc"
-        ? asc(landUpdatedListings.price)
+        ? asc(mergedListings.price)
         : sort === "price-desc"
-          ? desc(landUpdatedListings.price)
+          ? desc(mergedListings.price)
           : sort === "acres-asc"
-            ? asc(landUpdatedListings.acres)
+            ? asc(mergedListings.acres)
             : sort === "acres-desc"
-              ? desc(landUpdatedListings.acres)
+              ? desc(mergedListings.acres)
               : sort === "priceperacre-asc"
                 ? pricePerAcreAsc
                 : sort === "priceperacre-desc"
                   ? pricePerAcreDesc
-                  : desc(landUpdatedListings.listedDate);
+                  : desc(mergedListings.listedDate);
 
     const filteredSelect =
       conditions.length > 0
-        ? db.select().from(landUpdatedListings).where(and(...conditions))
-        : db.select().from(landUpdatedListings);
+        ? db.select().from(mergedListings).where(and(...conditions))
+        : db.select().from(mergedListings);
     const countSelect =
       conditions.length > 0
         ? db
             .select({ totalListingsNumber: sql<number>`count(*)::int` })
-            .from(landUpdatedListings)
+            .from(mergedListings)
             .where(and(...conditions))
-        : db.select({ totalListingsNumber: sql<number>`count(*)::int` }).from(landUpdatedListings);
+        : db.select({ totalListingsNumber: sql<number>`count(*)::int` }).from(mergedListings);
 
     const [rows, countRows] = await Promise.all([
       filteredSelect.orderBy(orderBy).limit(limit).offset(offset),

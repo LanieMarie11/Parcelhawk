@@ -5,7 +5,7 @@ import { db } from "@/db";
 import {
   buyerInvestorLinks,
   favorites,
-  landUpdatedListings,
+  mergedListings,
   messageThreads,
   messages,
   savedSearches,
@@ -183,19 +183,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
     const favoriteRows = await db
       .select({
         favoriteId: favorites.id,
-        listingId: landUpdatedListings.id,
+        listingId: mergedListings.id,
         createdAt: favorites.createdAt,
-        url: landUpdatedListings.url,
-        price: landUpdatedListings.price,
-        city: landUpdatedListings.city,
-        state: landUpdatedListings.stateAbbreviation,
-        address: landUpdatedListings.address1,
-        acreage: landUpdatedListings.acres,
-        latitude: landUpdatedListings.latitude,
-        longitude: landUpdatedListings.longitude,
+        url: mergedListings.url,
+        price: mergedListings.price,
+        city: mergedListings.city,
+        state: mergedListings.stateAbbreviation,
+        address: mergedListings.address1,
+        acreage: mergedListings.acres,
+        latitude: mergedListings.latitude,
+        longitude: mergedListings.longitude,
       })
       .from(favorites)
-      .innerJoin(landUpdatedListings, eq(landUpdatedListings.id, favorites.landListingId))
+      .innerJoin(mergedListings, eq(mergedListings.id, favorites.landListingId))
       .where(eq(favorites.userId, buyerId))
       .orderBy(desc(favorites.createdAt));
 

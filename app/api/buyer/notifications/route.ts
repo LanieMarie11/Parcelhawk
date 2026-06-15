@@ -4,7 +4,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   investors,
-  landUpdatedListings,
+  mergedListings,
   notifications,
   users,
   viewingRequests,
@@ -292,14 +292,14 @@ export async function GET() {
         investorId: notifications.investorId,
         investorFirstName: investors.firstName,
         investorLastName: investors.lastName,
-        listingTitle: landUpdatedListings.title,
-        listingUrl: landUpdatedListings.url,
+        listingTitle: mergedListings.title,
+        listingUrl: mergedListings.url,
         viewingStatus: viewingRequests.status,
       })
       .from(notifications)
       .leftJoin(investors, eq(notifications.investorId, investors.id))
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
-      .leftJoin(landUpdatedListings, eq(notifications.listingId, landUpdatedListings.id))
+      .leftJoin(mergedListings, eq(notifications.listingId, mergedListings.id))
       .where(
         and(eq(notifications.userId, buyerUserId), isNull(notifications.buyerDeleteAt)),
       )
