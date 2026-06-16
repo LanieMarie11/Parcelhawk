@@ -181,6 +181,7 @@ export function PropertyCard({
   })
 
   const updatedAtLabel = formatListingUpdatedAt(updatedAt)
+  const listedDateLabel = formatListingUpdatedAt(listedDate)
   const normalizedAiMatchingScore = normalizeScore(aiMatchingScore)
 
   const saveFavorite = async (listingId: number) => {
@@ -315,7 +316,11 @@ export function PropertyCard({
             ) : null}
             <div className="mt-1.5 flex min-h-8 items-center justify-between gap-3">
               <p className="min-w-0 text-xs text-muted-foreground">
-                {updatedAtLabel ? <>Updated on {updatedAtLabel} & Listed on {listedDate}</> : null}
+                {(listedDateLabel) ? (
+                  <>
+                    {listedDateLabel ? <>Listed on {listedDateLabel}</> : <>Updated on {updatedAtLabel}</>}
+                  </>
+                ) : <>Updated on {updatedAtLabel}</>}
               </p>
               <button
                 type="button"

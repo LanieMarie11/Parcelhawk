@@ -88,7 +88,6 @@ export function PropertyMapList({
   onSortChange,
   isLoading = false,
 }: PropertyMapListProps) {
-  console.log("👍listings", listings);
   const [localCurrentPage, setLocalCurrentPage] = useState(1)
   const [sortOpen, setSortOpen] = useState(false)
   const [internalSortId, setInternalSortId] = useState<SortId>("default")
