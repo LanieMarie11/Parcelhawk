@@ -197,6 +197,13 @@
       "when": 1781453666774,
       "tag": "0027_flimsy_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1781626595164,
+      "tag": "0028_curious_landau",
+      "breakpoints": true
     }
   ]
 }

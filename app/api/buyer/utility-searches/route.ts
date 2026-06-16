@@ -7,6 +7,20 @@ import { runUtilityDueDiligenceWithLlm } from "@/lib/ai-utility-due-diligence";
 import { authOptions } from "@/lib/auth";
 import type { UtilityDueDiligencePromptParams } from "@/lib/prompt/utility";
 
+/** US assessor parcel numbers: alphanumeric with optional . - / and spaces (3–30 chars). */
+const LISTING_APN_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.\-/\s]{1,28}[A-Za-z0-9]$/;
+
+function normalizeListingApn(apn: string | null | undefined): string | null {
+  if (typeof apn !== "string") return null;
+
+  const trimmed = apn.trim();
+  if (trimmed.length < 3 || trimmed.length > 30) return null;
+  if (/^(unknown|n\/?a|none|null|tbd)$/i.test(trimmed)) return null;
+  if (trimmed.includes(",") || /https?:\/\//i.test(trimmed)) return null;
+
+  return LISTING_APN_PATTERN.test(trimmed) ? trimmed : null;
+}
+
 function formatListingAddress(listing: {
   address1: string | null;
   city: string | null;
@@ -28,12 +42,13 @@ function listingToUtilityPromptParams(listing: {
   stateName: string | null;
   latitude: number | null;
   longitude: number | null;
+  apn: string | null;
 }): UtilityDueDiligencePromptParams {
   return {
     address: formatListingAddress(listing),
     county: listing.county,
     state: listing.stateAbbreviation ?? listing.stateName,
-    apn: null,
+    apn: normalizeListingApn(listing.apn),
     latitude: listing.latitude,
     longitude: listing.longitude,
   };
@@ -94,6 +109,7 @@ export async function POST(request: Request) {
         stateName: mergedListings.stateName,
         latitude: mergedListings.latitude,
         longitude: mergedListings.longitude,
+        apn: mergedListings.apn,
       })
       .from(mergedListings)
       .where(eq(mergedListings.id, listingId))
