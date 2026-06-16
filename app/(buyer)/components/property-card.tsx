@@ -75,6 +75,8 @@ interface PropertyCardProps {
   detailUrl?: string
   /** `land_listings.updated_at` — when the listing row was last updated in the database */
   updatedAt?: string | Date | null
+  /** `land_listings.listed_date` — when the listing was listed on the platform */
+  listedDate?: string | Date | null
   onViewingRequest?: () => void
   onMouseEnter?: () => void
   onMouseLeave?: () => void
@@ -135,6 +137,7 @@ export function PropertyCard({
   hasViewingRequest = false,
   detailUrl,
   updatedAt,
+  listedDate,
   onViewingRequest,
   onMouseEnter,
   onMouseLeave,
@@ -178,6 +181,7 @@ export function PropertyCard({
   })
 
   const updatedAtLabel = formatListingUpdatedAt(updatedAt)
+  const listedDateLabel = formatListingUpdatedAt(listedDate)
   const normalizedAiMatchingScore = normalizeScore(aiMatchingScore)
 
   const saveFavorite = async (listingId: number) => {
@@ -312,7 +316,11 @@ export function PropertyCard({
             ) : null}
             <div className="mt-1.5 flex min-h-8 items-center justify-between gap-3">
               <p className="min-w-0 text-xs text-muted-foreground">
-                {updatedAtLabel ? <>Updated {updatedAtLabel}</> : null}
+                {(listedDateLabel) ? (
+                  <>
+                    {listedDateLabel ? <>Listed on {listedDateLabel}</> : <>Updated on {updatedAtLabel}</>}
+                  </>
+                ) : <>Updated on {updatedAtLabel}</>}
               </p>
               <button
                 type="button"

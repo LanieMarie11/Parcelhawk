@@ -1,5 +1,24 @@
 import type { ListingItem } from "@/components/property-map-list"
 
+function formatListedDate(raw: unknown): string | null {
+  if (raw == null) return null
+  if (typeof raw !== "string") return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+
+  const isoDateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
+  const parsed = isoDateOnly
+    ? new Date(
+        Number(isoDateOnly[1]),
+        Number(isoDateOnly[2]) - 1,
+        Number(isoDateOnly[3]),
+      )
+    : new Date(trimmed.includes(" at ") ? trimmed.replace(" at ", " ") : trimmed)
+  if (Number.isNaN(parsed.getTime())) return trimmed
+
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(parsed)
+}
+
 function normalizeListingUpdatedAtIso(raw: unknown): string | null {
   if (raw == null) return null
   if (raw instanceof Date) {
@@ -45,6 +64,7 @@ export function mapLandListingRow(item: any): ListingItem {
     url: item.url,
     description: item.description,
     parcelSatelliteMapDataUrl: item.parcelSatelliteMapDataUrl ?? null,
+    listedDate: formatListedDate(item.listedDate ?? item.listed_date),
     updatedAt: normalizeListingUpdatedAtIso(item.updatedAt ?? item.updated_at),
   }
 }
