@@ -57,6 +57,7 @@ export interface ListingItem {
    */
   parcelSatelliteMapDataUrl?: string | null
   /** ISO string from `land_listings.updated_at` */
+  listedDate?: string | null
   updatedAt?: string | null
   /** ISO string from `favorites.created_at` when loaded from favorites API */
   createdAt?: string | null
@@ -87,6 +88,7 @@ export function PropertyMapList({
   onSortChange,
   isLoading = false,
 }: PropertyMapListProps) {
+  console.log("👍listings", listings);
   const [localCurrentPage, setLocalCurrentPage] = useState(1)
   const [sortOpen, setSortOpen] = useState(false)
   const [internalSortId, setInternalSortId] = useState<SortId>("default")
@@ -221,6 +223,7 @@ export function PropertyMapList({
                 parcelSatelliteMapDataUrl={resolveListingSatellitePreviewUrl(listing)}
                 latitude={listing.latitude}
                 longitude={listing.longitude}
+                listedDate={listing.listedDate ?? undefined}
                 updatedAt={listing.updatedAt ?? undefined}
                 variant="list"
                 onMouseEnter={() => setHoveredListingId(listing.id)}

@@ -45,6 +45,7 @@ export function mapLandListingRow(item: any): ListingItem {
     url: item.url,
     description: item.description,
     parcelSatelliteMapDataUrl: item.parcelSatelliteMapDataUrl ?? null,
+    listedDate: item.listedDate ?? item.listing_date,
     updatedAt: normalizeListingUpdatedAtIso(item.updatedAt ?? item.updated_at),
   }
 }
