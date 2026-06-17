@@ -8,6 +8,10 @@ export {
 export { favorites, savedSearches } from "./favorites-saved-searches";
 export { landListingEmbeddings, landListings } from "./listings";
 export {
+  landUpdatedListingEmbeddings,
+  landUpdatedListings,
+} from "./updated-listing";
+export {
   redfinUpdatedListingEmbeddings,
   redfinUpdatedListings,
 } from "./redfin-listings";
