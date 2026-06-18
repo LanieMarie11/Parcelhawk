@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Brain, ChartColumnIncreasing, ChevronDown, LayoutDashboard, LogOut, Settings, Users } from "lucide-react";
+import { Brain, ChartColumnIncreasing, ChevronDown, LayoutDashboard, LogOut, MessageCircleIcon, Settings, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -11,6 +11,7 @@ const menuItems = [
   { label: "Overview", href: "/realtor-portal", icon: LayoutDashboard },
   { label: "My Buyers", href: "/realtor-portal/my-buyers", icon: Users },
   { label: "Analytics", href: "/realtor-portal/analytics", icon: ChartColumnIncreasing },
+  { label: "Messages", href: "/realtor-portal/messages", icon: MessageCircleIcon },
   { label: "Settings", href: "/realtor-portal/settings", icon: Settings },
 ] as const;
 
