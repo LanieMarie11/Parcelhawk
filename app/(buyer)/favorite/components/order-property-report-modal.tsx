@@ -2,13 +2,14 @@
 
 import { FileText, Loader2, X } from "lucide-react"
 import { useEffect, useId, useState } from "react"
+import type { ParcelResearchReport } from "@/lib/property-reports/build-parcel-research-report"
 
 const BUYER_PROPERTY_REPORTS_PATH = "/api/buyer/property-reports"
 
 export type PropertyReportResponse = {
   ok: true
   listingId: number
-  propertyData: unknown
+  report: ParcelResearchReport
 }
 
 async function submitPropertyReportOrder(listingId: number): Promise<PropertyReportResponse> {
@@ -23,11 +24,11 @@ async function submitPropertyReportOrder(listingId: number): Promise<PropertyRep
     throw new Error(typeof data.error === "string" ? data.error : "Request failed")
   }
 
-  if (data.ok !== true || typeof data.listingId !== "number" || !("propertyData" in data)) {
+  if (data.ok !== true || typeof data.listingId !== "number" || !("report" in data)) {
     throw new Error("Invalid response from server")
   }
 
-  return { ok: true, listingId: data.listingId, propertyData: data.propertyData }
+  return { ok: true, listingId: data.listingId, report: data.report }
 }
 
 export type OrderPropertyReportModalProps = {
@@ -135,7 +136,7 @@ export function OrderPropertyReportModal({
                 <span className="font-medium">{requestState.data.listingId}</span>.
               </p>
               <pre className="mt-3 max-h-72 overflow-auto rounded-lg bg-white/80 p-3 text-xs text-[#374151]">
-                {JSON.stringify(requestState.data.propertyData, null, 2)}
+                {JSON.stringify(requestState.data.report, null, 2)}
               </pre>
             </div>
           ) : null}

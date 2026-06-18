@@ -4,6 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { favorites, mergedListings } from "@/db/schema";
 import { authOptions } from "@/lib/auth";
+import { buildParcelResearchReport } from "@/lib/property-reports/build-parcel-research-report";
+import { lookupCountyFips } from "@/lib/property-reports/lookup-county-fips";
 
 function parseListingId(value: unknown): number | null {
   if (typeof value === "number" && Number.isInteger(value) && value > 0) {
@@ -54,6 +56,10 @@ export async function POST(request: Request) {
         id: mergedListings.id,
         latitude: mergedListings.latitude,
         longitude: mergedListings.longitude,
+        county: mergedListings.county,
+        stateAbbreviation: mergedListings.stateAbbreviation,
+        stateName: mergedListings.stateName,
+        apn: mergedListings.apn,
       })
       .from(mergedListings)
       .where(eq(mergedListings.id, listingId))
@@ -78,6 +84,12 @@ export async function POST(request: Request) {
         { status: 503 },
       );
     }
+
+    const fips = await lookupCountyFips(
+      listingRow.county,
+      listingRow.stateAbbreviation,
+      listingRow.stateName,
+    );
 
     const propertyDataUrl = new URL(
       "https://landportal.com/wp-json/lp-rest-api/v1/property-data",
@@ -106,8 +118,9 @@ export async function POST(request: Request) {
     }
 
     const propertyData = await propertyDataRes.json();
-
-    return NextResponse.json({ ok: true, listingId, propertyData });
+    const report = buildParcelResearchReport(propertyData, { fips });
+    console.log("👍report", report);
+    return NextResponse.json({ ok: true, listingId, report });
   } catch (err) {
     console.error("Property report POST error:", err);
     return NextResponse.json({ error: "Failed to submit report request" }, { status: 500 });
