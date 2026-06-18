@@ -4,7 +4,10 @@ import Image from "next/image"
 import Link from "next/link"
 import { ChevronLeft, ShieldCheck, Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
-import { resolveListingSatellitePreviewUrl } from "@/lib/parcel-satellite-preview-client"
+import {
+  parseListingLatLon,
+  resolveListingSatellitePreviewUrl,
+} from "@/lib/parcel-satellite-preview-client"
 
 type PropertyOption = {
   id: number
@@ -71,7 +74,12 @@ export default function ComparePage() {
   const [aiSummary, setAiSummary] = useState("")
   const [propertyOptions, setPropertyOptions] = useState<PropertyOption[]>([])
   const [hasCheckedStorage, setHasCheckedStorage] = useState(false)
-  const [imagePreview, setImagePreview] = useState<{ src: string; name: string } | null>(null)
+  const [imagePreview, setImagePreview] = useState<{
+    src: string
+    name: string
+    latitude?: number | null
+    longitude?: number | null
+  } | null>(null)
 
   useEffect(() => {
     const rawPayload = window.sessionStorage.getItem("compareResult")
@@ -100,6 +108,13 @@ export default function ComparePage() {
   }, [])
 
   const hasComparison = propertyOptions.length >= 2
+
+  const previewLat = imagePreview ? parseListingLatLon(imagePreview.latitude) : null
+  const previewLng = imagePreview ? parseListingLatLon(imagePreview.longitude) : null
+  const googleMapsUrl =
+    previewLat != null && previewLng != null
+      ? `https://www.google.com/maps/search/?api=1&query=${previewLat},${previewLng}`
+      : null
 
   const tableGridStyle = {
     gridTemplateColumns: `220px repeat(${Math.max(2, propertyOptions.length)}, minmax(0, 1fr))`,
@@ -182,13 +197,23 @@ export default function ComparePage() {
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            setImagePreview({ src: heroSrc, name: property.name })
+                            setImagePreview({
+                              src: heroSrc,
+                              name: property.name,
+                              latitude: property.latitude,
+                              longitude: property.longitude,
+                            })
                           }}
                           onKeyDown={(e) => {
                             if (e.key !== "Enter" && e.key !== " ") return
                             e.preventDefault()
                             e.stopPropagation()
-                            setImagePreview({ src: heroSrc, name: property.name })
+                            setImagePreview({
+                              src: heroSrc,
+                              name: property.name,
+                              latitude: property.latitude,
+                              longitude: property.longitude,
+                            })
                           }}
                           className="relative h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-full outline-none ring-[#04C0AF] focus-visible:ring-2"
                           title="Open detailed image preview"
@@ -277,6 +302,16 @@ export default function ComparePage() {
                       sizes="100vw"
                     />
                   </div>
+                  {googleMapsUrl ? (
+                    <a
+                      href={googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block w-full rounded-lg bg-brand-green py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-brand-green-hover"
+                    >
+                      Open in Google Maps
+                    </a>
+                  ) : null}
                 </div>
               </div>
             ) : null}

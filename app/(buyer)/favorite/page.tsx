@@ -224,7 +224,7 @@ function FavoritePropertyCard({
           className="mt-2 flex min-w-0 cursor-pointer items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
         >
           <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span className="min-w-0 truncate">{locationLine || listing.name}</span>
+          <span className="min-w-0 truncate">{locationLine}</span>
         </a>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
