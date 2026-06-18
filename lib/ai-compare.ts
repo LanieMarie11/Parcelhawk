@@ -67,6 +67,16 @@ export async function inferFeaturesFromDescriptionWithLlm(
 
   const prompt = buildCompareListingFeaturesPrompt(descriptionText)
 
+  const generationConfig: Record<string, unknown> = {
+    temperature: 0,
+    maxOutputTokens: 256,
+    responseMimeType: "application/json",
+  }
+  // Gemini 2.5 spends "thinking" tokens inside maxOutputTokens; disable for simple JSON extraction.
+  if (modelId.includes("2.5")) {
+    generationConfig.thinkingConfig = { thinkingBudget: 0 }
+  }
+
   const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${serviceAccount.project_id}/locations/${location}/publishers/google/models/${modelId}:generateContent`
   const res = await fetch(url, {
     method: "POST",
@@ -76,7 +86,7 @@ export async function inferFeaturesFromDescriptionWithLlm(
     },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0, maxOutputTokens: 180 },
+      generationConfig,
     }),
   })
 

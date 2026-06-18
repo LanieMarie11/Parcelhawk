@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronDown, Settings, LogOut } from "lucide-react"
+import { ChevronDown, Settings, LogOut, MessageCircleIcon } from "lucide-react"
 import Image from "next/image"
 import { signOut, useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
@@ -11,6 +11,7 @@ const menuItems = [
   { label: "Dashboard", href: "/buyer-dashboard", icon: DashboardIcon },
   { label: "Saved Searches", href: "/saved-search", icon: SavedSearchesIcon },
   { label: "Saved Properties", href: "/favorite", icon: FavoriteIcon },
+  { label: "Messages", href: "/message", icon: MessageCircleIcon },
   { label: "Settings", href: "/profile-settings", icon: Settings },
 ]
 

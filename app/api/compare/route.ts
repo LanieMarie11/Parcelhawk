@@ -16,6 +16,7 @@ type CompareListingRow = Pick<
   | "title"
   | "price"
   | "acres"
+  | "address1"
   | "city"
   | "county"
   | "stateAbbreviation"
@@ -63,6 +64,26 @@ function computeDaysOnMarket(listedDate: string | null | undefined): number | nu
   )
 }
 
+function inferListingSource(url: string | null | undefined): string {
+  const trimmed = url?.trim()
+  if (!trimmed) return "Unknown"
+
+  try {
+    const { hostname, pathname } = new URL(trimmed)
+    const host = hostname.replace(/^www\./i, "").toLowerCase()
+
+    if (host === "land.com") return "Land.com"
+    if (host === "redfin.com") return "Redfin"
+    if (host === "facebook.com" && pathname.includes("/marketplace/")) {
+      return "Facebook Marketplace"
+    }
+  } catch {
+    // invalid URL
+  }
+
+  return "Unknown"
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   const userId = getUserId(session)
@@ -90,6 +111,7 @@ export async function POST(request: Request) {
       title: mergedListings.title,
       price: mergedListings.price,
       acres: mergedListings.acres,
+      address1: mergedListings.address1,
       city: mergedListings.city,
       county: mergedListings.county,
       stateAbbreviation: mergedListings.stateAbbreviation,
@@ -143,7 +165,10 @@ export async function POST(request: Request) {
         price: price != null ? formatCurrency(price) : "N/A",
         pricePerAcre: pricePerAcre != null ? `${formatCurrency(pricePerAcre)}/ac` : "N/A",
         acreage: acres != null ? `${acres} acres` : "N/A",
-        location: [row.county, row.city, row.stateAbbreviation].filter(Boolean).join(", ") || "N/A",
+        location:
+          [row.address1?.trim(), row.county?.trim(), row.stateAbbreviation?.trim()]
+            .filter(Boolean)
+            .join(", ") || "N/A",
         roadAccess: inferredFeatures.roadAccess,
         floodZone: inferredFeatures.floodZone,
         utilities: inferredFeatures.utilities === "Not provided"
@@ -151,7 +176,7 @@ export async function POST(request: Request) {
           : inferredFeatures.utilities,
         zoning: jsonbArrayFirst(row.propertyType) ?? "Not provided",
         aiMatchScore: Math.max(60, 92 - index * 4),
-        source: "Land listing source",
+        source: inferListingSource(row.url),
         daysOnMarket: daysOnMarket != null ? `${daysOnMarket} days` : "N/A",
       }
     })
