@@ -1,9 +1,13 @@
 import "next-auth";
 
+export type AppUserRole = "buyer" | "investor" | "admin";
+
+export {};
+
 declare module "next-auth" {
   interface User {
     id: string;
-    role?: string;
+    role?: AppUserRole;
     firstName?: string;
     lastName?: string;
     phone?: string | null;
@@ -17,7 +21,7 @@ declare module "next-auth" {
   interface Session {
     user: User & {
       id: string;
-      role?: string;
+      role?: AppUserRole;
       firstName?: string;
       lastName?: string;
       phone?: string | null;
@@ -33,7 +37,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
-    role?: string;
+    role?: AppUserRole;
     firstName?: string;
     lastName?: string;
     phone?: string | null;

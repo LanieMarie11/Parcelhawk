@@ -8,8 +8,26 @@ import { attachLastActivePing } from "@/lib/last-active-middleware";
 function isGuestPublicPath(pathname: string): boolean {
   if (pathname === "/") return true;
   if (pathname === "/sign-up" || pathname.startsWith("/sign-up/")) return true;
+  if (pathname === "/admin/sign-in") return true;
   if (pathname.startsWith("/api/auth/")) return true;
   return false;
+}
+
+function isAdminPath(pathname: string): boolean {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
+
+function isAdminSignInPath(pathname: string): boolean {
+  return pathname === "/admin/sign-in";
+}
+
+function isInvestorOnlyPath(pathname: string): boolean {
+  return (
+    pathname === "/realtor-portal" ||
+    pathname.startsWith("/realtor-portal/") ||
+    pathname === "/investor-portal" ||
+    pathname.startsWith("/investor-portal/")
+  );
 }
 
 export async function middleware(request: NextRequest, event: NextFetchEvent) {
@@ -20,6 +38,36 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   });
 
   const path = request.nextUrl.pathname;
+
+  if (isAdminSignInPath(path) && token?.role === "admin") {
+    return attachLastActivePing(
+      request,
+      event,
+      path,
+      token,
+      NextResponse.redirect(new URL("/admin", request.url))
+    );
+  }
+
+  if (isAdminPath(path) && !isAdminSignInPath(path) && token?.role !== "admin") {
+    return attachLastActivePing(
+      request,
+      event,
+      path,
+      token,
+      NextResponse.redirect(new URL("/admin/sign-in", request.url))
+    );
+  }
+
+  if (isInvestorOnlyPath(path) && token?.role === "admin") {
+    return attachLastActivePing(
+      request,
+      event,
+      path,
+      token,
+      NextResponse.redirect(new URL("/admin", request.url))
+    );
+  }
 
   // Logged-in investors use /realtor-portal as home; keep / for buyers/guests
   if (path === "/" && token?.role === "investor") {
@@ -32,12 +80,9 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     );
   }
 
-  const isInvestorOnlyPath =
-    path === "/realtor-portal" ||
-    path.startsWith("/realtor-portal/") ||
-    path === "/investor-portal" ||
-    path.startsWith("/investor-portal/");
-  if (isInvestorOnlyPath && token?.role !== "investor") {
+  const isInvestorOnly =
+    isInvestorOnlyPath(path);
+  if (isInvestorOnly && token?.role !== "investor") {
     const fallback =
       token?.role === "buyer" ? "/buyer-dashboard" : "/";
     return attachLastActivePing(
@@ -50,6 +95,11 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   if (!token && !isGuestPublicPath(path)) {
+    if (path.startsWith("/api/admin/")) {
+      const response = NextResponse.next();
+      return attachLastActivePing(request, event, path, token, response);
+    }
+
     const redirectUrl = new URL("/", request.url);
     redirectUrl.searchParams.set("auth", "login-required");
     return NextResponse.redirect(redirectUrl);

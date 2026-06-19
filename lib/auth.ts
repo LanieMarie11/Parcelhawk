@@ -3,6 +3,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { db } from "@/db";
 import { investors, users } from "@/db/schema";
+import { verifyAdminCredentials } from "@/lib/admin-allowlist";
+import type { AppUserRole } from "@/types/next-auth";
 import { eq } from "drizzle-orm";
 
 export const authOptions: NextAuthOptions = {
@@ -19,10 +21,31 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
         const roleRaw = (credentials as { role?: string }).role?.toLowerCase();
+        const normalizedEmail = credentials.email.trim().toLowerCase();
+
+        if (roleRaw === "admin") {
+          if (!verifyAdminCredentials(normalizedEmail, credentials.password)) {
+            return null;
+          }
+          return {
+            id: `admin:${normalizedEmail}`,
+            email: normalizedEmail,
+            name: "Admin",
+            image: null,
+            role: "admin",
+            firstName: "Admin",
+            lastName: "",
+            phone: null,
+            location: null,
+            about: null,
+            avatarUrl: null,
+            referralUrl: null,
+          };
+        }
+
         if (roleRaw !== "buyer" && roleRaw !== "investor") {
           return null;
         }
-        const normalizedEmail = credentials.email.trim().toLowerCase();
 
         if (roleRaw === "buyer") {
           const [user] = await db
@@ -38,7 +61,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email,
             image: null,
-            role: user.role,
+            role: user.role as AppUserRole,
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone ?? null,
@@ -81,7 +104,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: string }).role;
+        token.role = user.role as AppUserRole | undefined;
         token.firstName = (user as { firstName?: string }).firstName;
         token.lastName = (user as { lastName?: string }).lastName;
         token.phone = (user as { phone?: string | null }).phone ?? null;
@@ -138,7 +161,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
         session.user.name = (token.name as string | null | undefined) ?? session.user.name;
-        (session.user as { role?: string }).role = token.role as string;
+        (session.user as { role?: AppUserRole }).role = token.role as AppUserRole;
         (session.user as { firstName?: string }).firstName = token.firstName as string;
         (session.user as { lastName?: string }).lastName = token.lastName as string;
         (session.user as { phone?: string | null }).phone = token.phone ?? null;
