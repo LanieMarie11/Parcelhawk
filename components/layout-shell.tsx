@@ -28,8 +28,9 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
     });
   }, [session, status, role, isInvestor, pathname]);
   const isSignUp = pathname === "/sign-up";
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
 
-  if (isSignUp) {
+  if (isSignUp || isAdmin) {
     return <>{children}</>;
   }
 
