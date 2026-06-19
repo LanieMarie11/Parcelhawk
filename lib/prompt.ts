@@ -2,6 +2,32 @@
  * Vertex / Gemini user prompt: extract road access, flood zone, and utilities
  * from free-text land listing descriptions (compare flow).
  */
+/**
+ * Vertex / Gemini user prompt: 0–100 fit score for buyer profile bio vs listing description.
+ */
+export function buildListingBioMatchPrompt(
+  userBio: string,
+  listingDescription: string,
+): string {
+  return [
+    "You score how well a land listing matches a buyer's stated goals from their profile bio.",
+    "Return ONLY JSON with this exact shape:",
+    '{"matchScore": number}',
+    "",
+    "Rules:",
+    "- matchScore is an integer from 0 to 100.",
+    "- 100 = listing description strongly aligns with what the buyer says they want.",
+    "- 0 = no meaningful alignment.",
+    "- Use only the two texts below; do not invent details.",
+    "",
+    "Buyer profile bio:",
+    userBio,
+    "",
+    "Listing description:",
+    listingDescription,
+  ].join("\n")
+}
+
 export function buildCompareListingFeaturesPrompt(descriptionText: string): string {
   return [
     "You extract listing feature details from land listing description text.",

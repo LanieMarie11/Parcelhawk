@@ -3,10 +3,13 @@ import { getServerSession } from "next-auth"
 import type { Session } from "next-auth"
 import { and, eq, inArray, type InferSelectModel } from "drizzle-orm"
 import { db } from "@/db"
-import { favorites, mergedListings } from "@/db/schema"
+import { favorites, mergedListings, users } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { descriptionToText, inferFeaturesFromDescriptionWithLlm } from "@/lib/ai-compare"
 import { summarizeComparedListingsWithLlm } from "@/lib/ai-description-summary"
+import { scoreListingBioMatchWithLlm } from "@/lib/ai-listing-bio-match"
+import { combineCompareMatchScore } from "@/lib/listing-compare-match-score"
+import { computeListingPreferenceMatchScore } from "@/lib/listing-preference-match-score"
 import { jsonbArrayFirst } from "@/lib/land-updated-listing-filters"
 
 type LandListing = InferSelectModel<typeof mergedListings>
@@ -137,6 +140,16 @@ export async function POST(request: Request) {
     .map((id) => rowById.get(id))
     .filter((r): r is CompareListingRow => r != null)
 
+  const [userPrefs] = await db
+    .select({
+      preferenceBudget: users.preferenceBudget,
+      preferenceAcreage: users.preferenceAcreage,
+      about: users.about,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
   const comparedProperties = await Promise.all(
     orderedRows.map(async (row, index) => {
       const price = toNumber(row.price)
@@ -175,7 +188,18 @@ export async function POST(request: Request) {
           ? amenities || "Not provided"
           : inferredFeatures.utilities,
         zoning: jsonbArrayFirst(row.propertyType) ?? "Not provided",
-        aiMatchScore: Math.max(60, 92 - index * 4),
+        aiMatchScore: combineCompareMatchScore(
+          computeListingPreferenceMatchScore(
+            {
+              preferenceBudget: userPrefs?.preferenceBudget ?? null,
+              preferenceAcreage: userPrefs?.preferenceAcreage ?? null,
+            },
+            { price, acres },
+          ),
+          userPrefs?.about?.trim()
+            ? await scoreListingBioMatchWithLlm(userPrefs.about, row.description)
+            : null,
+        ),
         source: inferListingSource(row.url),
         daysOnMarket: daysOnMarket != null ? `${daysOnMarket} days` : "N/A",
       }

@@ -18,7 +18,7 @@ type PropertyOption = {
   image: string
   latitude?: number | null
   longitude?: number | null
-  aiMatchScore: number
+  aiMatchScore: number | null
   isVerifiedBest?: boolean
   price: string
   pricePerAcre: string
@@ -245,8 +245,10 @@ export default function ComparePage() {
                             <ShieldCheck className="h-3.5 w-3.5" />
                             AI Verified Best
                           </span>
-                        ) : (
+                        ) : property.aiMatchScore != null ? (
                           `${property.aiMatchScore}% AI Match`
+                        ) : (
+                          "Set budget & acreage in profile"
                         )}
                       </p>
                     </div>
@@ -266,7 +268,11 @@ export default function ComparePage() {
                         index < propertyOptions.length - 1 ? "border-r" : ""
                       }`}
                     >
-                      {property[row.key]}
+                      {row.key === "aiMatchScore"
+                        ? property.aiMatchScore != null
+                          ? `${property.aiMatchScore}%`
+                          : "N/A"
+                        : property[row.key]}
                     </div>
                   ))}
                 </div>
