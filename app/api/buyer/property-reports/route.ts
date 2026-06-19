@@ -17,11 +17,16 @@ function parseListingId(value: unknown): number | null {
   return null;
 }
 
+const LOG_PREFIX = "[property-reports]";
+
 export async function POST(request: Request) {
+  console.log(`${LOG_PREFIX} POST request received`);
+
   const session = await getServerSession(authOptions);
   const buyerId = (session?.user as { id?: string } | undefined)?.id;
 
   if (!buyerId) {
+    console.log(`${LOG_PREFIX} Unauthorized — no buyer session`);
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -29,13 +34,17 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
+    console.log(`${LOG_PREFIX} Invalid JSON body`);
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const listingId = parseListingId(body.listingId);
   if (listingId == null) {
+    console.log(`${LOG_PREFIX} Missing or invalid listingId`, body.listingId);
     return NextResponse.json({ error: "listingId is required" }, { status: 400 });
   }
+
+  console.log(`${LOG_PREFIX} buyerId=${buyerId}, listingId=${listingId}`);
 
   try {
     const [favoriteRow] = await db
@@ -45,11 +54,14 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!favoriteRow) {
+      console.log(`${LOG_PREFIX} Listing ${listingId} is not in buyer's favorites`);
       return NextResponse.json(
         { error: "You can only order a report for a saved property" },
         { status: 403 },
       );
     }
+
+    console.log(`${LOG_PREFIX} Favorite confirmed, favoriteId=${favoriteRow.id}`);
 
     const [listingRow] = await db
       .select({
@@ -66,11 +78,21 @@ export async function POST(request: Request) {
       .limit(1);
 
     if (!listingRow) {
+      console.log(`${LOG_PREFIX} Listing ${listingId} not found in mergedListings`);
       return NextResponse.json({ error: "Listing not found" }, { status: 404 });
     }
 
     const { latitude, longitude } = listingRow;
+    console.log(`${LOG_PREFIX} Listing loaded`, {
+      county: listingRow.county,
+      state: listingRow.stateAbbreviation ?? listingRow.stateName,
+      apn: listingRow.apn,
+      latitude,
+      longitude,
+    });
+
     if (latitude == null || longitude == null) {
+      console.log(`${LOG_PREFIX} Listing ${listingId} missing coordinates`);
       return NextResponse.json(
         { error: "Listing does not have coordinates" },
         { status: 422 },
@@ -79,17 +101,20 @@ export async function POST(request: Request) {
 
     const landPortalToken = process.env.LANDPORTAL?.trim();
     if (!landPortalToken) {
+      console.log(`${LOG_PREFIX} LANDPORTAL env var is not set`);
       return NextResponse.json(
         { error: "Property report service is not configured" },
         { status: 503 },
       );
     }
 
+    console.log(`${LOG_PREFIX} Looking up county FIPS...`);
     const fips = await lookupCountyFips(
       listingRow.county,
       listingRow.stateAbbreviation,
       listingRow.stateName,
     );
+    console.log(`${LOG_PREFIX} County FIPS result:`, fips);
 
     const propertyDataUrl = new URL(
       "https://landportal.com/wp-json/lp-rest-api/v1/property-data",
@@ -97,7 +122,7 @@ export async function POST(request: Request) {
     propertyDataUrl.searchParams.set("lat", String(latitude));
     propertyDataUrl.searchParams.set("lng", String(longitude));
 
-    console.log("propertyDataUrl", propertyDataUrl.toString());
+    console.log(`${LOG_PREFIX} Fetching LandPortal property data:`, propertyDataUrl.toString());
 
     const propertyDataRes = await fetch(propertyDataUrl.toString(), {
       headers: { Authorization: `Bearer ${landPortalToken}` },
@@ -107,7 +132,7 @@ export async function POST(request: Request) {
     if (!propertyDataRes.ok) {
       const errorBody = await propertyDataRes.text().catch(() => "");
       console.error(
-        "LandPortal property-data error:",
+        `${LOG_PREFIX} LandPortal property-data error:`,
         propertyDataRes.status,
         errorBody,
       );
@@ -117,9 +142,17 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log(`${LOG_PREFIX} LandPortal response OK (${propertyDataRes.status})`);
+
     const propertyData = await propertyDataRes.json();
+    console.log(`${LOG_PREFIX} Property data received, building report...`);
+
     const report = buildParcelResearchReport(propertyData, { fips });
-    console.log("👍report", report);
+    console.log(`${LOG_PREFIX} Report built successfully`, {
+      listingId,
+      reportKeys: Object.keys(report),
+    });
+
     return NextResponse.json({ ok: true, listingId, report });
   } catch (err) {
     console.error("Property report POST error:", err);
