@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { AdminStatsCards } from "./components/admin-stats-cards";
 import { authOptions } from "@/lib/auth";
 
 export default async function AdminHomePage() {
@@ -19,9 +20,10 @@ export default async function AdminHomePage() {
         Dashboard
       </h1>
       <p className="mt-3 max-w-2xl text-muted-foreground">
-        Signed in as {session?.user?.email}. Stats and user tools ship in the
-        next modules.
+        Overview of buyers, investors, and new signups.
       </p>
+
+      <AdminStatsCards />
     </div>
   );
 }
