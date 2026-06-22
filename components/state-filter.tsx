@@ -1,7 +1,8 @@
 "use client"
 
 import { ChevronDown } from "lucide-react"
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import usStates from "@/data/us-states.json"
 
 export type USState = { code: string; name: string }
@@ -57,7 +58,11 @@ export default function StateFilter({ value, onApply }: StateFilterProps) {
   const [open, setOpen] = useState(false)
   const [showAllFromChevron, setShowAllFromChevron] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [mounted, setMounted] = useState(false)
+  const [listPos, setListPos] = useState({ top: 0, left: 0, width: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputWrapperRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   const listId = useId()
 
   useEffect(() => {
@@ -75,12 +80,39 @@ export default function StateFilter({ value, onApply }: StateFilterProps) {
   }, [draft, showAllFromChevron])
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const updateListPos = useCallback(() => {
+    const el = inputWrapperRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setListPos({
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    updateListPos()
+    window.addEventListener("resize", updateListPos)
+    window.addEventListener("scroll", updateListPos, true)
+    return () => {
+      window.removeEventListener("resize", updateListPos)
+      window.removeEventListener("scroll", updateListPos, true)
+    }
+  }, [open, updateListPos])
+
+  useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setShowAllFromChevron(false)
-      }
+      const target = e.target as Node
+      if (containerRef.current?.contains(target)) return
+      if (listRef.current?.contains(target)) return
+      setOpen(false)
+      setShowAllFromChevron(false)
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
@@ -121,7 +153,7 @@ export default function StateFilter({ value, onApply }: StateFilterProps) {
     <div className="relative inline-flex flex-col font-ibm-plex-sans" ref={containerRef}>
       <span className="text-xs font-normal text-muted-foreground">State</span>
 
-      <div className="relative mt-1.5 w-[180px]">
+      <div className="relative mt-1.5 w-[180px]" ref={inputWrapperRef}>
         <input
           type="text"
           autoComplete="off"
@@ -194,31 +226,36 @@ export default function StateFilter({ value, onApply }: StateFilterProps) {
           />
         </button>
 
-        {open && suggestions.length > 0 ? (
-          <ul
-            id={listId}
-            role="listbox"
-            className="absolute left-0 top-full z-50 mt-2 max-h-60 min-w-full overflow-auto rounded-xl border border-border bg-card py-1 shadow-lg"
-          >
-            {suggestions.map((s, i) => (
-              <li key={s.code} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={value?.code === s.code}
-                  onMouseDown={(ev) => ev.preventDefault()}
-                  onClick={() => handleSelect(s)}
-                  className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors ${
-                    i === activeIndex ? "bg-[#6B9B7A]/15 text-foreground" : "text-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  <span className="font-medium">{s.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{s.code}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        {mounted && open && suggestions.length > 0
+          ? createPortal(
+              <ul
+                ref={listRef}
+                id={listId}
+                role="listbox"
+                style={{ top: listPos.top, left: listPos.left, width: listPos.width }}
+                className="fixed z-120 max-h-60 overflow-auto rounded-xl border border-border bg-card py-1 shadow-lg"
+              >
+                {suggestions.map((s, i) => (
+                  <li key={s.code} role="presentation">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={value?.code === s.code}
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => handleSelect(s)}
+                      className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors ${
+                        i === activeIndex ? "bg-[#6B9B7A]/15 text-foreground" : "text-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <span className="font-medium">{s.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{s.code}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>,
+              document.body
+            )
+          : null}
       </div>
     </div>
   )

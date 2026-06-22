@@ -11,6 +11,10 @@ export async function touchLastActiveIfStale(
   userId: string,
   role: string
 ): Promise<void> {
+  if (role === "admin") {
+    return;
+  }
+
   const threshold = new Date(Date.now() - LAST_ACTIVE_THROTTLE_MS);
 
   if (role === "investor") {

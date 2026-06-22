@@ -113,20 +113,23 @@ export function AdminUsersTable() {
           </button>
         </form>
 
-        <select
-          value={type}
-          onChange={(event) =>
-            updateParams({
-              type: event.target.value === "all" ? null : event.target.value,
-              page: "1",
-            })
-          }
-          className="rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-        >
-          <option value="all">All users</option>
-          <option value="buyer">Buyers only</option>
-          <option value="investor">Investors only</option>
-        </select>
+        <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-[#373940]">
+          <span className="text-muted-foreground">Type:</span>
+          <select
+            value={type}
+            onChange={(event) =>
+              updateParams({
+                type: event.target.value === "all" ? null : event.target.value,
+                page: "1",
+              })
+            }
+            className="bg-transparent text-sm outline-none"
+          >
+            <option value="all">All users</option>
+            <option value="buyer">Buyers only</option>
+            <option value="investor">Investors only</option>
+          </select>
+        </div>
       </div>
 
       <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">

@@ -545,7 +545,7 @@ function FavoritePageContent() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+      <div className="relative flex h-full min-h-0 w-full items-center justify-center font-ibm-plex-sans">
         <PageLoadingIndicator label="Loading favorites..." fixed={false} />
       </div>
     )
@@ -553,7 +553,7 @@ function FavoritePageContent() {
 
   if (status !== "authenticated" || !session) {
     return (
-      <div className="flex h-[calc(100vh-73px)] w-full flex-col items-center justify-center gap-4 font-ibm-plex-sans">
+      <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-4 font-ibm-plex-sans">
         <p className="text-sm text-muted-foreground">
           Sign in to view your favorite listings.
         </p>
@@ -564,7 +564,7 @@ function FavoritePageContent() {
   const userProfileLocation = (session.user?.location ?? "").trim()
 
   return (
-    <div className="min-h-[calc(100vh-73px)] w-full bg-[#F8F8F8] font-ibm-plex-sans">
+    <div className="min-h-full w-full bg-[#F8F8F8] font-ibm-plex-sans">
       <div className="mx-auto w-full max-w-[1480px] px-5 py-4">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="relative min-w-[280px] flex-1 max-w-[440px]">
@@ -709,7 +709,7 @@ export default function FavoritePage() {
   return (
     <Suspense
       fallback={
-        <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+        <div className="relative flex h-full min-h-0 w-full items-center justify-center font-ibm-plex-sans">
           <PageLoadingIndicator label="Loading..." fixed={false} />
         </div>
       }

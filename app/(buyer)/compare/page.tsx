@@ -121,7 +121,7 @@ export default function ComparePage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] w-full bg-[#F7F8FA] font-ibm-plex-sans">
+    <div className="min-h-full w-full bg-[#F7F8FA] font-ibm-plex-sans">
       <div className="mx-auto w-full max-w-[1480px] px-5 py-6">
         <div className="mb-5">
           <Link

@@ -15,7 +15,7 @@ export function InvestorPortalPageClient({ initialData }: InvestorPortalPageClie
   const { metrics, stateDemand, searchTrends } = initialData;
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-background px-4 pb-8 pt-6 font-ibm-plex-sans text-foreground sm:px-6 lg:px-8">
+    <div className="min-h-full bg-background px-4 pb-8 pt-6 font-ibm-plex-sans text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1400px]">
         <MetricsCards metrics={metrics} isLoading={false} />
 

@@ -367,8 +367,8 @@ function LandPropertyPageContent() {
   }
 
   return (
-    <div className="relative flex min-h-[calc(100vh-73px)] w-full flex-col font-ibm-plex-sans">
-      <div className="sticky top-[73px] z-40 shrink-0 border-b border-border bg-background">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden font-ibm-plex-sans">
+      <div className="z-40 shrink-0 overflow-hidden border-b border-border bg-background">
         <SearchFiltersBar
           listingIds={listingsData.map((l) => l.id)}
           priceMin={priceRange.min}
@@ -397,16 +397,18 @@ function LandPropertyPageContent() {
         />
       </div>
 
-      <PropertyMapList
-        listings={listingsData}
-        totalListingsNumber={totalListingsNumber}
-        pageSize={PAGE_SIZE}
-        currentPage={isServerPaginated ? currentPage : undefined}
-        onPageChange={isServerPaginated ? setCurrentPage : undefined}
-        title="Acreage"
-        sortId={sortId}
-        onSortChange={setSortId}
-      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PropertyMapList
+          listings={listingsData}
+          totalListingsNumber={totalListingsNumber}
+          pageSize={PAGE_SIZE}
+          currentPage={isServerPaginated ? currentPage : undefined}
+          onPageChange={isServerPaginated ? setCurrentPage : undefined}
+          title="Acreage"
+          sortId={sortId}
+          onSortChange={setSortId}
+        />
+      </div>
       {isLoading ? <PageLoadingIndicator label="Loading properties..." fixed /> : null}
     </div>
   )
@@ -414,7 +416,7 @@ function LandPropertyPageContent() {
 
 function LandPropertyPageFallback() {
   return (
-    <div className="relative flex h-[calc(100vh-73px)] w-full items-center justify-center font-ibm-plex-sans">
+    <div className="relative flex h-full min-h-0 w-full items-center justify-center font-ibm-plex-sans">
       <PageLoadingIndicator label="Loading marketplace..." fixed={false} />
     </div>
   )
