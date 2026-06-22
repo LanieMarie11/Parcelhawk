@@ -15,7 +15,7 @@ export default async function RealtorPortalSettingsPage() {
 
   if (!session) {
     return (
-      <div className="min-h-[calc(100vh-73px)] bg-background px-4 py-10 font-ibm-plex-sans sm:px-6 lg:px-8">
+      <div className="min-h-full bg-background px-4 py-10 font-ibm-plex-sans sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-8 text-center shadow-sm">
             <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">PROFILE Settings</h1>
@@ -30,7 +30,7 @@ export default async function RealtorPortalSettingsPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-background font-ibm-plex-sans">
+    <div className="min-h-full bg-background font-ibm-plex-sans">
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-8">
             <h1 className="text-3xl font-phudu font-medium tracking-tight text-foreground">PROFILE Settings</h1>

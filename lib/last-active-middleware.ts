@@ -19,7 +19,7 @@ export function attachLastActivePing(
   response: NextResponse
 ): NextResponse {
   const userId = (token?.sub ?? token?.id) as string | undefined;
-  if (!userId || !token?.role) {
+  if (!userId || !token?.role || token.role === "admin") {
     return response;
   }
 

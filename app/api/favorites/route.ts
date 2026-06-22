@@ -87,7 +87,7 @@ export async function GET() {
       images: undefined,
       category: jsonbArrayFirst(row.propertyType),
       categoryColor: "#3b8a6e",
-      name: row.title ?? "",
+      name: row.address1 ?? "",
       price: row.price != null ? String(row.price) : "",
       location: row.city ?? "",
       address1: row.address1 ?? null,

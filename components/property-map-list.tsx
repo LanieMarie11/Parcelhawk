@@ -137,11 +137,9 @@ export function PropertyMapList({
     : currentPage * pageSize < listings.length
 
   return (
-    <div className="flex min-w-0 w-full max-w-full overflow-x-hidden">
+    <div className="flex min-h-0 min-w-0 w-full max-w-full flex-1 overflow-hidden">
       {/* List (left) */}
-      <div
-        className={`${HALF_PANE_SHELL} h-[calc(100vh-210px)] min-h-0 border-r border-border`}
-      >
+      <div className={`${HALF_PANE_SHELL} min-h-0 flex-1 border-r border-border`}>
         <div className="shrink-0 border-b border-border bg-background px-4 pb-1 pt-2">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -257,14 +255,12 @@ export function PropertyMapList({
         </div>
       </div>
 
-      {/* Fixed map (right): same half-pane shell as list; fixed + explicit height for viewport fill */}
-      <div className={`${HALF_PANE_SHELL} fixed right-0 top-[210px] z-10 h-[calc(100vh-210px)]`}>
+      {/* Map (right): same half-pane shell as list */}
+      <div className={`${HALF_PANE_SHELL} min-h-0 flex-1`}>
         <div className="relative min-h-0 flex-1">
           <MarketplaceMap listings={listings} selectedId={hoveredListingId} className="h-full w-full" />
         </div>
       </div>
-      {/* Spacer so flex row reserves the same width as the fixed map (single 50% — avoids horizontal scroll) */}
-      <div className="min-w-0 w-1/2 shrink-0" aria-hidden />
     </div>
   )
 }

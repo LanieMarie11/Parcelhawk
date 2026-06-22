@@ -19,7 +19,7 @@ export function AdminHeader() {
   const isSignedIn = status === "authenticated" && !!session;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
+    <header className="sticky top-0 z-50 w-full shrink-0 border-b border-white/10 bg-[#0B1D31] px-4 py-4 font-sans md:px-10">
       <nav className="mx-auto flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <Link
           href="/admin"

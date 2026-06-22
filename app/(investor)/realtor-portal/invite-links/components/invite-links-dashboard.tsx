@@ -225,7 +225,7 @@ export function InviteLinksDashboard() {
   const isCreateModalBusy = isSavingReferralId;
 
   return (
-    <div className="min-h-[calc(100vh-73px)] h-full bg-background px-4 pb-8 pt-6 font-ibm-plex-sans text-foreground sm:px-6 lg:px-8">
+    <div className="min-h-full h-full bg-background px-4 pb-8 pt-6 font-ibm-plex-sans text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1400px] rounded-2xl border border-border bg-card p-4 shadow-sm lg:p-5">
         <header className="border-b border-border pb-3">
           <h1 className="text-2xl font-medium font-phudu uppercase tracking-tight text-[#16212f]">

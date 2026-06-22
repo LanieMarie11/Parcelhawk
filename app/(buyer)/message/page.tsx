@@ -226,7 +226,7 @@ export default function BuyerMessagePage() {
   }
 
   return (
-    <div className="box-border flex h-[calc(100dvh-73px)] min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8] px-3 pb-4 pt-3 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
+    <div className="box-border flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f4f6f8] px-3 pb-4 pt-3 font-ibm-plex-sans text-zinc-900 sm:px-4 lg:px-6">
       <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div
           className={`grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-rows-1 lg:overflow-hidden ${

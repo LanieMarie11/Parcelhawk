@@ -1,7 +1,8 @@
 "use client"
 
 import { ChevronDown } from "lucide-react"
-import { useEffect, useId, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import countiesByState from "@/data/us-counties-by-state.json"
 
 const COUNTIES: Record<string, string[]> = countiesByState
@@ -91,7 +92,11 @@ export default function CountyFilter({ stateCode, value, onApply }: CountyFilter
   const [open, setOpen] = useState(false)
   const [showAllFromChevron, setShowAllFromChevron] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [mounted, setMounted] = useState(false)
+  const [listPos, setListPos] = useState({ top: 0, left: 0, width: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputWrapperRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
   const listId = useId()
 
   const options = useMemo(() => optionsForScope(stateCode ?? null), [stateCode])
@@ -123,12 +128,39 @@ export default function CountyFilter({ stateCode, value, onApply }: CountyFilter
   }, [draft, showAllFromChevron])
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const updateListPos = useCallback(() => {
+    const el = inputWrapperRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    setListPos({
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    updateListPos()
+    window.addEventListener("resize", updateListPos)
+    window.addEventListener("scroll", updateListPos, true)
+    return () => {
+      window.removeEventListener("resize", updateListPos)
+      window.removeEventListener("scroll", updateListPos, true)
+    }
+  }, [open, updateListPos])
+
+  useEffect(() => {
     if (!open) return
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-        setShowAllFromChevron(false)
-      }
+      const target = e.target as Node
+      if (containerRef.current?.contains(target)) return
+      if (listRef.current?.contains(target)) return
+      setOpen(false)
+      setShowAllFromChevron(false)
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
@@ -172,7 +204,7 @@ export default function CountyFilter({ stateCode, value, onApply }: CountyFilter
     <div className="relative inline-flex flex-col font-ibm-plex-sans" ref={containerRef}>
       <span className="text-xs font-normal text-muted-foreground">County</span>
 
-      <div className="relative mt-1.5 w-[180px]">
+      <div className="relative mt-1.5 w-[180px]" ref={inputWrapperRef}>
         <input
           type="text"
           autoComplete="off"
@@ -245,35 +277,40 @@ export default function CountyFilter({ stateCode, value, onApply }: CountyFilter
           />
         </button>
 
-        {open && suggestions.length > 0 ? (
-          <ul
-            id={listId}
-            role="listbox"
-            className="absolute left-0 top-full z-50 mt-2 max-h-60 min-w-full overflow-auto rounded-xl border border-border bg-card py-1 shadow-lg"
-          >
-            {suggestions.map((o, i) => (
-              <li key={optionKey(o)} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={
-                    value != null &&
-                    value.stateCode === o.stateCode &&
-                    value.name === o.name
-                  }
-                  onMouseDown={(ev) => ev.preventDefault()}
-                  onClick={() => handleSelect(o)}
-                  className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                    i === activeIndex ? "bg-[#6B9B7A]/15 text-foreground" : "text-foreground hover:bg-muted/50"
-                  }`}
-                >
-                  <span className="min-w-0 flex-1 font-medium">{o.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{o.stateCode}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        {mounted && open && suggestions.length > 0
+          ? createPortal(
+              <ul
+                ref={listRef}
+                id={listId}
+                role="listbox"
+                style={{ top: listPos.top, left: listPos.left, width: listPos.width }}
+                className="fixed z-120 max-h-60 overflow-auto rounded-xl border border-border bg-card py-1 shadow-lg"
+              >
+                {suggestions.map((o, i) => (
+                  <li key={optionKey(o)} role="presentation">
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={
+                        value != null &&
+                        value.stateCode === o.stateCode &&
+                        value.name === o.name
+                      }
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => handleSelect(o)}
+                      className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                        i === activeIndex ? "bg-[#6B9B7A]/15 text-foreground" : "text-foreground hover:bg-muted/50"
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1 font-medium">{o.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">{o.stateCode}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>,
+              document.body
+            )
+          : null}
       </div>
     </div>
   )
