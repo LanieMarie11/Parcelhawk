@@ -10,9 +10,33 @@ export type PropertyReportResponse = {
   ok: true
   listingId: number
   report: ParcelResearchReport
+  generatedAt: string
+  cached: boolean
 }
 
-async function submitPropertyReportOrder(listingId: number): Promise<PropertyReportResponse> {
+function parsePropertyReportResponse(data: unknown): PropertyReportResponse {
+  const payload = data as PropertyReportResponse & { error?: string }
+
+  if (
+    payload.ok !== true ||
+    typeof payload.listingId !== "number" ||
+    !("report" in payload) ||
+    typeof payload.generatedAt !== "string" ||
+    typeof payload.cached !== "boolean"
+  ) {
+    throw new Error("Invalid response from server")
+  }
+
+  return {
+    ok: true,
+    listingId: payload.listingId,
+    report: payload.report,
+    generatedAt: payload.generatedAt,
+    cached: payload.cached,
+  }
+}
+
+async function loadPropertyReport(listingId: number): Promise<PropertyReportResponse> {
   const res = await fetch(BUYER_PROPERTY_REPORTS_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,11 +48,7 @@ async function submitPropertyReportOrder(listingId: number): Promise<PropertyRep
     throw new Error(typeof data.error === "string" ? data.error : "Request failed")
   }
 
-  if (data.ok !== true || typeof data.listingId !== "number" || !("report" in data)) {
-    throw new Error("Invalid response from server")
-  }
-
-  return { ok: true, listingId: data.listingId, report: data.report }
+  return parsePropertyReportResponse(data)
 }
 
 export type OrderPropertyReportModalProps = {
@@ -63,7 +83,7 @@ export function OrderPropertyReportModal({
     let cancelled = false
     setRequestState({ status: "loading" })
 
-    void submitPropertyReportOrder(listingId)
+    void loadPropertyReport(listingId)
       .then((data) => {
         if (!cancelled) setRequestState({ status: "success", data })
       })
@@ -71,7 +91,7 @@ export function OrderPropertyReportModal({
         if (!cancelled) {
           setRequestState({
             status: "error",
-            message: error instanceof Error ? error.message : "Failed to submit report request",
+            message: error instanceof Error ? error.message : "Failed to load property report",
           })
         }
       })
@@ -86,7 +106,6 @@ export function OrderPropertyReportModal({
   return (
     <div
       className="fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
     >
       <div
         className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
@@ -124,16 +143,29 @@ export function OrderPropertyReportModal({
           {requestState.status === "loading" ? (
             <div className="flex flex-col items-center justify-center gap-3 py-10">
               <Loader2 className="h-8 w-8 animate-spin text-brand-green" aria-hidden />
-              <p className="text-sm text-muted-foreground">Fetching property data...</p>
+              <p className="text-sm text-muted-foreground">Loading property report...</p>
+              <p className="max-w-sm px-4 text-center text-xs text-zinc-500">
+                This may take a moment if we need to fetch new property data for this parcel.
+              </p>
             </div>
           ) : null}
 
           {requestState.status === "success" ? (
             <div className="rounded-xl border border-emerald-200/90 bg-[#EDFCEA] px-3.5 py-3">
-              <p className="text-sm font-semibold text-[#2D5A36]">Property data loaded</p>
+              <p className="text-sm font-semibold text-[#2D5A36]">
+                {requestState.data.cached ? "Saved property report loaded" : "Property data loaded"}
+              </p>
               <p className="mt-1 text-xs font-ibm-plex-sans leading-relaxed text-[#4b5563]">
                 Report for listing ID{" "}
-                <span className="font-medium">{requestState.data.listingId}</span>.
+                <span className="font-medium">{requestState.data.listingId}</span>
+                {requestState.data.generatedAt ? (
+                  <>
+                    {" "}
+                    · Generated{" "}
+                    {new Date(requestState.data.generatedAt).toLocaleString()}
+                  </>
+                ) : null}
+                .
               </p>
               <pre className="mt-3 max-h-72 overflow-auto rounded-lg bg-white/80 p-3 text-xs text-[#374151]">
                 {JSON.stringify(requestState.data.report, null, 2)}

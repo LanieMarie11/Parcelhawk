@@ -23,5 +23,7 @@ export {
   type NotificationMetadata,
   type NotificationSender,
 } from "./notifications";
+export { buyerPropertyReports } from "./property-reports";
 export { investors, users } from "./users";
+export { buyerUtilitySearches } from "./utility-searches";
 export { viewingRequestStatusEnum, viewingRequests } from "./viewing-requests";
