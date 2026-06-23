@@ -14,9 +14,36 @@ export type UtilitySearchResponse = {
   ok: true
   listingId: number
   report: string
+  generatedAt: string
+  cached: boolean
 }
 
-async function submitUtilitySearchRequest(listingId: number): Promise<UtilitySearchResponse> {
+function parseUtilitySearchResponse(data: unknown): UtilitySearchResponse {
+  const payload = data as UtilitySearchResponse & { error?: string }
+
+  if (
+    payload.ok !== true ||
+    typeof payload.listingId !== "number" ||
+    typeof payload.report !== "string" ||
+    typeof payload.generatedAt !== "string" ||
+    typeof payload.cached !== "boolean"
+  ) {
+    throw new Error("Invalid response from server")
+  }
+
+  return {
+    ok: true,
+    listingId: payload.listingId,
+    report: payload.report,
+    generatedAt: payload.generatedAt,
+    cached: payload.cached,
+  }
+}
+
+async function loadUtilitySearch(listingId: number): Promise<{
+  data: UtilitySearchResponse
+  generatedAt: Date
+}> {
   const res = await fetch(BUYER_UTILITY_SEARCHES_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -28,15 +55,11 @@ async function submitUtilitySearchRequest(listingId: number): Promise<UtilitySea
     throw new Error(typeof data.error === "string" ? data.error : "Request failed")
   }
 
-  if (
-    data.ok !== true ||
-    typeof data.listingId !== "number" ||
-    typeof data.report !== "string"
-  ) {
-    throw new Error("Invalid response from server")
+  const parsed = parseUtilitySearchResponse(data)
+  return {
+    data: parsed,
+    generatedAt: new Date(parsed.generatedAt),
   }
-
-  return { ok: true, listingId: data.listingId, report: data.report }
 }
 
 export type UtilitySearchModalProps = {
@@ -71,17 +94,21 @@ export function UtilitySearchModal({
     let cancelled = false
     setRequestState({ status: "loading" })
 
-    void submitUtilitySearchRequest(listingId)
-      .then((data) => {
+    void loadUtilitySearch(listingId)
+      .then((result) => {
         if (!cancelled) {
-          setRequestState({ status: "success", data, generatedAt: new Date() })
+          setRequestState({
+            status: "success",
+            data: result.data,
+            generatedAt: result.generatedAt,
+          })
         }
       })
       .catch((error) => {
         if (!cancelled) {
           setRequestState({
             status: "error",
-            message: error instanceof Error ? error.message : "Failed to submit utility search request",
+            message: error instanceof Error ? error.message : "Failed to load utility search report",
           })
         }
       })
@@ -98,7 +125,6 @@ export function UtilitySearchModal({
   return (
     <div
       className="utility-report-print-root fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4 sm:p-6"
-      onClick={onClose}
     >
       <div
         className="utility-report-print-dialog flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#f4f6f8] shadow-2xl"
@@ -169,11 +195,10 @@ export function UtilitySearchModal({
             <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white py-16">
               <Loader2 className="h-8 w-8 animate-spin text-brand-green" aria-hidden />
               <p className="text-sm font-ibm-plex-sans text-muted-foreground">
-                Generating utility due diligence report...
+                Loading utility due diligence report...
               </p>
               <p className="max-w-sm px-4 text-center text-xs text-zinc-500">
-                This may take a minute while we research infrastructure, utilities, and local
-                authorities for this parcel.
+                This may take a minute if we need to generate a new report for this parcel.
               </p>
             </div>
           ) : null}

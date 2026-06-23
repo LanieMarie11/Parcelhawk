@@ -204,6 +204,27 @@
       "when": 1781626595164,
       "tag": "0028_curious_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1782143091999,
+      "tag": "0029_majestic_johnny_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1782200000000,
+      "tag": "0030_buyer_property_reports",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1782280000000,
+      "tag": "0031_property_reports_json_column",
+      "breakpoints": true
     }
   ]
 }
