@@ -18,6 +18,7 @@ export type ListingMapItem = {
   name?: string
   price?: string | number
   location?: string
+  url?: string | null
 }
 
 const containerStyle = {
@@ -174,6 +175,11 @@ export function MarketplaceMap({
             title={[listing.name, listing.price].filter(Boolean).join(" — ") || undefined}
             icon={selectedId != null && String(selectedId) === String(listing.id) ? highlightedMarkerIcon : defaultMarkerIcon}
             zIndex={selectedId != null && String(selectedId) === String(listing.id) ? 999 : undefined}
+            onClick={() => {
+              const href = listing.url?.trim()
+              if (!href) return
+              window.open(href, "_blank", "noopener,noreferrer")
+            }}
           />
         ))}
       </GoogleMap>
