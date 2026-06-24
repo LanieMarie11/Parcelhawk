@@ -1,8 +1,12 @@
 "use client"
 
-import { FileText, Loader2, X } from "lucide-react"
+import { Download, FileText, Loader2, X } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import type { ParcelResearchReport } from "@/lib/property-reports/build-parcel-research-report"
+import {
+  downloadPropertyReportDocx,
+  downloadPropertyReportMarkdown,
+} from "./property-report-document"
 
 const BUYER_PROPERTY_REPORTS_PATH = "/api/buyer/property-reports"
 
@@ -73,6 +77,7 @@ export function OrderPropertyReportModal({
 }: OrderPropertyReportModalProps) {
   const titleId = useId()
   const [requestState, setRequestState] = useState<RequestState>({ status: "idle" })
+  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -102,6 +107,8 @@ export function OrderPropertyReportModal({
   }, [open, listingId])
 
   if (!open) return null
+
+  const reportData = requestState.status === "success" ? requestState.data : null
 
   return (
     <div
@@ -138,6 +145,53 @@ export function OrderPropertyReportModal({
             <p className="mt-1.5 truncate text-sm font-regular font-ibm-plex-sans leading-snug text-white/95">{propertySubtitle}</p>
           </div>
         </div>
+
+        {reportData ? (
+          <div className="flex shrink-0 flex-wrap gap-2 border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
+            <button
+              type="button"
+              disabled={isDownloadingDocx}
+              onClick={() => {
+                if (requestState.status !== "success") return
+                setIsDownloadingDocx(true)
+                void downloadPropertyReportDocx(
+                  reportData.report,
+                  propertySubtitle,
+                  reportData.listingId,
+                  new Date(reportData.generatedAt)
+                )
+                  .catch(() => {
+                    window.alert("Failed to download DOCX report. Please try again.")
+                  })
+                  .finally(() => {
+                    setIsDownloadingDocx(false)
+                  })
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 text-sm font-medium font-ibm-plex-sans text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isDownloadingDocx ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <FileText className="h-4 w-4" aria-hidden />
+              )}
+              Download report (.docx)
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                downloadPropertyReportMarkdown(
+                  reportData.report,
+                  propertySubtitle,
+                  reportData.listingId
+                )
+              }
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium font-ibm-plex-sans text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Download report (.md)
+            </button>
+          </div>
+        ) : null}
 
         <div className="p-4">
           {requestState.status === "loading" ? (
