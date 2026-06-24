@@ -1,0 +1,2 @@
+export const PROPERTY_REPORT_PRICE_CENTS = 300;
+export const PROPERTY_REPORT_CURRENCY = "usd";

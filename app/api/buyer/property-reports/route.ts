@@ -1,93 +1,127 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { buyerPropertyReports, favorites, mergedListings } from "@/db/schema";
-import { authOptions } from "@/lib/auth";
+import { buyerPropertyReportPayments, buyerPropertyReports, mergedListings } from "@/db/schema";
+import {
+  PROPERTY_REPORT_CURRENCY,
+  PROPERTY_REPORT_PRICE_CENTS,
+} from "@/lib/property-reports/constants";
+import {
+  assertFavoriteAccess,
+  getBuyerId,
+  getSavedPropertyReport,
+  getSucceededPropertyReportPayment,
+  parseListingId,
+  toPropertyReportJson,
+  type PropertyReportJson,
+} from "@/lib/property-reports/property-report-access";
 import {
   buildParcelResearchReport,
   type ParcelResearchReport,
 } from "@/lib/property-reports/build-parcel-research-report";
 import { lookupCountyFips } from "@/lib/property-reports/lookup-county-fips";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
-type PropertyReportJson = {
-  ok: true;
-  listingId: number;
-  report: ParcelResearchReport;
-  generatedAt: string;
-  cached: boolean;
-};
-
-function parseListingId(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value) && value > 0) {
-    return value;
-  }
-  if (typeof value === "string" && /^\d+$/.test(value.trim())) {
-    return Number.parseInt(value.trim(), 10);
-  }
-  return null;
-}
-
-function toPropertyReportJson(
+async function markPaymentStatus(
+  buyerId: string,
   listingId: number,
-  report: ParcelResearchReport,
-  generatedAt: Date,
-  cached: boolean,
-): PropertyReportJson {
-  return {
-    ok: true,
-    listingId,
-    report,
-    generatedAt: generatedAt.toISOString(),
-    cached,
-  };
+  paymentIntentId: string,
+  status: "pending" | "succeeded" | "refunded" | "failed",
+) {
+  const now = new Date();
+  await db
+    .update(buyerPropertyReportPayments)
+    .set({ status, updatedAt: now })
+    .where(
+      and(
+        eq(buyerPropertyReportPayments.userId, buyerId),
+        eq(buyerPropertyReportPayments.listingId, listingId),
+        eq(buyerPropertyReportPayments.stripePaymentIntentId, paymentIntentId),
+      ),
+    );
 }
 
-async function getBuyerId(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  return (session?.user as { id?: string } | undefined)?.id ?? null;
+async function refundPropertyReportPayment(paymentIntentId: string) {
+  const stripe = getStripe();
+  await stripe.refunds.create({ payment_intent: paymentIntentId });
 }
 
-async function assertFavoriteAccess(buyerId: string, listingId: number) {
-  const [favoriteRow] = await db
-    .select({ id: favorites.id })
-    .from(favorites)
-    .where(and(eq(favorites.userId, buyerId), eq(favorites.landListingId, listingId)))
-    .limit(1);
+async function assertPaidForReport(
+  buyerId: string,
+  listingId: number,
+  paymentIntentId: string | null,
+): Promise<NextResponse | { paymentIntentId: string }> {
+  const existingPayment = await getSucceededPropertyReportPayment(buyerId, listingId);
+  if (existingPayment) {
+    return { paymentIntentId: existingPayment.stripePaymentIntentId };
+  }
 
-  if (!favoriteRow) {
+  if (!paymentIntentId?.trim()) {
     return NextResponse.json(
-      { error: "You can only order a report for a saved property" },
-      { status: 403 },
+      {
+        error: "Payment required",
+        needsPayment: true,
+        priceCents: PROPERTY_REPORT_PRICE_CENTS,
+      },
+      { status: 402 },
     );
   }
 
-  return null;
-}
+  if (!isStripeConfigured()) {
+    return NextResponse.json({ error: "Payments are not configured" }, { status: 503 });
+  }
 
-async function getSavedPropertyReport(buyerId: string, listingId: number) {
-  const [savedRow] = await db
-    .select({
-      report: buyerPropertyReports.report,
-      createdAt: buyerPropertyReports.createdAt,
+  const stripe = getStripe();
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+  if (paymentIntent.status !== "succeeded") {
+    return NextResponse.json({ error: "Payment has not been completed" }, { status: 402 });
+  }
+
+  if (paymentIntent.metadata.userId !== buyerId) {
+    return NextResponse.json({ error: "Payment does not match your account" }, { status: 403 });
+  }
+
+  if (paymentIntent.metadata.listingId !== String(listingId)) {
+    return NextResponse.json({ error: "Payment does not match this property" }, { status: 403 });
+  }
+
+  if (
+    paymentIntent.amount !== PROPERTY_REPORT_PRICE_CENTS ||
+    paymentIntent.currency !== PROPERTY_REPORT_CURRENCY
+  ) {
+    return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
+  }
+
+  const now = new Date();
+  await db
+    .insert(buyerPropertyReportPayments)
+    .values({
+      userId: buyerId,
+      listingId,
+      stripePaymentIntentId: paymentIntent.id,
+      amountCents: paymentIntent.amount,
+      status: "succeeded",
+      createdAt: now,
+      updatedAt: now,
     })
-    .from(buyerPropertyReports)
-    .where(
-      and(eq(buyerPropertyReports.userId, buyerId), eq(buyerPropertyReports.listingId, listingId)),
-    )
-    .limit(1);
+    .onConflictDoUpdate({
+      target: [buyerPropertyReportPayments.userId, buyerPropertyReportPayments.listingId],
+      set: {
+        stripePaymentIntentId: paymentIntent.id,
+        amountCents: paymentIntent.amount,
+        status: "succeeded",
+        updatedAt: now,
+      },
+    });
 
-  if (!savedRow) return null;
-
-  return {
-    report: savedRow.report as ParcelResearchReport,
-    createdAt: savedRow.createdAt,
-  };
+  return { paymentIntentId: paymentIntent.id };
 }
 
 async function generateAndSavePropertyReport(
   buyerId: string,
   listingId: number,
+  paymentIntentId: string | null,
 ): Promise<{ report: ParcelResearchReport; generatedAt: Date } | { error: NextResponse }> {
   const [listingRow] = await db
     .select({
@@ -119,6 +153,15 @@ async function generateAndSavePropertyReport(
 
   const landPortalToken = process.env.LANDPORTAL?.trim();
   if (!landPortalToken) {
+    if (paymentIntentId) {
+      try {
+        await refundPropertyReportPayment(paymentIntentId);
+        await markPaymentStatus(buyerId, listingId, paymentIntentId, "refunded");
+      } catch (refundErr) {
+        console.error("Property report refund error:", refundErr);
+      }
+    }
+
     return {
       error: NextResponse.json(
         { error: "Property report service is not configured" },
@@ -147,8 +190,24 @@ async function generateAndSavePropertyReport(
   if (!propertyDataRes.ok) {
     const errorBody = await propertyDataRes.text().catch(() => "");
     console.error("LandPortal property-data error:", propertyDataRes.status, errorBody);
+
+    if (paymentIntentId) {
+      try {
+        await refundPropertyReportPayment(paymentIntentId);
+        await markPaymentStatus(buyerId, listingId, paymentIntentId, "refunded");
+      } catch (refundErr) {
+        console.error("Property report refund error:", refundErr);
+      }
+    }
+
     return {
-      error: NextResponse.json({ error: "Failed to fetch property data" }, { status: 502 }),
+      error: NextResponse.json(
+        {
+          error: "Failed to fetch property data. Your payment has been refunded.",
+          refunded: Boolean(paymentIntentId),
+        },
+        { status: 502 },
+      ),
     };
   }
 
@@ -193,7 +252,14 @@ export async function GET(request: Request) {
 
     const savedRow = await getSavedPropertyReport(buyerId, listingId);
     if (!savedRow) {
-      return NextResponse.json({ error: "Property report not found" }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Property report not found",
+          needsPayment: true,
+          priceCents: PROPERTY_REPORT_PRICE_CENTS,
+        },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(
@@ -211,7 +277,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: { listingId?: unknown; regenerate?: unknown };
+  let body: { listingId?: unknown; regenerate?: unknown; paymentIntentId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -224,6 +290,10 @@ export async function POST(request: Request) {
   }
 
   const regenerate = body.regenerate === true;
+  const paymentIntentId =
+    typeof body.paymentIntentId === "string" && body.paymentIntentId.trim()
+      ? body.paymentIntentId.trim()
+      : null;
 
   try {
     const favoriteError = await assertFavoriteAccess(buyerId, listingId);
@@ -238,7 +308,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await generateAndSavePropertyReport(buyerId, listingId);
+    const paymentResult = await assertPaidForReport(buyerId, listingId, paymentIntentId);
+    if (paymentResult instanceof NextResponse) return paymentResult;
+
+    const result = await generateAndSavePropertyReport(
+      buyerId,
+      listingId,
+      paymentResult.paymentIntentId,
+    );
     if ("error" in result) return result.error;
 
     return NextResponse.json(
@@ -249,3 +326,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to submit report request" }, { status: 500 });
   }
 }
+
+export type { PropertyReportJson };

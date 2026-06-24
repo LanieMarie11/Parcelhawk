@@ -225,6 +225,13 @@
       "when": 1782280000000,
       "tag": "0031_property_reports_json_column",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1782320077510,
+      "tag": "0032_medical_vision",
+      "breakpoints": true
     }
   ]
 }
