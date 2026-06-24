@@ -1,10 +1,10 @@
 "use client"
 
-import { Download, Loader2, Printer, Search, X } from "lucide-react"
+import { Download, FileText, Loader2, Search, X } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import {
+  downloadUtilityReportDocx,
   downloadUtilityReportMarkdown,
-  printUtilityReport,
   UtilityReportDocument,
 } from "./utility-report-document"
 
@@ -84,6 +84,7 @@ export function UtilitySearchModal({
 }: UtilitySearchModalProps) {
   const titleId = useId()
   const [requestState, setRequestState] = useState<RequestState>({ status: "idle" })
+  const [isDownloadingDocx, setIsDownloadingDocx] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -124,16 +125,16 @@ export function UtilitySearchModal({
 
   return (
     <div
-      className="utility-report-print-root fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4 sm:p-6"
+      className="fixed inset-0 z-120 flex items-center justify-center bg-black/50 p-4 sm:p-6"
     >
       <div
-        className="utility-report-print-dialog flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#f4f6f8] shadow-2xl"
+        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#f4f6f8] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className="utility-report-no-print shrink-0 bg-brand-green px-5 pb-5 pt-5">
+        <div className="shrink-0 bg-brand-green px-5 pb-5 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm ring-1 ring-white/10"
@@ -164,14 +165,34 @@ export function UtilitySearchModal({
         </div>
 
         {reportData ? (
-          <div className="utility-report-no-print flex shrink-0 flex-wrap gap-2 border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
+          <div className="flex shrink-0 flex-wrap gap-2 border-b border-zinc-200 bg-white px-4 py-3 sm:px-5">
             <button
               type="button"
-              onClick={printUtilityReport}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 text-sm font-medium font-ibm-plex-sans text-white transition-colors hover:bg-brand-green-hover"
+              disabled={isDownloadingDocx}
+              onClick={() => {
+                if (requestState.status !== "success") return
+                setIsDownloadingDocx(true)
+                void downloadUtilityReportDocx(
+                  reportData.report,
+                  propertySubtitle,
+                  reportData.listingId,
+                  requestState.generatedAt
+                )
+                  .catch(() => {
+                    window.alert("Failed to download DOCX report. Please try again.")
+                  })
+                  .finally(() => {
+                    setIsDownloadingDocx(false)
+                  })
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-3 py-2 text-sm font-medium font-ibm-plex-sans text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Printer className="h-4 w-4" aria-hidden />
-              Download PDF
+              {isDownloadingDocx ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <FileText className="h-4 w-4" aria-hidden />
+              )}
+              Download report (.docx)
             </button>
             <button
               type="button"
@@ -221,7 +242,7 @@ export function UtilitySearchModal({
           ) : null}
         </div>
 
-        <div className="utility-report-no-print shrink-0 border-t border-zinc-200 bg-white px-4 py-4 sm:px-5">
+        <div className="shrink-0 border-t border-zinc-200 bg-white px-4 py-4 sm:px-5">
           <button
             type="button"
             onClick={onClose}

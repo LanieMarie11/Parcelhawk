@@ -42,7 +42,7 @@ function slugifyFilename(value: string): string {
 export function buildUtilityReportFilename(
   propertySubtitle: string,
   listingId: number,
-  extension: "md" | "pdf"
+  extension: "md" | "docx"
 ): string {
   const slug = slugifyFilename(propertySubtitle) || `listing-${listingId}`
   return `utility-due-diligence-${slug}.${extension}`
@@ -62,8 +62,22 @@ export function downloadUtilityReportMarkdown(
   URL.revokeObjectURL(url)
 }
 
-export function printUtilityReport(): void {
-  window.print()
+export async function downloadUtilityReportDocx(
+  report: string,
+  propertySubtitle: string,
+  listingId: number,
+  generatedAt: Date
+): Promise<void> {
+  const { buildUtilityReportDocxBlob } = await import(
+    "@/lib/utility-reports/build-utility-report-docx"
+  )
+  const blob = await buildUtilityReportDocxBlob({ report, propertySubtitle, generatedAt })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = buildUtilityReportFilename(propertySubtitle, listingId, "docx")
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 type UtilityReportDocumentProps = {
