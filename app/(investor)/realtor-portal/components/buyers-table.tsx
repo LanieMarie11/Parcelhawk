@@ -17,14 +17,12 @@ export type BuyerRow = {
   preferenceBudget: string;
   preferenceTimeframe: string;
   about: string;
-  action: "Call Now" | "Push";
 };
 
 type BuyersTableProps = {
   buyerRows: BuyerRow[];
   isLoading: boolean;
   error: string | null;
-  selectedBuyerId?: string;
   onSelectBuyer?: (buyer: BuyerRow) => void;
 };
 
@@ -32,7 +30,6 @@ export function BuyersTable({
   buyerRows,
   isLoading,
   error,
-  selectedBuyerId,
   onSelectBuyer,
 }: BuyersTableProps) {
   const [showAllRows, setShowAllRows] = useState(false);
@@ -84,25 +81,24 @@ export function BuyersTable({
               <th className="px-4 py-3 font-semibold">Score</th>
               <th className="px-4 py-3 font-semibold">Searches</th>
               <th className="px-4 py-3 font-semibold">Preference</th>
-              <th className="px-4 py-3 font-semibold text-right">Action</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td className="px-4 py-4 text-sm text-zinc-500" colSpan={6}>
+                <td className="px-4 py-4 text-sm text-zinc-500" colSpan={5}>
                   Loading buyers...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td className="px-4 py-4 text-sm text-rose-600" colSpan={6}>
+                <td className="px-4 py-4 text-sm text-rose-600" colSpan={5}>
                   {error}
                 </td>
               </tr>
             ) : buyerRows.length === 0 ? (
               <tr>
-                <td className="px-4 py-4 text-sm text-zinc-500" colSpan={6}>
+                <td className="px-4 py-4 text-sm text-zinc-500" colSpan={5}>
                   No buyers connected to your referral URL yet.
                 </td>
               </tr>
@@ -152,22 +148,6 @@ export function BuyersTable({
                       {row.preferenceTimeframe || "Timeframe: -"}
                     </span>
                   </div>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onSelectBuyer?.(row);
-                    }}
-                    className={`rounded-lg px-4 py-1.5 text-xs font-semibold ${
-                      row.id === selectedBuyerId
-                        ? "bg-brand-green text-white hover:bg-brand-green-hover active:bg-brand-green-active"
-                        : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-                    }`}
-                  >
-                    {row.id === selectedBuyerId ? "Call Now" : "Push"}
-                  </button>
                 </td>
               </tr>
               ))
