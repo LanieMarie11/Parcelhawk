@@ -73,12 +73,16 @@ export function RealtorPortalClient() {
 
         <div className="mt-4 grid gap-4 xl:grid-cols-12">
           <div className="space-y-4 xl:col-span-8">
-            <HotBuyersPanel hotBuyers={hotBuyers} isLoading={isLoading} />
+            <HotBuyersPanel
+              hotBuyers={hotBuyers}
+              buyerRows={buyerRows}
+              isLoading={isLoading}
+              onSelectBuyer={setSelectedBuyer}
+            />
             <BuyersTable
               buyerRows={buyerRows}
               isLoading={isLoading}
               error={error}
-              selectedBuyerId={selectedBuyer?.id}
               onSelectBuyer={setSelectedBuyer}
             />
           </div>

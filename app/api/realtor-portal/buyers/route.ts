@@ -131,7 +131,7 @@ export async function GET() {
       savedSearchCountRows.map((row) => [row.userId, Number(row.count ?? 0)]),
     )
 
-    const buyers = buyerRows.map((buyer, index) => {
+    const buyers = buyerRows.map((buyer) => {
       const searchesCount = String(savedSearchCountByUserId.get(buyer.id) ?? 0)
       const score = calculateBuyerScore(buyer.lastActiveAt ?? buyer.updatedAt)
       return {
@@ -147,7 +147,6 @@ export async function GET() {
         preferenceBudget: buyer.preferenceBudget ?? "",
         preferenceTimeframe: buyer.preferenceTimeframe ?? "",
         about: buyer.about ?? "",
-        action: index % 2 === 0 ? "Call Now" : "Push",
       }
     })
 
@@ -161,8 +160,6 @@ export async function GET() {
         activity: `Active ${buyer.lastActive}${buyer.location ? ` in ${buyer.location}` : ""}`,
         tag: getHotBuyerTag(buyer.score),
         accent: getHotBuyerAccent(buyer.score),
-        cta: buyer.score === "Hot" ? "Call Now" : "Reach Out",
-        ctaVariant: buyer.score === "Hot" ? "solid" : "outline",
         lastActive: buyer.lastActive,
       }))
 

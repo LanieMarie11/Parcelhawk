@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Flame } from "lucide-react";
+import type { BuyerRow } from "./buyers-table";
 
 const DEFAULT_VISIBLE_ROWS = 3;
 
@@ -12,17 +13,17 @@ export type HotBuyerItem = {
   activity: string;
   tag: "Hot lead" | "Warm";
   accent: "bg-rose-500" | "bg-amber-500";
-  cta: "Call Now" | "Reach Out";
-  ctaVariant: "solid" | "outline";
   lastActive: string;
 };
 
 type HotBuyersPanelProps = {
   hotBuyers: HotBuyerItem[];
+  buyerRows: BuyerRow[];
   isLoading: boolean;
+  onSelectBuyer?: (buyer: BuyerRow) => void;
 };
 
-export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
+export function HotBuyersPanel({ hotBuyers, buyerRows, isLoading, onSelectBuyer }: HotBuyersPanelProps) {
   const [showAllRows, setShowAllRows] = useState(false);
   const hotBuyerCount = hotBuyers.length;
   const visibleHotBuyers = useMemo(() => {
@@ -51,41 +52,38 @@ export function HotBuyersPanel({ hotBuyers, isLoading }: HotBuyersPanelProps) {
         ) : hotBuyers.length === 0 ? (
           <p className="px-3 py-3 text-sm text-zinc-500">No hot buyers right now.</p>
         ) : (
-          visibleHotBuyers.map((buyer) => (
-          <div key={buyer.id} className="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50">
-            <span className={`h-11 w-1 rounded-full ${buyer.accent}`} />
-            {buyer.avatarUrl ? (
-              <img src={buyer.avatarUrl} alt={buyer.name} className="h-10 w-10 rounded-full object-cover" />
+          visibleHotBuyers.map((hotBuyer) => (
+          <div
+            key={hotBuyer.id}
+            className="flex cursor-pointer items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50"
+            onClick={() => {
+              const buyer = buyerRows.find((row) => row.id === hotBuyer.id);
+              if (buyer) onSelectBuyer?.(buyer);
+            }}
+          >
+            <span className={`h-11 w-1 rounded-full ${hotBuyer.accent}`} />
+            {hotBuyer.avatarUrl ? (
+              <img src={hotBuyer.avatarUrl} alt={hotBuyer.name} className="h-10 w-10 rounded-full object-cover" />
             ) : (
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
-                {buyer.name.charAt(0).toUpperCase()}
+                {hotBuyer.name.charAt(0).toUpperCase()}
               </div>
             )}
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-zinc-800">
-                {buyer.name} <span className="text-xs font-normal text-zinc-400">{buyer.lastActive}</span>
+                {hotBuyer.name} <span className="text-xs font-normal text-zinc-400">{hotBuyer.lastActive}</span>
                 <span
                   className={`ml-2 hidden rounded-full border bg-zinc-50 px-2 py-0.5 text-[11px] font-medium sm:inline-flex ${
-                    buyer.tag.toLowerCase() === "hot lead"
+                    hotBuyer.tag.toLowerCase() === "hot lead"
                       ? "border-[#E62E2E] text-[#E62E2E]"
                       : "border-zinc-200 text-zinc-500"
                   }`}
                 >
-                  {buyer.tag}
+                  {hotBuyer.tag}
                 </span>
               </p>
-              <p className="truncate text-xs text-zinc-500">{buyer.activity}</p>
+              <p className="truncate text-xs text-zinc-500">{hotBuyer.activity}</p>
             </div>
-            
-            <button
-              className={`rounded-lg px-4 py-2 text-sm font-semibold ${
-                buyer.ctaVariant === "solid"
-                  ? "bg-brand-green text-white hover:bg-brand-green-hover active:bg-brand-green-active"
-                  : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100"
-              }`}
-            >
-              {buyer.cta}
-            </button>
           </div>
           ))
         )}
