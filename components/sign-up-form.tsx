@@ -12,6 +12,7 @@ import GoogleIcon from "@/components/icons/google-icon"
 import { StepProgress } from "@/components/step-progress"
 import { SignUpPreferencesStep } from "@/components/sign-up-preferences-step"
 import { SignUpCompleteStep } from "@/components/sign-up-complete-step"
+import { SignUpVerifyEmailStep } from "@/components/sign-up-verify-email-step"
 import type { SignUpPreferencesData } from "@/components/sign-up-preferences-step"
 
 type Role = "buyer" | "investor"
@@ -25,7 +26,8 @@ type SignUpFormProps = {
 const STEPS = [
   { number: 1, label: "Create Account" },
   { number: 2, label: "Preferences" },
-  { number: 3, label: "Complete" },
+  { number: 3, label: "Verify Email" },
+  { number: 4, label: "Complete" },
 ] as const
 
 const isValidEmail = (value: string) => {
@@ -180,10 +182,6 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
       } catch (error) {
         console.error("Failed to save preferences", error)
       }
-    }
-
-    if (selectedRole === "buyer") {
-      await autoSignInWithNewCredentials()
     }
 
     setCurrentStep(3)
@@ -367,17 +365,26 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
               purpose: null,
               timeframe: null,
             })
+            setCurrentStep(3)
+          }}
+        />
+      )}
+
+      {currentStep === 3 && createdUserId && selectedRole === "buyer" && (
+        <SignUpVerifyEmailStep
+          userId={createdUserId}
+          email={email}
+          onBack={() => setCurrentStep(2)}
+          onVerified={() => {
             void (async () => {
-              if (selectedRole === "buyer") {
-                await autoSignInWithNewCredentials()
-              }
-              setCurrentStep(3)
+              await autoSignInWithNewCredentials()
+              setCurrentStep(4)
             })()
           }}
         />
       )}
 
-      {currentStep === 3 && completedPreferences && (
+      {currentStep === 4 && completedPreferences && (
         <SignUpCompleteStep
           firstName={firstName}
           preferences={completedPreferences}
