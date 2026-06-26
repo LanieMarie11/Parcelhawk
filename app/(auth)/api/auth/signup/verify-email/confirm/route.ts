@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { eq } from "drizzle-orm"
 import { db } from "@/db"
 import { users } from "@/db/schema"
+import { activatePendingBuyerRealtorConnections } from "@/lib/activate-pending-buyer-realtor-connections"
 import {
   isEmailVerificationExpired,
   verifyEmailVerificationCode,
@@ -75,6 +76,8 @@ export async function POST(request: Request) {
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.id))
+
+    await activatePendingBuyerRealtorConnections(user.id)
 
     return NextResponse.json({ message: "Email verified successfully" })
   } catch (error) {
