@@ -130,6 +130,8 @@ export async function POST(request: Request) {
         );
       }
 
+      const refToken = typeof ref === "string" ? ref.trim() : "";
+
       const maxAttempts = 8;
       let createdInvestor: { id: string; referralUrl: string | null } | undefined;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -143,6 +145,7 @@ export async function POST(request: Request) {
               email: normalizedEmail,
               password: hashedPassword,
               referralUrl: referralCode,
+              ...(refToken ? { referralId: refToken } : {}),
             })
             .returning({ id: investors.id, referralUrl: investors.referralUrl });
           createdInvestor = row;

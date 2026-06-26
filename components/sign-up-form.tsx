@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
@@ -19,11 +19,11 @@ type Role = "buyer" | "investor"
 
 type SignUpFormProps = {
   onClose?: () => void
-  /** From `?ref=` on `/sign-up`; sent to the API only for buyer signup. */
+  /** From `?ref=` on `/sign-up`; sent to the API for buyer and investor signup. */
   referralRef?: string
 }
 
-const STEPS = [
+const BUYER_STEPS = [
   { number: 1, label: "Create Account" },
   { number: 2, label: "Preferences" },
   { number: 3, label: "Verify Email" },
@@ -39,15 +39,8 @@ const isValidEmail = (value: string) => {
 
 export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   const router = useRouter()
-  const hasReferralRef = Boolean(referralRef?.trim())
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRole, setSelectedRole] = useState<Role>("buyer")
-
-  useEffect(() => {
-    if (hasReferralRef) {
-      setSelectedRole("buyer")
-    }
-  }, [hasReferralRef])
   const [showPassword, setShowPassword] = useState(false)
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -88,10 +81,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
         return
       }
 
-      const refForBuyer =
-        selectedRole === "buyer" && referralRef?.trim()
-          ? referralRef.trim()
-          : undefined
+      const refToken = referralRef?.trim() || undefined
 
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -102,7 +92,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
           email,
           password,
           role: selectedRole,
-          ...(refForBuyer ? { ref: refForBuyer } : {}),
+          ...(refToken ? { ref: refToken } : {}),
         }),
       })
       const data = await response.json().catch(() => ({} as Record<string, unknown>))
@@ -189,11 +179,13 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
 
   const card = (
     <div className="flex w-full max-w-xl flex-col items-center justify-center py-10">
-      <StepProgress
-        steps={STEPS}
-        currentStep={currentStep}
-        className="mb-8"
-      />
+      {selectedRole === "buyer" && (
+        <StepProgress
+          steps={BUYER_STEPS}
+          currentStep={currentStep}
+          className="mb-8"
+        />
+      )}
 
       {currentStep === 1 && (
         <div className="relative w-full rounded-2xl border border-border bg-card p-6 shadow-lg font-ibm-plex-sans">
@@ -216,9 +208,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
           </p>
 
           <div className="mt-6">
-            <div
-              className={`grid gap-3 ${hasReferralRef ? "grid-cols-1" : "grid-cols-2"}`}
-            >
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setSelectedRole("buyer")}
@@ -231,20 +221,18 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
                 <BuyerIcon active={selectedRole === "buyer"} />
                 Buyer
               </button>
-              {!hasReferralRef && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("investor")}
-                  className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
-                    selectedRole === "investor"
-                      ? "border-brand-green bg-[#EAEFEB] text-brand-green"
-                      : "border-border bg-card text-muted-foreground hover:border-border"
-                  }`}
-                >
-                  <InvestorIcon active={selectedRole === "investor"} />
-                  Realtor/Investor
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => setSelectedRole("investor")}
+                className={`flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-base font-medium transition-colors ${
+                  selectedRole === "investor"
+                    ? "border-brand-green bg-[#EAEFEB] text-brand-green"
+                    : "border-border bg-card text-muted-foreground hover:border-border"
+                }`}
+              >
+                <InvestorIcon active={selectedRole === "investor"} />
+                Realtor/Investor
+              </button>
             </div>
           </div>
 
@@ -353,7 +341,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
         </div>
       )}
 
-      {currentStep === 2 && (
+      {currentStep === 2 && selectedRole === "buyer" && (
         <SignUpPreferencesStep
           onBack={() => setCurrentStep(1)}
           onContinue={handleContinueFromPreferences}
@@ -384,7 +372,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
         />
       )}
 
-      {currentStep === 4 && completedPreferences && (
+      {currentStep === 4 && selectedRole === "buyer" && completedPreferences && (
         <SignUpCompleteStep
           firstName={firstName}
           preferences={completedPreferences}

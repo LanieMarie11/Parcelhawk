@@ -40,6 +40,8 @@ export const investors = pgTable("investors", {
   avatarUrl: text("avatar_url"),
   /** Opaque signup ref token; build URLs like /signup?ref=… in the app. */
   referralUrl: text("referral_url").unique(),
+  /** Referring investor's referral code (matches another row's referral_url). */
+  referralId: text("referral_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
   lastActiveAt: timestamp("last_active_at"),
