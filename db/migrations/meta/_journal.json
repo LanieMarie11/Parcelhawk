@@ -232,6 +232,13 @@
       "when": 1782320077510,
       "tag": "0032_medical_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1782404579607,
+      "tag": "0033_curly_invaders",
+      "breakpoints": true
     }
   ]
 }

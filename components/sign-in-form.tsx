@@ -7,6 +7,7 @@ import { Eye, EyeOff, X } from "lucide-react"
 import BuyerIcon from "@/components/icons/buyer"
 import InvestorIcon from "@/components/icons/investor"
 import GoogleIcon from "@/components/icons/google-icon"
+import { SignUpVerifyEmailStep } from "@/components/sign-up-verify-email-step"
 import { toast } from "sonner"
 
 type Role = "buyer" | "investor"
@@ -21,6 +22,18 @@ export default function SignInForm({ onClose }: SignInFormProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showEmailVerification, setShowEmailVerification] = useState(false)
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null)
+
+  const onSignInSuccess = () => {
+    toast.success("Signed in successfully", {
+      description: "You can continue to the app.",
+    })
+    if (selectedRole === "investor") {
+      router.push("/realtor-portal")
+    }
+    onClose?.()
+  }
 
   const handleSignIn = async () => {
     try {
@@ -32,13 +45,32 @@ export default function SignInForm({ onClose }: SignInFormProps) {
       })
 
       if (result?.ok) {
-        toast.success("Signed in successfully", {
-          description: "You can continue to the app.",
+        onSignInSuccess()
+        return
+      }
+
+      if (result?.error === "EmailNotVerified" && selectedRole === "buyer") {
+        const resumeResponse = await fetch("/api/auth/signup/verify-email/resume", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), password }),
         })
-        if (selectedRole === "investor") {
-          router.push("/realtor-portal")
+
+        if (resumeResponse.ok) {
+          const data = (await resumeResponse.json()) as { userId?: string }
+          if (typeof data.userId === "string") {
+            setPendingUserId(data.userId)
+            setShowEmailVerification(true)
+            toast.info("Verify your email to sign in", {
+              description: "Enter the code we send to your inbox.",
+            })
+            return
+          }
         }
-        onClose?.()
+
+        toast.error("Could not start email verification", {
+          description: "Please check your credentials and try again.",
+        })
         return
       }
 
@@ -58,6 +90,48 @@ export default function SignInForm({ onClose }: SignInFormProps) {
         description: "Check your network and try again.",
       })
     }
+  }
+
+  if (showEmailVerification && pendingUserId) {
+    const verification = (
+      <SignUpVerifyEmailStep
+        userId={pendingUserId}
+        email={email}
+        backLabel="Back to sign in"
+        verifyLabel="Verify & sign in"
+        onBack={() => {
+          setShowEmailVerification(false)
+          setPendingUserId(null)
+        }}
+        onVerified={() => {
+          void (async () => {
+            const result = await signIn("credentials", {
+              email: email.trim(),
+              password,
+              role: "buyer",
+              redirect: false,
+            })
+            if (result?.ok) {
+              onSignInSuccess()
+              return
+            }
+            toast.error("Email verified, but sign-in failed", {
+              description: "Please try signing in again.",
+            })
+          })()
+        }}
+      />
+    )
+
+    if (onClose) {
+      return verification
+    }
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
+        {verification}
+      </div>
+    )
   }
 
   const card = (
