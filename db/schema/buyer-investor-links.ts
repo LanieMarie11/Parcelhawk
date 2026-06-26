@@ -1,7 +1,8 @@
 import { pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
-/** Link lifecycle (`active` / `ended`). */
+/** Link lifecycle (`pending` until buyer verifies email, then `active` / `ended`). */
 export const buyerInvestorLinkStatusEnum = pgEnum("buyer_investor_link_status", [
+  "pending",
   "active",
   "ended",
 ]);

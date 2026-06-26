@@ -239,6 +239,13 @@
       "when": 1782404579607,
       "tag": "0033_curly_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1782500000000,
+      "tag": "0034_buyer_link_pending",
+      "breakpoints": true
     }
   ]
 }
