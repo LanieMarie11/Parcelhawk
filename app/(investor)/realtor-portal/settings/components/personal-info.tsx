@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import avatar from "@/public/images/buyer-pages/avatar.png"
 import Image from "next/image"
+import StateFilter, { resolveStateFromText, type StateFilterValue } from "@/components/state-filter"
 
 export default function PersonalInfo() {
   const { data: session, update, status } = useSession()
@@ -16,14 +17,16 @@ export default function PersonalInfo() {
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const [phone, setPhone] = useState("")
-  const [location, setLocation] = useState("")
+  const [selectedState, setSelectedState] = useState<StateFilterValue>(null)
   const [bio, setBio] = useState("")
 
   useEffect(() => {
     if (session?.user?.name) setFullName(session.user.name)
     if (session?.user?.email) setEmail(session.user.email ?? "")
     if (session?.user?.phone != null) setPhone(session.user.phone ?? "")
-    if (session?.user?.location != null) setLocation(session.user.location ?? "")
+    if (session?.user?.location != null) {
+      setSelectedState(resolveStateFromText(session.user.location ?? ""))
+    }
     if (session?.user?.bio != null) setBio(session.user.bio ?? "")
   }, [session?.user?.name, session?.user?.email, session?.user?.phone, session?.user?.location, session?.user?.bio])
 
@@ -34,7 +37,7 @@ export default function PersonalInfo() {
       formData.append("fullName", fullName)
       formData.append("email", email)
       formData.append("phone", phone)
-      formData.append("location", location)
+      formData.append("location", selectedState?.name ?? "")
       formData.append("bio", bio)
       if (pendingAvatarFile) {
         formData.append("avatar", pendingAvatarFile)
@@ -53,7 +56,7 @@ export default function PersonalInfo() {
         await update({
           name: fullName,
           phone,
-          location,
+          location: selectedState?.name ?? "",
           bio,
           avatarUrl: data.avatarUrl ?? session?.user?.avatarUrl ?? null,
         })
@@ -219,13 +222,15 @@ export default function PersonalInfo() {
           <label htmlFor="location" className="text-sm text-muted-foreground">
             Location
           </label>
-          <input
+          <StateFilter
             id="location"
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Enter your location"
-            className="rounded-md border border-border bg-card px-3 py-2 text-sm text-card-foreground outline-none transition-colors focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+            label="Location"
+            hideLabel
+            className="w-full"
+            wrapperClassName="relative w-full"
+            inputClassName="w-full rounded-md border border-border bg-card px-3 py-2 pr-9 text-sm text-card-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-brand-green focus:ring-1 focus:ring-brand-green"
+            value={selectedState}
+            onApply={setSelectedState}
           />
         </div>
 

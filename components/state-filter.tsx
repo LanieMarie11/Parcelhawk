@@ -16,6 +16,13 @@ export type StateFilterOnApply = (state: StateFilterValue) => void
 interface StateFilterProps {
   value?: StateFilterValue
   onApply?: StateFilterOnApply
+  label?: string
+  hideLabel?: boolean
+  id?: string
+  wrapperClassName?: string
+  inputClassName?: string
+  placeholder?: string
+  className?: string
 }
 
 function normalize(s: string) {
@@ -33,7 +40,7 @@ function filterStates(query: string): USState[] {
 }
 
 /** Resolve a single state from user text on blur, or null if ambiguous / partial. */
-function resolveCommittedState(raw: string): USState | null {
+export function resolveStateFromText(raw: string): USState | null {
   const q = normalize(raw)
   if (!q) return null
   const upper = raw.trim().toUpperCase()
@@ -53,7 +60,21 @@ function resolveCommittedState(raw: string): USState | null {
   return null
 }
 
-export default function StateFilter({ value, onApply }: StateFilterProps) {
+function resolveCommittedState(raw: string): USState | null {
+  return resolveStateFromText(raw)
+}
+
+export default function StateFilter({
+  value,
+  onApply,
+  label = "State",
+  hideLabel = false,
+  id,
+  wrapperClassName = "relative mt-1.5 w-[180px]",
+  inputClassName,
+  placeholder = "e.g. Colorado or CO",
+  className,
+}: StateFilterProps) {
   const [draft, setDraft] = useState("")
   const [open, setOpen] = useState(false)
   const [showAllFromChevron, setShowAllFromChevron] = useState(false)
@@ -147,22 +168,26 @@ export default function StateFilter({ value, onApply }: StateFilterProps) {
   }
 
   const inputClass =
+    inputClassName ??
     "box-border h-[34px] w-full rounded-[10px] border border-[#E5E7EB] bg-[#F8F9FA] py-0 pl-3 pr-9 text-left text-sm text-[#374151] shadow-none transition-colors placeholder:text-muted-foreground/70 focus:border-[#6B9B7A]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#6B9B7A]/15"
 
   return (
-    <div className="relative inline-flex flex-col font-ibm-plex-sans" ref={containerRef}>
-      <span className="text-xs font-normal text-muted-foreground">State</span>
+    <div className={`relative flex flex-col font-ibm-plex-sans ${className ?? "inline-flex"}`} ref={containerRef}>
+      {hideLabel ? null : (
+        <span className="text-xs font-normal text-muted-foreground">{label}</span>
+      )}
 
-      <div className="relative mt-1.5 w-[180px]" ref={inputWrapperRef}>
+      <div className={wrapperClassName} ref={inputWrapperRef}>
         <input
+          id={id}
           type="text"
           autoComplete="off"
           role="combobox"
           aria-expanded={open}
           aria-controls={listId}
           aria-autocomplete="list"
-          aria-label="State"
-          placeholder="e.g. Colorado or CO"
+          aria-label={hideLabel ? label : undefined}
+          placeholder={placeholder}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value)
@@ -211,7 +236,7 @@ export default function StateFilter({ value, onApply }: StateFilterProps) {
         <button
           type="button"
           tabIndex={-1}
-          className="absolute right-0 top-0 flex h-[34px] w-9 shrink-0 items-center justify-center rounded-r-[10px] text-[#374151] transition-colors hover:text-[#111827] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6B9B7A]/25"
+          className="absolute inset-y-0 right-0 flex w-9 shrink-0 items-center justify-center rounded-r-[10px] text-[#374151] transition-colors hover:text-[#111827] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6B9B7A]/25"
           aria-expanded={open && showAllFromChevron}
           aria-label="Show all states"
           onMouseDown={(e) => e.preventDefault()}
