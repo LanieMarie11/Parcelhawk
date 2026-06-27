@@ -111,7 +111,13 @@ export async function GET() {
         about: users.about,
       })
       .from(users)
-      .where(and(eq(users.role, "buyer"), eq(users.referralId, investor.referralUrl)))
+      .where(
+        and(
+          eq(users.role, "buyer"),
+          eq(users.referralId, investor.referralUrl),
+          eq(users.emailVerified, true),
+        ),
+      )
       .orderBy(desc(users.updatedAt))
 
     const buyerIds = buyerRows.map((row) => row.id)
