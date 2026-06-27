@@ -83,6 +83,9 @@ export const authOptions: NextAuthOptions = {
         if (!investor) return null;
         const investorMatch = await compare(credentials.password, investor.password);
         if (!investorMatch) return null;
+        if (!investor.emailVerified) {
+          throw new Error("EmailNotVerified");
+        }
 
         return {
           id: investor.id,

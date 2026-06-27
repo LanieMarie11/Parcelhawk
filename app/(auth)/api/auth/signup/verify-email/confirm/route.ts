@@ -1,23 +1,38 @@
 import { NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
-import { db } from "@/db"
-import { users } from "@/db/schema"
 import { activatePendingBuyerRealtorConnections } from "@/lib/activate-pending-buyer-realtor-connections"
 import {
   isEmailVerificationExpired,
   verifyEmailVerificationCode,
 } from "@/lib/email-verification"
+import {
+  getVerificationAccount,
+  markEmailVerified,
+  type VerificationAccountRole,
+} from "@/lib/email-verification-account"
+
+function parseRole(value: unknown): VerificationAccountRole | null {
+  return value === "buyer" || value === "investor" ? value : null
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { userId, code } = body as { userId?: string; code?: string }
+    const { userId, code, role: roleRaw } = body as {
+      userId?: string
+      code?: string
+      role?: string
+    }
 
     if (!userId?.trim() || !code?.trim()) {
       return NextResponse.json(
         { error: "User ID and verification code are required" },
         { status: 400 },
       )
+    }
+
+    const role = parseRole(roleRaw)
+    if (!role) {
+      return NextResponse.json({ error: "Valid role is required" }, { status: 400 })
     }
 
     const normalizedCode = code.trim()
@@ -28,27 +43,16 @@ export async function POST(request: Request) {
       )
     }
 
-    const [user] = await db
-      .select({
-        id: users.id,
-        role: users.role,
-        emailVerified: users.emailVerified,
-        emailVerificationCodeHash: users.emailVerificationCodeHash,
-        emailVerificationExpiresAt: users.emailVerificationExpiresAt,
-      })
-      .from(users)
-      .where(eq(users.id, userId.trim()))
-      .limit(1)
-
-    if (!user || user.role !== "buyer") {
+    const account = await getVerificationAccount(userId.trim(), role)
+    if (!account) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    if (user.emailVerified) {
+    if (account.emailVerified) {
       return NextResponse.json({ message: "Email already verified" })
     }
 
-    if (isEmailVerificationExpired(user.emailVerificationExpiresAt)) {
+    if (isEmailVerificationExpired(account.emailVerificationExpiresAt)) {
       return NextResponse.json(
         { error: "Verification code expired. Request a new one." },
         { status: 400 },
@@ -57,7 +61,7 @@ export async function POST(request: Request) {
 
     const valid = await verifyEmailVerificationCode(
       normalizedCode,
-      user.emailVerificationCodeHash,
+      account.emailVerificationCodeHash,
     )
 
     if (!valid) {
@@ -67,17 +71,11 @@ export async function POST(request: Request) {
       )
     }
 
-    await db
-      .update(users)
-      .set({
-        emailVerified: true,
-        emailVerificationCodeHash: null,
-        emailVerificationExpiresAt: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, user.id))
+    await markEmailVerified(account)
 
-    await activatePendingBuyerRealtorConnections(user.id)
+    if (account.role === "buyer") {
+      await activatePendingBuyerRealtorConnections(account.id)
+    }
 
     return NextResponse.json({ message: "Email verified successfully" })
   } catch (error) {

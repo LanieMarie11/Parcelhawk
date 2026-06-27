@@ -40,9 +40,14 @@ export const investors = pgTable("investors", {
   avatarUrl: text("avatar_url"),
   /** Opaque signup ref token; build URLs like /signup?ref=… in the app. */
   referralUrl: text("referral_url").unique(),
+  /** Referring investor's referral code (matches another row's referral_url). */
+  referralId: text("referral_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
   lastActiveAt: timestamp("last_active_at"),
   /** When true, the investor receives saved-search and portal updates by email. */
   emailNotifications: boolean("email_notifications").notNull().default(true),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationCodeHash: text("email_verification_code_hash"),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
 });
