@@ -30,6 +30,11 @@ const BUYER_STEPS = [
   { number: 4, label: "Complete" },
 ] as const
 
+const INVESTOR_STEPS = [
+  { number: 1, label: "Create Account" },
+  { number: 2, label: "Verify Email" },
+] as const
+
 const isValidEmail = (value: string) => {
   const trimmed = value.trim()
   if (!trimmed) return false
@@ -114,11 +119,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
               : "You can sign in with your new account.",
         })
         if (selectedRole === "investor") {
-          await autoSignInWithNewCredentials()
-          if (onClose) {
-            onClose()
-          }
-          router.push("/realtor-portal")
+          setCurrentStep(2)
           return
         }
         if (onClose) {
@@ -182,6 +183,14 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
       {selectedRole === "buyer" && (
         <StepProgress
           steps={BUYER_STEPS}
+          currentStep={currentStep}
+          className="mb-8"
+        />
+      )}
+
+      {selectedRole === "investor" && (
+        <StepProgress
+          steps={INVESTOR_STEPS}
           currentStep={currentStep}
           className="mb-8"
         />
@@ -341,6 +350,22 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
         </div>
       )}
 
+      {currentStep === 2 && selectedRole === "investor" && createdUserId && (
+        <SignUpVerifyEmailStep
+          userId={createdUserId}
+          email={email}
+          role="investor"
+          onBack={() => setCurrentStep(1)}
+          onVerified={() => {
+            void (async () => {
+              await autoSignInWithNewCredentials()
+              onClose?.()
+              router.push("/realtor-portal")
+            })()
+          }}
+        />
+      )}
+
       {currentStep === 2 && selectedRole === "buyer" && (
         <SignUpPreferencesStep
           onBack={() => setCurrentStep(1)}
@@ -362,6 +387,7 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
         <SignUpVerifyEmailStep
           userId={createdUserId}
           email={email}
+          role="buyer"
           onBack={() => setCurrentStep(2)}
           onVerified={() => {
             void (async () => {

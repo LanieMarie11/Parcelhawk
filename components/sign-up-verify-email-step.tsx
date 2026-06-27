@@ -8,6 +8,7 @@ const RESEND_COOLDOWN_SEC = 60
 export type SignUpVerifyEmailStepProps = {
   userId: string
   email: string
+  role?: "buyer" | "investor"
   onBack: () => void
   onVerified: () => void
   backLabel?: string
@@ -17,6 +18,7 @@ export type SignUpVerifyEmailStepProps = {
 export function SignUpVerifyEmailStep({
   userId,
   email,
+  role = "buyer",
   onBack,
   onVerified,
   backLabel = "Back",
@@ -35,7 +37,7 @@ export function SignUpVerifyEmailStep({
       const response = await fetch("/api/auth/signup/verify-email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, role }),
       })
       const data = await response.json().catch(() => ({} as Record<string, unknown>))
       const message = typeof data.error === "string" ? data.error : undefined
@@ -116,7 +118,7 @@ export function SignUpVerifyEmailStep({
       const response = await fetch("/api/auth/signup/verify-email/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, code }),
+        body: JSON.stringify({ userId, code, role }),
       })
       const data = await response.json().catch(() => ({} as Record<string, unknown>))
       const message = typeof data.error === "string" ? data.error : undefined

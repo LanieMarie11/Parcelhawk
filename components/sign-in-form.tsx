@@ -24,6 +24,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
   const [password, setPassword] = useState("")
   const [showEmailVerification, setShowEmailVerification] = useState(false)
   const [pendingUserId, setPendingUserId] = useState<string | null>(null)
+  const [pendingRole, setPendingRole] = useState<Role>("buyer")
 
   const onSignInSuccess = () => {
     toast.success("Signed in successfully", {
@@ -49,17 +50,25 @@ export default function SignInForm({ onClose }: SignInFormProps) {
         return
       }
 
-      if (result?.error === "EmailNotVerified" && selectedRole === "buyer") {
+      if (result?.error === "EmailNotVerified") {
         const resumeResponse = await fetch("/api/auth/signup/verify-email/resume", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), password }),
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            role: selectedRole,
+          }),
         })
 
         if (resumeResponse.ok) {
-          const data = (await resumeResponse.json()) as { userId?: string }
+          const data = (await resumeResponse.json()) as {
+            userId?: string
+            role?: Role
+          }
           if (typeof data.userId === "string") {
             setPendingUserId(data.userId)
+            setPendingRole(data.role === "investor" ? "investor" : "buyer")
             setShowEmailVerification(true)
             toast.info("Verify your email to sign in", {
               description: "Enter the code we send to your inbox.",
@@ -97,6 +106,7 @@ export default function SignInForm({ onClose }: SignInFormProps) {
       <SignUpVerifyEmailStep
         userId={pendingUserId}
         email={email}
+        role={pendingRole}
         backLabel="Back to sign in"
         verifyLabel="Verify & sign in"
         onBack={() => {
@@ -108,10 +118,13 @@ export default function SignInForm({ onClose }: SignInFormProps) {
             const result = await signIn("credentials", {
               email: email.trim(),
               password,
-              role: "buyer",
+              role: pendingRole,
               redirect: false,
             })
             if (result?.ok) {
+              if (pendingRole === "investor") {
+                router.push("/realtor-portal")
+              }
               onSignInSuccess()
               return
             }

@@ -1,41 +1,44 @@
 import { NextResponse } from "next/server"
+import { compare } from "bcryptjs"
 import { eq } from "drizzle-orm"
 import { db } from "@/db"
-import { users } from "@/db/schema"
+import { investors, users } from "@/db/schema"
 import { sendEmailVerificationOtp } from "@/lib/email/send-email-verification-otp"
 import {
   generateEmailVerificationCode,
   getEmailVerificationExpiry,
   hashEmailVerificationCode,
 } from "@/lib/email-verification"
+import {
+  getVerificationAccount,
+  setVerificationCode,
+  type VerificationAccountRole,
+} from "@/lib/email-verification-account"
+
+function parseRole(value: unknown): VerificationAccountRole | null {
+  return value === "buyer" || value === "investor" ? value : null
+}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { userId } = body as { userId?: string }
+    const { userId, role: roleRaw } = body as { userId?: string; role?: string }
 
     if (!userId?.trim()) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 })
     }
 
-    const [user] = await db
-      .select({
-        id: users.id,
-        email: users.email,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        role: users.role,
-        emailVerified: users.emailVerified,
-      })
-      .from(users)
-      .where(eq(users.id, userId.trim()))
-      .limit(1)
+    const role = parseRole(roleRaw)
+    if (!role) {
+      return NextResponse.json({ error: "Valid role is required" }, { status: 400 })
+    }
 
-    if (!user || user.role !== "buyer") {
+    const account = await getVerificationAccount(userId.trim(), role)
+    if (!account) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    if (user.emailVerified) {
+    if (account.emailVerified) {
       return NextResponse.json({ message: "Email already verified" })
     }
 
@@ -43,18 +46,11 @@ export async function POST(request: Request) {
     const codeHash = await hashEmailVerificationCode(code)
     const expiresAt = getEmailVerificationExpiry()
 
-    await db
-      .update(users)
-      .set({
-        emailVerificationCodeHash: codeHash,
-        emailVerificationExpiresAt: expiresAt,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, user.id))
+    await setVerificationCode(account, codeHash, expiresAt)
 
     await sendEmailVerificationOtp({
-      buyerEmail: user.email,
-      buyerName: `${user.firstName} ${user.lastName}`.trim(),
+      buyerEmail: account.email,
+      buyerName: `${account.firstName} ${account.lastName}`.trim(),
       code,
     })
 

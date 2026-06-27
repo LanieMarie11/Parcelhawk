@@ -47,4 +47,7 @@ export const investors = pgTable("investors", {
   lastActiveAt: timestamp("last_active_at"),
   /** When true, the investor receives saved-search and portal updates by email. */
   emailNotifications: boolean("email_notifications").notNull().default(true),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationCodeHash: text("email_verification_code_hash"),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
 });
