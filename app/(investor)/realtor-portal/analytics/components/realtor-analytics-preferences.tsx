@@ -20,6 +20,7 @@ export type PreferenceInsights = {
 export type HighestIntentBuyer = {
   id: string;
   name: string;
+  avatarUrl: string;
   joined: string;
   lastActive: string;
   searches: number;
@@ -39,11 +40,6 @@ const PREFERENCE_GROUP_META = [
 //   { label: "Buyers Joined", value: 87, icon: UserCheck, color: "bg-emerald-100 text-emerald-600" },
 //   { label: "Pending Invites", value: 19, icon: Clock3, color: "bg-lime-100 text-lime-600" },
 // ];
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
-}
 
 export function RealtorAnalyticsPreferences({
   preferenceInsights,
@@ -148,7 +144,6 @@ export function RealtorAnalyticsPreferences({
                   <th className="py-2 pr-3 text-center font-semibold">Searches</th>
                   <th className="py-2 pr-3 text-center font-semibold">Saves Properties</th>
                   <th className="py-2 pr-3 text-center font-semibold">Viewing Requests</th>
-                  <th className="py-2 text-center font-semibold">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,7 +151,7 @@ export function RealtorAnalyticsPreferences({
                   <>
                     {Array.from({ length: 4 }).map((_, i) => (
                       <tr key={i} className="border-b border-zinc-100 last:border-0">
-                        <td className="py-2.5 pr-3" colSpan={6}>
+                        <td className="py-2.5 pr-3" colSpan={5}>
                           <div className="flex items-center gap-2">
                             <div className="h-7 w-7 animate-pulse rounded-full bg-zinc-200" />
                             <div className="space-y-1.5">
@@ -170,7 +165,7 @@ export function RealtorAnalyticsPreferences({
                   </>
                 ) : highestIntentBuyers.length === 0 ? (
                   <tr>
-                    <td className="py-6 text-center text-xs text-zinc-500" colSpan={6}>
+                    <td className="py-6 text-center text-xs text-zinc-500" colSpan={5}>
                       No active linked buyers. Invite buyers from your referral link to see intent signals here.
                     </td>
                   </tr>
@@ -179,9 +174,17 @@ export function RealtorAnalyticsPreferences({
                     <tr key={buyer.id} className="border-b border-zinc-100 last:border-0">
                       <td className="py-2.5 pr-3">
                         <div className="flex items-center gap-2 justify-center">
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-semibold text-zinc-700">
-                            {initials(buyer.name)}
-                          </span>
+                          {buyer.avatarUrl ? (
+                            <img
+                              src={buyer.avatarUrl}
+                              alt={buyer.name}
+                              className="h-8 w-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-200 text-xs font-semibold text-zinc-600">
+                              {buyer.name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div>
                             <p className="font-semibold text-zinc-800">{buyer.name}</p>
                             <p className="text-[11px] text-zinc-500">{buyer.joined}</p>
@@ -192,14 +195,6 @@ export function RealtorAnalyticsPreferences({
                       <td className="py-2.5 pr-3 text-center text-zinc-700">{buyer.searches}</td>
                       <td className="py-2.5 pr-3 text-center text-zinc-700">{buyer.saves}</td>
                       <td className="py-2.5 pr-3 text-center text-zinc-700">{buyer.requests}</td>
-                      <td className="py-2.5 text-center">
-                        <button
-                          type="button"
-                          className="rounded-md bg-brand-green px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-brand-green-hover active:bg-brand-green-active"
-                        >
-                          Contact Now
-                        </button>
-                      </td>
                     </tr>
                   ))
                 )}

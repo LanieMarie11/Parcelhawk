@@ -47,6 +47,7 @@ type PreferenceInsights = {
 type HighestIntentBuyer = {
   id: string;
   name: string;
+  avatarUrl: string;
   joined: string;
   lastActive: string;
   searches: number;
@@ -179,6 +180,7 @@ type BuyerProfileRow = {
   buyerId: string;
   firstName: string;
   lastName: string;
+  avatarUrl: string | null;
   createdAt: Date;
   lastActiveAt: Date | null;
   updatedAt: Date;
@@ -218,6 +220,7 @@ function buildHighestIntentBuyers(
     return {
       id: b.buyerId,
       name: name.length > 0 ? name : "Buyer",
+      avatarUrl: b.avatarUrl ?? "",
       joined: formatJoinedLabel(b.createdAt),
       lastActive: formatRelativeTime(b.lastActiveAt ?? b.updatedAt),
       searches,
@@ -294,6 +297,7 @@ export async function GET() {
         buyerId: users.id,
         firstName: users.firstName,
         lastName: users.lastName,
+        avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
         lastActiveAt: users.lastActiveAt,
         updatedAt: users.updatedAt,
@@ -311,6 +315,7 @@ export async function GET() {
         users.id,
         users.firstName,
         users.lastName,
+        users.avatarUrl,
         users.createdAt,
         users.lastActiveAt,
         users.updatedAt,
