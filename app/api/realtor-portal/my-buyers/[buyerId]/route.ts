@@ -41,6 +41,38 @@ function buildSubtitle(city: string | null, state: string | null): string {
   return [city, state].filter(Boolean).join(", ") || "Location unavailable";
 }
 
+function formatSavedSearchPrice(num: string | null): string {
+  if (num == null || num === "") return "";
+  const n = Number(num.replace(/[^0-9.]/g, ""));
+  if (!Number.isFinite(n)) return num;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+
+function formatSavedSearchPriceRange(min: string | null, max: string | null): string {
+  const minF = formatSavedSearchPrice(min);
+  const maxF = formatSavedSearchPrice(max);
+  if (!minF && !maxF) return "Any";
+  if (!minF) return `Up to ${maxF}`;
+  if (!maxF) return `${minF}+`;
+  return `${minF} - ${maxF}`;
+}
+
+function formatSavedSearchAcres(num: string | null): string {
+  if (num == null || num === "") return "";
+  const n = Number(num);
+  return Number.isFinite(n) ? `${n} Acres` : num;
+}
+
+function formatSavedSearchSize(minAcres: string | null, maxAcres: string | null): string {
+  const minF = formatSavedSearchAcres(minAcres);
+  const maxF = formatSavedSearchAcres(maxAcres);
+  if (!minF && !maxF) return "Any";
+  if (!minF) return `Up to ${maxF}`;
+  if (!maxF) return `${minF}+`;
+  return `${minF} - ${maxF}`;
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ buyerId: string }> }) {
   const session = await getServerSession(authOptions);
   const sessionUser = (session?.user as SessionUser | undefined) ?? {};
@@ -216,8 +248,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
           listingId: viewingRequests.listingId,
           status: viewingRequests.status,
           createdAt: viewingRequests.createdAt,
+          address: mergedListings.address1,
+          url: mergedListings.url,
         })
         .from(viewingRequests)
+        .leftJoin(mergedListings, eq(viewingRequests.listingId, mergedListings.id))
         .where(and(eq(viewingRequests.realtorId, investorId), eq(viewingRequests.buyerId, buyerId)))
         .orderBy(desc(viewingRequests.createdAt)),
       db
@@ -225,6 +260,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
           id: savedSearches.id,
           name: savedSearches.name,
           createdAt: savedSearches.createdAt,
+          minPrice: savedSearches.minPrice,
+          maxPrice: savedSearches.maxPrice,
+          minAcres: savedSearches.minAcres,
+          maxAcres: savedSearches.maxAcres,
+          state: savedSearches.state,
+          county: savedSearches.county,
+          prompt: savedSearches.prompt,
         })
         .from(savedSearches)
         .where(eq(savedSearches.userId, buyerId)),
@@ -268,11 +310,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
         kind: "searched" as const,
         text: `Saved search: ${savedSearch.name}`,
         createdAt: savedSearch.createdAt,
+        prompt: savedSearch.prompt,
+        state: savedSearch.state?.trim() || "Any state",
+        county: savedSearch.county?.trim() || "Any county",
+        priceRange: formatSavedSearchPriceRange(savedSearch.minPrice, savedSearch.maxPrice),
+        size: formatSavedSearchSize(savedSearch.minAcres, savedSearch.maxAcres),
       })),
       ...viewingRequestActivityRows.map((request) => ({
         id: `viewing-request:${request.id}`,
         kind: "viewed" as const,
-        text: `Viewing request ${request.status} for listing #${request.listingId}`,
+        text: `Viewing request ${request.status} for`,
+        address: request.address ?? `Listing #${request.listingId}`,
+        url: request.url ?? undefined,
         createdAt: request.createdAt,
       })),
     ]
@@ -286,6 +335,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
         kind: item.kind,
         text: item.text,
         when: item.createdAt?.toISOString() ?? "",
+        ...(item.kind === "searched"
+          ? {
+              prompt: item.prompt ?? null,
+              state: item.state,
+              county: item.county,
+              priceRange: item.priceRange,
+              size: item.size,
+            }
+          : item.kind === "viewed"
+            ? {
+                address: item.address,
+                url: item.url,
+              }
+            : {}),
       }));
 
     const buyer = {

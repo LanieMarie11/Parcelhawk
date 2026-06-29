@@ -20,6 +20,15 @@ export type ActivityRow = {
   kind: "viewed" | "saved" | "searched";
   text: string;
   when: string;
+  /** Viewing request listing address (kind === "viewed"). */
+  address?: string;
+  /** Viewing request listing URL (kind === "viewed"). */
+  url?: string;
+  prompt?: string | null;
+  state?: string;
+  county?: string;
+  priceRange?: string;
+  size?: string;
 };
 
 export type BuyerDetail = {
