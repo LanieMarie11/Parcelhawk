@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import {
-  MapPin,
   MoreVertical,
   SquarePen,
   Trash2,
@@ -399,12 +398,6 @@ function SearchCard({
               View Result
             </Link>
           </div>
-          {!search.prompt && (
-            <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="size-3.5" />
-              <span>{`${search.county}, ${search.state}`}</span>
-            </div>
-          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {search.prompt ? (
               <p
@@ -415,8 +408,10 @@ function SearchCard({
               </p>
             ) : (
               <>
+                <FilterTag label="State" value={search.state} />
+                <FilterTag label="County" value={search.county} />
                 <FilterTag label="Price Range" value={search.priceRange} />
-                <FilterTag label="Size" value={search.size} />
+                <FilterTag label="Acres Range" value={search.size} />
               </>
             )}
           </div>

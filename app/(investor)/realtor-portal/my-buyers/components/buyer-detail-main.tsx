@@ -86,6 +86,23 @@ function activityKindLabel(kind: ActivityRow["kind"]) {
   return "Viewing Request";
 }
 
+const MAX_PROMPT_DISPLAY = 120;
+
+function truncatePrompt(text: string, maxLen = MAX_PROMPT_DISPLAY): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen).trimEnd()}…`;
+}
+
+function FilterTag({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2.5 py-1 text-xs text-[#373940]">
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="font-medium">{value}</span>
+    </span>
+  );
+}
+
 type BuyerDetailMainProps = {
   selected: BuyerDetail;
   search: string;
@@ -310,7 +327,44 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
                       {activityKindLabel(row.kind)}
                     </p>
-                    <p className="text-sm text-zinc-800">{row.text}</p>
+                    {row.kind === "viewed" ? (
+                      <p className="text-sm text-zinc-800">
+                        {row.text}{" "}
+                        {row.url ? (
+                          <a
+                            href={row.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {row.address}
+                          </a>
+                        ) : (
+                          <span>{row.address}</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-zinc-800">{row.text}</p>
+                    )}
+                    {row.kind === "searched" ? (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {row.prompt ? (
+                          <p
+                            className="text-sm text-[#373940] line-clamp-2 bg-secondary px-2 py-1 rounded-md"
+                            title={row.prompt.length > MAX_PROMPT_DISPLAY ? row.prompt : undefined}
+                          >
+                            {truncatePrompt(row.prompt)}
+                          </p>
+                        ) : (
+                          <>
+                            <FilterTag label="State" value={row.state ?? "Any state"} />
+                            <FilterTag label="County" value={row.county ?? "Any county"} />
+                            <FilterTag label="Price Range" value={row.priceRange ?? "Any"} />
+                            <FilterTag label="Acres Range" value={row.size ?? "Any"} />
+                          </>
+                        )}
+                      </div>
+                    ) : null}
                     <p className="mt-1 text-xs text-zinc-500">
                       {row.when ? <LastActiveText value={row.when} /> : "Recently"}
                     </p>
