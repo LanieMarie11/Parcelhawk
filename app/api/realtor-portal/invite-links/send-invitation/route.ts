@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         lastName: users.lastName,
       })
       .from(users)
-      .where(and(eq(users.email, email), eq(users.role, "buyer")))
+      .where(and(eq(users.email, email), eq(users.role, "buyer"), eq(users.emailVerified, true)))
       .limit(1)
 
     if (!buyer) {

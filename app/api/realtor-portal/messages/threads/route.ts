@@ -73,7 +73,13 @@ export async function GET() {
         updatedAt: users.updatedAt,
       })
       .from(users)
-      .where(and(eq(users.role, "buyer"), eq(users.referralId, investor.referralUrl)))
+      .where(
+        and(
+          eq(users.role, "buyer"),
+          eq(users.referralId, investor.referralUrl),
+          eq(users.emailVerified, true),
+        ),
+      )
       .orderBy(desc(users.updatedAt))
 
     if (buyers.length === 0) {

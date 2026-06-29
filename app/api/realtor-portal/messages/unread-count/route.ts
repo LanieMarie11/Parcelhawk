@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, eq, gt, isNull, or, sql } from "drizzle-orm"
 import { db } from "@/db"
-import { messages, messageThreads, notifications, viewingRequests } from "@/db/schema"
+import { messages, messageThreads, notifications, users, viewingRequests } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 
 type SessionUser = {
@@ -30,10 +30,12 @@ export async function GET() {
       })
       .from(messages)
       .innerJoin(messageThreads, eq(messages.threadId, messageThreads.id))
+      .innerJoin(users, eq(messageThreads.buyerUserId, users.id))
       .where(
         and(
           eq(messageThreads.investorId, investorId),
           eq(messages.senderRole, "buyer"),
+          eq(users.emailVerified, true),
           or(
             isNull(messageThreads.investorLastReadAt),
             gt(messages.createdAt, messageThreads.investorLastReadAt),
@@ -53,9 +55,11 @@ export async function GET() {
           eq(viewingRequests.buyerId, messageThreads.buyerUserId),
         ),
       )
+      .innerJoin(users, eq(messageThreads.buyerUserId, users.id))
       .where(
         and(
           eq(viewingRequests.realtorId, investorId),
+          eq(users.emailVerified, true),
           or(
             isNull(messageThreads.investorLastReadAt),
             gt(viewingRequests.createdAt, messageThreads.investorLastReadAt),

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { and, asc, eq } from "drizzle-orm"
 import { db } from "@/db"
-import { messages, messageThreads } from "@/db/schema"
+import { messages, messageThreads, users } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
 import { normalizeChatMessageText } from "@/lib/normalize-chat-message-text"
 import { mergeThreadTimeline } from "@/lib/thread-timeline"
@@ -36,7 +36,14 @@ export async function GET(_request: Request, context: RouteContext) {
       buyerUserId: messageThreads.buyerUserId,
     })
     .from(messageThreads)
-    .where(and(eq(messageThreads.id, threadId), eq(messageThreads.investorId, investorId)))
+    .innerJoin(users, eq(messageThreads.buyerUserId, users.id))
+    .where(
+      and(
+        eq(messageThreads.id, threadId),
+        eq(messageThreads.investorId, investorId),
+        eq(users.emailVerified, true),
+      ),
+    )
     .limit(1)
 
   if (!thread) {
@@ -82,7 +89,14 @@ export async function POST(request: Request, context: RouteContext) {
   const [thread] = await db
     .select({ id: messageThreads.id })
     .from(messageThreads)
-    .where(and(eq(messageThreads.id, threadId), eq(messageThreads.investorId, investorId)))
+    .innerJoin(users, eq(messageThreads.buyerUserId, users.id))
+    .where(
+      and(
+        eq(messageThreads.id, threadId),
+        eq(messageThreads.investorId, investorId),
+        eq(users.emailVerified, true),
+      ),
+    )
     .limit(1)
 
   if (!thread) {

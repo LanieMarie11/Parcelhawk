@@ -285,7 +285,13 @@ export async function GET() {
       .innerJoin(users, eq(notifications.userId, users.id))
       .leftJoin(viewingRequests, eq(notifications.viewingRequestId, viewingRequests.id))
       .leftJoin(mergedListings, eq(notifications.listingId, mergedListings.id))
-      .where(and(eq(notifications.investorId, investorId), isNull(notifications.realtorDeleteAt)))
+      .where(
+        and(
+          eq(notifications.investorId, investorId),
+          isNull(notifications.realtorDeleteAt),
+          eq(users.emailVerified, true),
+        ),
+      )
       .orderBy(desc(notifications.createdAt))
 
     const notificationsList = rows

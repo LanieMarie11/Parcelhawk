@@ -82,6 +82,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
           eq(buyerInvestorLinks.investorId, investorId),
           eq(buyerInvestorLinks.buyerId, buyerId),
           eq(buyerInvestorLinks.status, "active"),
+          eq(users.emailVerified, true),
         ),
       )
       .limit(1);

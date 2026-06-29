@@ -98,7 +98,11 @@ export async function GET() {
             .select({ count: sql<number>`count(*)::int` })
             .from(users)
             .where(
-              and(eq(users.role, "buyer"), eq(users.referralId, investor.referralUrl))
+              and(
+                eq(users.role, "buyer"),
+                eq(users.referralId, investor.referralUrl),
+                eq(users.emailVerified, true),
+              ),
             )
         : [{ count: 0 }]
 
