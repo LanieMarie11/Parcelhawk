@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 export type SignUpSubscribeStepProps = {
@@ -19,6 +19,7 @@ export function SignUpSubscribeStep({
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingStatus, setIsCheckingStatus] = useState(true)
   const [billingConfigured, setBillingConfigured] = useState(true)
+  const subscribedHandled = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -41,7 +42,8 @@ export function SignUpSubscribeStep({
           return
         }
 
-        if (response.ok && data.active) {
+        if (response.ok && data.active && !subscribedHandled.current) {
+          subscribedHandled.current = true
           onSubscribed()
         }
       } catch (error) {
