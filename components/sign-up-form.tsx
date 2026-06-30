@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { Eye, EyeOff, X } from "lucide-react"
 import BuyerIcon from "@/components/icons/buyer"
@@ -13,6 +13,7 @@ import { StepProgress } from "@/components/step-progress"
 import { SignUpPreferencesStep } from "@/components/sign-up-preferences-step"
 import { SignUpCompleteStep } from "@/components/sign-up-complete-step"
 import { SignUpVerifyEmailStep } from "@/components/sign-up-verify-email-step"
+import { SignUpSubscribeStep } from "@/components/sign-up-subscribe-step"
 import type { SignUpPreferencesData } from "@/components/sign-up-preferences-step"
 
 type Role = "buyer" | "investor"
@@ -21,6 +22,10 @@ type SignUpFormProps = {
   onClose?: () => void
   /** From `?ref=` on `/sign-up`; sent to the API for buyer and investor signup. */
   referralRef?: string
+  /** Stripe Checkout return: `?checkout=success` or `?checkout=cancel`. */
+  checkoutStatus?: "success" | "cancel"
+  /** Stripe Checkout return: `?session_id=cs_...`. */
+  checkoutSessionId?: string
 }
 
 const BUYER_STEPS = [
@@ -33,6 +38,7 @@ const BUYER_STEPS = [
 const INVESTOR_STEPS = [
   { number: 1, label: "Create Account" },
   { number: 2, label: "Verify Email" },
+  { number: 3, label: "Subscribe" },
 ] as const
 
 const isValidEmail = (value: string) => {
@@ -42,8 +48,14 @@ const isValidEmail = (value: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
 }
 
-export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
+export default function SignUpForm({
+  onClose,
+  referralRef,
+  checkoutStatus,
+  checkoutSessionId,
+}: SignUpFormProps) {
   const router = useRouter()
+  const { update: updateSession } = useSession()
   const [currentStep, setCurrentStep] = useState(1)
   const [selectedRole, setSelectedRole] = useState<Role>("buyer")
   const [showPassword, setShowPassword] = useState(false)
@@ -54,6 +66,61 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
   const [completedPreferences, setCompletedPreferences] =
     useState<SignUpPreferencesData | null>(null)
   const [createdUserId, setCreatedUserId] = useState<string | null>(null)
+  const checkoutHandled = useRef(false)
+
+  const finishInvestorSignup = useCallback(() => {
+    onClose?.()
+    router.push("/realtor-portal")
+  }, [onClose, router])
+
+  useEffect(() => {
+    if (checkoutHandled.current) return
+    if (checkoutStatus !== "success" && checkoutStatus !== "cancel") return
+
+    checkoutHandled.current = true
+    setSelectedRole("investor")
+    setCurrentStep(3)
+
+    if (checkoutStatus === "cancel") {
+      toast.message("Checkout canceled", {
+        description: "You can subscribe when you are ready.",
+      })
+      return
+    }
+
+    if (!checkoutSessionId) {
+      toast.error("Missing checkout session", {
+        description: "Please try subscribing again.",
+      })
+      return
+    }
+
+    void (async () => {
+      try {
+        const response = await fetch("/api/investor/subscription/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: checkoutSessionId }),
+        })
+        const data = await response.json().catch(() => ({} as Record<string, unknown>))
+        const message = typeof data.error === "string" ? data.error : undefined
+
+        if (!response.ok) {
+          toast.error("Could not confirm subscription", { description: message })
+          return
+        }
+
+        toast.success("Subscription active")
+        await updateSession({ subscriptionActive: true })
+        finishInvestorSignup()
+      } catch (error) {
+        console.error(error)
+        toast.error("Connection failed", {
+          description: "Check your network and try again.",
+        })
+      }
+    })()
+  }, [checkoutStatus, checkoutSessionId, finishInvestorSignup, updateSession])
 
   const autoSignInWithNewCredentials = async () => {
     try {
@@ -359,10 +426,17 @@ export default function SignUpForm({ onClose, referralRef }: SignUpFormProps) {
           onVerified={() => {
             void (async () => {
               await autoSignInWithNewCredentials()
-              onClose?.()
-              router.push("/realtor-portal")
+              setCurrentStep(3)
             })()
           }}
+        />
+      )}
+
+      {currentStep === 3 && selectedRole === "investor" && (
+        <SignUpSubscribeStep
+          returnTo="signup"
+          onBack={() => setCurrentStep(2)}
+          onSubscribed={finishInvestorSignup}
         />
       )}
 

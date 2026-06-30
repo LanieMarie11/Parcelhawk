@@ -4,6 +4,7 @@ import { compare } from "bcryptjs";
 import { db } from "@/db";
 import { investors, users } from "@/db/schema";
 import { verifyAdminCredentials } from "@/lib/admin-allowlist";
+import { isActiveInvestorSubscription } from "@/lib/investor-subscription";
 import type { AppUserRole } from "@/types/next-auth";
 import { eq } from "drizzle-orm";
 
@@ -102,6 +103,9 @@ export const authOptions: NextAuthOptions = {
           bio: investor.bio ?? null,
           avatarUrl: investor.avatarUrl ?? null,
           referralUrl: investor.referralUrl ?? null,
+          subscriptionActive: isActiveInvestorSubscription(
+            investor.subscriptionStatus,
+          ),
         };
       },
     }),
@@ -119,6 +123,9 @@ export const authOptions: NextAuthOptions = {
         token.bio = (user as { bio?: string | null }).bio ?? null;
         token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
         token.referralUrl = (user as { referralUrl?: string | null }).referralUrl ?? null;
+        token.subscriptionActive = (
+          user as { subscriptionActive?: boolean }
+        ).subscriptionActive;
       }
       if (trigger === "update") {
         const updatedSession = (session as {
@@ -129,6 +136,7 @@ export const authOptions: NextAuthOptions = {
           about?: string | null;
           bio?: string | null;
           referralUrl?: string | null;
+          subscriptionActive?: boolean;
         } | undefined) ?? {
           name: undefined,
           avatarUrl: undefined,
@@ -137,6 +145,7 @@ export const authOptions: NextAuthOptions = {
           about: undefined,
           bio: undefined,
           referralUrl: undefined,
+          subscriptionActive: undefined,
         };
 
         if (updatedSession.name !== undefined) {
@@ -160,6 +169,9 @@ export const authOptions: NextAuthOptions = {
         if (updatedSession.referralUrl !== undefined) {
           token.referralUrl = updatedSession.referralUrl;
         }
+        if (updatedSession.subscriptionActive !== undefined) {
+          token.subscriptionActive = updatedSession.subscriptionActive;
+        }
       }
       return token;
     },
@@ -176,6 +188,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as { bio?: string | null }).bio = token.bio ?? null;
         (session.user as { avatarUrl?: string | null }).avatarUrl = token.avatarUrl ?? null;
         (session.user as { referralUrl?: string | null }).referralUrl = token.referralUrl ?? null;
+        (session.user as { subscriptionActive?: boolean }).subscriptionActive =
+          token.subscriptionActive === true;
       }
       return session;
     },

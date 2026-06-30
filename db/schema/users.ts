@@ -50,4 +50,7 @@ export const investors = pgTable("investors", {
   emailVerified: boolean("email_verified").notNull().default(false),
   emailVerificationCodeHash: text("email_verification_code_hash"),
   emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
+  subscriptionStatus: text("subscription_status").notNull().default("inactive"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
 });
