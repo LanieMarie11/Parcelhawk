@@ -22,7 +22,9 @@ export type ActivityRow = {
   when: string;
   /** Viewing request listing address (kind === "viewed"). */
   address?: string;
-  /** Viewing request listing URL (kind === "viewed"). */
+  /** Saved property listing title (kind === "saved"). */
+  title?: string;
+  /** Listing URL (kind === "viewed" | "saved"). */
   url?: string;
   prompt?: string | null;
   state?: string;
