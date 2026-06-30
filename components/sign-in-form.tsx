@@ -8,6 +8,7 @@ import BuyerIcon from "@/components/icons/buyer"
 import InvestorIcon from "@/components/icons/investor"
 import GoogleIcon from "@/components/icons/google-icon"
 import { SignUpVerifyEmailStep } from "@/components/sign-up-verify-email-step"
+import { resolveInvestorPostAuthPath } from "@/lib/investor-post-auth"
 import { toast } from "sonner"
 
 type Role = "buyer" | "investor"
@@ -30,10 +31,13 @@ export default function SignInForm({ onClose }: SignInFormProps) {
     toast.success("Signed in successfully", {
       description: "You can continue to the app.",
     })
-    if (selectedRole === "investor") {
-      router.push("/realtor-portal")
-    }
-    onClose?.()
+    void (async () => {
+      if (selectedRole === "investor") {
+        const path = await resolveInvestorPostAuthPath()
+        router.push(path)
+      }
+      onClose?.()
+    })()
   }
 
   const handleSignIn = async () => {
@@ -123,9 +127,13 @@ export default function SignInForm({ onClose }: SignInFormProps) {
             })
             if (result?.ok) {
               if (pendingRole === "investor") {
-                router.push("/realtor-portal")
+                const path = await resolveInvestorPostAuthPath()
+                router.push(path)
               }
-              onSignInSuccess()
+              toast.success("Signed in successfully", {
+                description: "You can continue to the app.",
+              })
+              onClose?.()
               return
             }
             toast.error("Email verified, but sign-in failed", {

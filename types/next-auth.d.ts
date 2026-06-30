@@ -16,6 +16,7 @@ declare module "next-auth" {
     bio?: string | null;
     avatarUrl?: string | null;
     referralUrl?: string | null;
+    subscriptionActive?: boolean;
   }
 
   interface Session {
@@ -30,6 +31,7 @@ declare module "next-auth" {
       bio?: string | null;
       avatarUrl?: string | null;
       referralUrl?: string | null;
+      subscriptionActive?: boolean;
     };
   }
 }
@@ -46,5 +48,6 @@ declare module "next-auth/jwt" {
     bio?: string | null;
     avatarUrl?: string | null;
     referralUrl?: string | null;
+    subscriptionActive?: boolean;
   }
 }

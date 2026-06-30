@@ -3,6 +3,13 @@ import { NextResponse } from "next/server";
 import type { NextFetchEvent } from "next/server";
 import type { NextRequest } from "next/server";
 import { attachLastActivePing } from "@/lib/last-active-middleware";
+import {
+  fetchInvestorSubscriptionActive,
+  getInvestorPortalHomePath,
+  INVESTOR_SUBSCRIBE_PATH,
+  isInvestorSubscriptionExemptPath,
+  isInvestorSubscriptionGatedPath,
+} from "@/lib/investor-subscription-gate";
 
 /** Paths reachable without a session (sign-in lives on `/` per next-auth pages config). */
 function isGuestPublicPath(pathname: string): boolean {
@@ -10,6 +17,7 @@ function isGuestPublicPath(pathname: string): boolean {
   if (pathname === "/sign-up" || pathname.startsWith("/sign-up/")) return true;
   if (pathname === "/admin/sign-in") return true;
   if (pathname.startsWith("/api/auth/")) return true;
+  if (pathname === "/api/webhooks/stripe") return true;
   return false;
 }
 
@@ -69,15 +77,46 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     );
   }
 
-  // Logged-in investors use /realtor-portal as home; keep / for buyers/guests
+  // Logged-in investors use /realtor-portal as home; inactive subscribers go to subscribe
   if (path === "/" && token?.role === "investor") {
+    const homePath = await getInvestorPortalHomePath(request);
     return attachLastActivePing(
       request,
       event,
       path,
       token,
-      NextResponse.redirect(new URL("/realtor-portal", request.url))
+      NextResponse.redirect(new URL(homePath, request.url))
     );
+  }
+
+  if (
+    token?.role === "investor" &&
+    isInvestorSubscriptionGatedPath(path) &&
+    !isInvestorSubscriptionExemptPath(path)
+  ) {
+    const active = await fetchInvestorSubscriptionActive(request);
+    if (active === false) {
+      if (path.startsWith("/api/")) {
+        return attachLastActivePing(
+          request,
+          event,
+          path,
+          token,
+          NextResponse.json(
+            { error: "Active subscription required" },
+            { status: 403 },
+          ),
+        );
+      }
+
+      return attachLastActivePing(
+        request,
+        event,
+        path,
+        token,
+        NextResponse.redirect(new URL(INVESTOR_SUBSCRIBE_PATH, request.url)),
+      );
+    }
   }
 
   const isInvestorOnly =
