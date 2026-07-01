@@ -3,7 +3,7 @@
 import { Download, FileText, Loader2, X } from "lucide-react"
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import type { ParcelResearchReport } from "@/lib/property-reports/build-parcel-research-report"
 import { PROPERTY_REPORT_PRICE_CENTS } from "@/lib/property-reports/constants"
 import {
@@ -13,6 +13,7 @@ import {
 
 const BUYER_PROPERTY_REPORTS_PATH = "/api/buyer/property-reports"
 const BUYER_PROPERTY_REPORT_PAYMENT_PATH = "/api/buyer/property-reports/payment-intent"
+const BUYER_PROPERTY_REPORT_PAYMENT_METHODS_PATH = "/api/buyer/property-reports/payment-methods"
 const REPORT_PRICE_LABEL = `$${(PROPERTY_REPORT_PRICE_CENTS / 100).toFixed(2)}`
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -32,7 +33,21 @@ type PaymentIntentResponse = {
   paymentIntentId: string
   amountCents?: number
   alreadyPaid?: boolean
+  chargedWithSavedCard?: boolean
+  requiresAction?: boolean
+  savedPaymentMethod?: SavedPaymentMethod | null
   error?: string
+}
+
+type SavedPaymentMethod = {
+  id: string
+  brand: string
+  last4: string
+}
+
+function formatSavedPaymentMethodLabel(method: SavedPaymentMethod): string {
+  const brand = method.brand.charAt(0).toUpperCase() + method.brand.slice(1)
+  return `${brand} •••• ${method.last4}`
 }
 
 function parsePropertyReportResponse(data: unknown): PropertyReportResponse {
@@ -75,11 +90,17 @@ async function fetchExistingPropertyReport(listingId: number): Promise<PropertyR
   throw new Error(typeof data.error === "string" ? data.error : "Request failed")
 }
 
-async function createPropertyReportPaymentIntent(listingId: number): Promise<PaymentIntentResponse> {
+async function createPropertyReportPaymentIntent(
+  listingId: number,
+  options?: { useSavedCard?: boolean },
+): Promise<PaymentIntentResponse> {
   const res = await fetch(BUYER_PROPERTY_REPORT_PAYMENT_PATH, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ listingId }),
+    body: JSON.stringify({
+      listingId,
+      useSavedCard: options?.useSavedCard === true,
+    }),
   })
   const data = (await res.json().catch(() => ({}))) as PaymentIntentResponse
 
@@ -88,6 +109,20 @@ async function createPropertyReportPaymentIntent(listingId: number): Promise<Pay
   }
 
   return data
+}
+
+async function fetchSavedPaymentMethod(): Promise<SavedPaymentMethod | null> {
+  const res = await fetch(BUYER_PROPERTY_REPORT_PAYMENT_METHODS_PATH)
+  const data = (await res.json().catch(() => ({}))) as {
+    savedPaymentMethod?: SavedPaymentMethod | null
+    error?: string
+  }
+
+  if (!res.ok) {
+    return null
+  }
+
+  return data.savedPaymentMethod ?? null
 }
 
 async function generatePropertyReport(
@@ -123,9 +158,59 @@ type ModalStep =
   | { step: "loading" }
   | { step: "confirm_payment" }
   | { step: "payment"; clientSecret: string; paymentIntentId: string }
+  | { step: "payment_action"; clientSecret: string; paymentIntentId: string }
   | { step: "generating" }
   | { step: "success"; data: PropertyReportResponse }
   | { step: "error"; message: string }
+
+function PropertyReportPaymentActionForm({
+  clientSecret,
+  paymentIntentId,
+  onPaid,
+  onError,
+}: {
+  clientSecret: string
+  paymentIntentId: string
+  onPaid: (confirmedPaymentIntentId: string) => void
+  onError: (message: string) => void
+}) {
+  const stripe = useStripe()
+  const hasConfirmedRef = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!stripe || hasConfirmedRef.current) return
+
+    hasConfirmedRef.current = true
+    setIsSubmitting(true)
+    void stripe
+      .confirmCardPayment(clientSecret)
+      .then(({ error, paymentIntent }) => {
+        if (error) {
+          onError(error.message ?? "Payment authentication failed")
+          return
+        }
+
+        const intentId = paymentIntent?.id ?? paymentIntentId
+        if (!intentId || paymentIntent?.status !== "succeeded") {
+          onError("Payment could not be confirmed")
+          return
+        }
+
+        onPaid(intentId)
+      })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
+  }, [clientSecret, onError, onPaid, paymentIntentId, stripe])
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-10">
+      <Loader2 className="h-8 w-8 animate-spin text-brand-green" aria-hidden />
+      <p className="text-sm text-muted-foreground">Confirming payment with your bank...</p>
+    </div>
+  )
+}
 
 function PropertyReportPaymentForm({
   paymentIntentId,
@@ -197,11 +282,13 @@ export function OrderPropertyReportModal({
   const [modalStep, setModalStep] = useState<ModalStep>({ step: "loading" })
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false)
   const [isStartingPayment, setIsStartingPayment] = useState(false)
+  const [savedPaymentMethod, setSavedPaymentMethod] = useState<SavedPaymentMethod | null>(null)
 
   useEffect(() => {
     if (!open) {
       setModalStep({ step: "loading" })
       setIsStartingPayment(false)
+      setSavedPaymentMethod(null)
       return
     }
 
@@ -209,12 +296,16 @@ export function OrderPropertyReportModal({
     setModalStep({ step: "loading" })
 
     void fetchExistingPropertyReport(listingId)
-      .then((data) => {
+      .then(async (data) => {
         if (cancelled) return
         if (data) {
           setModalStep({ step: "success", data })
           return
         }
+
+        const method = await fetchSavedPaymentMethod()
+        if (cancelled) return
+        setSavedPaymentMethod(method)
         setModalStep({ step: "confirm_payment" })
       })
       .catch((error) => {
@@ -231,29 +322,60 @@ export function OrderPropertyReportModal({
     }
   }, [open, listingId])
 
-  const startPayment = () => {
+  const completePaidPurchase = (paymentIntentId: string) => {
+    setModalStep({ step: "generating" })
+    void generatePropertyReport(listingId, paymentIntentId)
+      .then((data) => {
+        setModalStep({ step: "success", data })
+      })
+      .catch((error) => {
+        setModalStep({
+          step: "error",
+          message:
+            error instanceof Error ? error.message : "Failed to generate property report",
+        })
+      })
+  }
+
+  const handlePaymentResult = async (payment: PaymentIntentResponse) => {
+    if (payment.alreadyPaid) {
+      setModalStep({ step: "generating" })
+      const data = await generatePropertyReport(listingId, payment.paymentIntentId)
+      setModalStep({ step: "success", data })
+      return
+    }
+
+    if (payment.chargedWithSavedCard && !payment.requiresAction) {
+      completePaidPurchase(payment.paymentIntentId)
+      return
+    }
+
+    if (payment.requiresAction && payment.clientSecret) {
+      setModalStep({
+        step: "payment_action",
+        clientSecret: payment.clientSecret,
+        paymentIntentId: payment.paymentIntentId,
+      })
+      return
+    }
+
+    if (!payment.clientSecret) {
+      throw new Error("Payment could not be initialized")
+    }
+
+    setModalStep({
+      step: "payment",
+      clientSecret: payment.clientSecret,
+      paymentIntentId: payment.paymentIntentId,
+    })
+  }
+
+  const startPayment = (options?: { useSavedCard?: boolean }) => {
     if (isStartingPayment) return
     setIsStartingPayment(true)
 
-    void createPropertyReportPaymentIntent(listingId)
-      .then(async (payment) => {
-        if (payment.alreadyPaid) {
-          setModalStep({ step: "generating" })
-          const data = await generatePropertyReport(listingId, payment.paymentIntentId)
-          setModalStep({ step: "success", data })
-          return
-        }
-
-        if (!payment.clientSecret) {
-          throw new Error("Payment could not be initialized")
-        }
-
-        setModalStep({
-          step: "payment",
-          clientSecret: payment.clientSecret,
-          paymentIntentId: payment.paymentIntentId,
-        })
-      })
+    void createPropertyReportPaymentIntent(listingId, options)
+      .then((payment) => handlePaymentResult(payment))
       .catch((error) => {
         setModalStep({
           step: "error",
@@ -375,25 +497,74 @@ export function OrderPropertyReportModal({
                   <span className="font-semibold text-zinc-900">{REPORT_PRICE_LABEL}</span> per
                   listing. After payment, you can reopen this report anytime at no extra charge.
                 </p>
+                {savedPaymentMethod ? (
+                  <p className="mt-3 text-sm font-ibm-plex-sans text-zinc-600">
+                    Saved card:{" "}
+                    <span className="font-medium text-zinc-900">
+                      {formatSavedPaymentMethodLabel(savedPaymentMethod)}
+                    </span>
+                  </p>
+                ) : null}
               </div>
-              <button
-                type="button"
-                onClick={startPayment}
-                disabled={isStartingPayment || !stripePromise}
-                className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isStartingPayment ? "Preparing payment..." : `Continue to pay ${REPORT_PRICE_LABEL}`}
-              </button>
+              {savedPaymentMethod ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startPayment({ useSavedCard: true })}
+                    disabled={isStartingPayment || !stripePromise}
+                    className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isStartingPayment
+                      ? "Processing payment..."
+                      : `Pay ${REPORT_PRICE_LABEL} with ${formatSavedPaymentMethodLabel(savedPaymentMethod)}`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startPayment()}
+                    disabled={isStartingPayment || !stripePromise}
+                    className="w-full rounded-lg border border-zinc-200 bg-white py-2.5 text-sm font-ibm-plex-sans font-medium text-zinc-700 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Use a different card
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => startPayment()}
+                  disabled={isStartingPayment || !stripePromise}
+                  className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isStartingPayment
+                    ? "Preparing payment..."
+                    : `Continue to pay ${REPORT_PRICE_LABEL}`}
+                </button>
+              )}
               {!stripePromise ? (
                 <p className="text-center text-xs text-red-600">Payments are not configured.</p>
               ) : null}
             </div>
           ) : null}
 
+          {modalStep.step === "payment_action" && stripePromise ? (
+            <div className="py-2">
+              <Elements stripe={stripePromise}>
+                <PropertyReportPaymentActionForm
+                  clientSecret={modalStep.clientSecret}
+                  paymentIntentId={modalStep.paymentIntentId}
+                  onPaid={completePaidPurchase}
+                  onError={(message) => {
+                    setModalStep({ step: "error", message })
+                  }}
+                />
+              </Elements>
+            </div>
+          ) : null}
+
           {modalStep.step === "payment" && stripePromise ? (
             <div className="py-2">
               <p className="mb-4 text-sm font-ibm-plex-sans text-zinc-600">
-                Secure checkout powered by Stripe.
+                Secure checkout powered by Stripe. Your card will be saved for future report
+                purchases.
               </p>
               <Elements
                 stripe={stripePromise}
@@ -404,22 +575,7 @@ export function OrderPropertyReportModal({
               >
                 <PropertyReportPaymentForm
                   paymentIntentId={modalStep.paymentIntentId}
-                  onPaid={(confirmedPaymentIntentId) => {
-                    setModalStep({ step: "generating" })
-                    void generatePropertyReport(listingId, confirmedPaymentIntentId)
-                      .then((data) => {
-                        setModalStep({ step: "success", data })
-                      })
-                      .catch((error) => {
-                        setModalStep({
-                          step: "error",
-                          message:
-                            error instanceof Error
-                              ? error.message
-                              : "Failed to generate property report",
-                        })
-                      })
-                  }}
+                  onPaid={completePaidPurchase}
                   onError={(message) => {
                     setModalStep({ step: "error", message })
                   }}
@@ -466,6 +622,7 @@ export function OrderPropertyReportModal({
               disabled={
                 modalStep.step === "loading" ||
                 modalStep.step === "generating" ||
+                modalStep.step === "payment_action" ||
                 isStartingPayment
               }
               className="w-full rounded-lg bg-brand-green py-2.5 text-sm font-ibm-plex-sans font-medium text-white transition-colors hover:bg-brand-green-hover disabled:cursor-not-allowed disabled:opacity-60"

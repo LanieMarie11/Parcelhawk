@@ -267,6 +267,13 @@
       "when": 1782800000000,
       "tag": "0037_investor_subscription",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1782900000000,
+      "tag": "0038_buyer_stripe_customer",
+      "breakpoints": true
     }
   ]
 }

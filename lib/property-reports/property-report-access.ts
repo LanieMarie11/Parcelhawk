@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   buyerPropertyReportPayments,
@@ -101,4 +101,33 @@ export async function getSucceededPropertyReportPayment(buyerId: string, listing
     .limit(1);
 
   return paymentRow ?? null;
+}
+
+export async function getLatestSucceededPropertyReportPayment(buyerId: string) {
+  const [paymentRow] = await db
+    .select({
+      stripePaymentIntentId: buyerPropertyReportPayments.stripePaymentIntentId,
+    })
+    .from(buyerPropertyReportPayments)
+    .where(
+      and(
+        eq(buyerPropertyReportPayments.userId, buyerId),
+        eq(buyerPropertyReportPayments.status, "succeeded"),
+      ),
+    )
+    .orderBy(desc(buyerPropertyReportPayments.updatedAt))
+    .limit(1);
+
+  if (paymentRow) return paymentRow;
+
+  const [latestPaymentRow] = await db
+    .select({
+      stripePaymentIntentId: buyerPropertyReportPayments.stripePaymentIntentId,
+    })
+    .from(buyerPropertyReportPayments)
+    .where(eq(buyerPropertyReportPayments.userId, buyerId))
+    .orderBy(desc(buyerPropertyReportPayments.updatedAt))
+    .limit(1);
+
+  return latestPaymentRow ?? null;
 }
