@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm"
 import { db } from "@/db"
 import { savedSearches } from "@/db/schema"
 import { authOptions } from "@/lib/auth"
+import { resolveSavedSearchPersistFields } from "@/lib/saved-search-persist"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
@@ -44,39 +45,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
     }
 
-    const minPrice = body.minPrice != null ? String(body.minPrice) : null
-    const maxPrice = body.maxPrice != null ? String(body.maxPrice) : null
-    const minAcres = body.minAcres != null ? String(body.minAcres) : null
-    const maxAcres = body.maxAcres != null ? String(body.maxAcres) : null
-    const state = typeof body.state === "string" ? body.state.trim() || null : null
-    const county = typeof body.county === "string" ? body.county.trim() || null : null
-    const prompt = typeof body.prompt === "string" ? body.prompt.trim() || null : null
-    const propertyType = typeof body.propertyType === "string" ? body.propertyType.trim() || null : null
-    const landType = typeof body.landType === "string" ? body.landType.trim() || null : null
     const activities: string[] | null = Array.isArray(body.activities)
       ? body.activities.filter((a: unknown): a is string => typeof a === "string").map((a: string) => a.trim()).filter(Boolean)
       : null
 
+    const fields = resolveSavedSearchPersistFields({
+      minPrice: body.minPrice != null ? String(body.minPrice) : null,
+      maxPrice: body.maxPrice != null ? String(body.maxPrice) : null,
+      minAcres: body.minAcres != null ? String(body.minAcres) : null,
+      maxAcres: body.maxAcres != null ? String(body.maxAcres) : null,
+      state: typeof body.state === "string" ? body.state : null,
+      county: typeof body.county === "string" ? body.county : null,
+      prompt: typeof body.prompt === "string" ? body.prompt : null,
+      propertyType: typeof body.propertyType === "string" ? body.propertyType : null,
+      landType: typeof body.landType === "string" ? body.landType : null,
+      activities,
+    })
+
     const [row] = await db
       .insert(savedSearches)
-      .values(
-        prompt
-          ? { userId, name, frequency, prompt }
-          : {
-              userId,
-              name,
-              frequency,
-              minPrice: minPrice || undefined,
-              maxPrice: maxPrice || undefined,
-              minAcres: minAcres || undefined,
-              maxAcres: maxAcres || undefined,
-              state: state ?? undefined,
-              county: county ?? undefined,
-              propertyType: propertyType ?? undefined,
-              landType: landType ?? undefined,
-              activities: activities ?? undefined,
-            }
-      )
+      .values({
+        userId,
+        name,
+        frequency,
+        prompt: fields.prompt ?? undefined,
+        minPrice: fields.minPrice ?? undefined,
+        maxPrice: fields.maxPrice ?? undefined,
+        minAcres: fields.minAcres ?? undefined,
+        maxAcres: fields.maxAcres ?? undefined,
+        state: fields.state ?? undefined,
+        county: fields.county ?? undefined,
+        propertyType: fields.propertyType ?? undefined,
+        landType: fields.landType ?? undefined,
+        activities: fields.activities ?? undefined,
+      })
       .returning({ id: savedSearches.id })
 
     return NextResponse.json({ id: row?.id })
