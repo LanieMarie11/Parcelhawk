@@ -219,6 +219,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
         listingId: mergedListings.id,
         createdAt: favorites.createdAt,
         url: mergedListings.url,
+        title: mergedListings.title,
         price: mergedListings.price,
         city: mergedListings.city,
         state: mergedListings.stateAbbreviation,
@@ -303,6 +304,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
         id: `favorite:${fav.favoriteId}`,
         kind: "saved" as const,
         text: `Saved property in ${buildSubtitle(fav.city, fav.state)}`,
+        title: fav.title?.trim() || fav.address?.trim() || `Listing #${fav.listingId}`,
+        url: fav.url ?? undefined,
         createdAt: fav.createdAt,
       })),
       ...savedSearchRows.map((savedSearch) => ({
@@ -348,7 +351,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ buye
                 address: item.address,
                 url: item.url,
               }
-            : {}),
+            : item.kind === "saved"
+              ? {
+                  title: item.title,
+                  url: item.url,
+                }
+              : {}),
       }));
 
     const buyer = {

@@ -343,6 +343,22 @@ export function BuyerDetailMain({ selected, search, onSearchChange, isLoadingHea
                           <span>{row.address}</span>
                         )}
                       </p>
+                    ) : row.kind === "saved" ? (
+                      <p className="text-sm text-zinc-800">
+                        {row.text}{" "} <br/>
+                        {row.url ? (
+                          <a
+                            href={row.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline"
+                          >
+                            {row.title}
+                          </a>
+                        ) : (
+                          <span>{row.title}</span>
+                        )}
+                      </p>
                     ) : (
                       <p className="text-sm text-zinc-800">{row.text}</p>
                     )}
