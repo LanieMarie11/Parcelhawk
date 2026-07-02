@@ -20,6 +20,9 @@ import {
   type ParcelResearchReport,
 } from "@/lib/property-reports/build-parcel-research-report";
 import { lookupCountyFips } from "@/lib/property-reports/lookup-county-fips";
+import {
+  syncBuyerPaymentMethodFromIntent,
+} from "@/lib/buyer-stripe-customer";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
 async function markPaymentStatus(
@@ -114,6 +117,12 @@ async function assertPaidForReport(
         updatedAt: now,
       },
     });
+
+  try {
+    await syncBuyerPaymentMethodFromIntent(buyerId, paymentIntent.id);
+  } catch (saveErr) {
+    console.error("Failed to save buyer payment method:", saveErr);
+  }
 
   return { paymentIntentId: paymentIntent.id };
 }
