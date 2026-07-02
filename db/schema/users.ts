@@ -54,4 +54,6 @@ export const investors = pgTable("investors", {
   subscriptionStatus: text("subscription_status").notNull().default("inactive"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  /** Stripe Connect Express account for property-report revenue share. */
+  stripeConnectAccountId: text("stripe_connect_account_id"),
 });

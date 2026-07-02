@@ -23,6 +23,7 @@ import { lookupCountyFips } from "@/lib/property-reports/lookup-county-fips";
 import {
   syncBuyerPaymentMethodFromIntent,
 } from "@/lib/buyer-stripe-customer";
+import { refundPropertyReportPayment } from "@/lib/property-reports/refund-property-report-payment";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
 async function markPaymentStatus(
@@ -42,11 +43,6 @@ async function markPaymentStatus(
         eq(buyerPropertyReportPayments.stripePaymentIntentId, paymentIntentId),
       ),
     );
-}
-
-async function refundPropertyReportPayment(paymentIntentId: string) {
-  const stripe = getStripe();
-  await stripe.refunds.create({ payment_intent: paymentIntentId });
 }
 
 async function assertPaidForReport(
@@ -96,6 +92,13 @@ async function assertPaidForReport(
     return NextResponse.json({ error: "Invalid payment amount" }, { status: 400 });
   }
 
+  const platformAmountCents = Number.parseInt(
+    paymentIntent.metadata.platformAmountCents ?? String(PROPERTY_REPORT_PRICE_CENTS),
+    10,
+  );
+  const realtorAmountCents = Number.parseInt(paymentIntent.metadata.realtorAmountCents ?? "0", 10);
+  const realtorInvestorId = paymentIntent.metadata.realtorInvestorId?.trim() || null;
+
   const now = new Date();
   await db
     .insert(buyerPropertyReportPayments)
@@ -104,6 +107,9 @@ async function assertPaidForReport(
       listingId,
       stripePaymentIntentId: paymentIntent.id,
       amountCents: paymentIntent.amount,
+      platformAmountCents,
+      realtorAmountCents,
+      realtorInvestorId,
       status: "succeeded",
       createdAt: now,
       updatedAt: now,
@@ -113,6 +119,9 @@ async function assertPaidForReport(
       set: {
         stripePaymentIntentId: paymentIntent.id,
         amountCents: paymentIntent.amount,
+        platformAmountCents,
+        realtorAmountCents,
+        realtorInvestorId,
         status: "succeeded",
         updatedAt: now,
       },

@@ -9,6 +9,7 @@ import Security from "./components/security"
 import AccountDangerZone from "./components/account-danger-zone"
 import InviteLinkSetting from "./components/invite-link-setting"
 import BuyerConnectionSetting from "./components/buyer-connection-setting"
+import PayoutSettings from "./components/payout-settings"
 
 export default async function RealtorPortalSettingsPage() {
   const session = await getServerSession(authOptions)
@@ -57,6 +58,9 @@ export default async function RealtorPortalSettingsPage() {
             </section> */}
             <section id="invite-link-setting">
               <InviteLinkSetting />
+            </section>
+            <section id="payout-settings">
+              <PayoutSettings />
             </section>
             <section id="security">
               <Security />

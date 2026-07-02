@@ -18,6 +18,12 @@ import {
   getSucceededPropertyReportPayment,
   parseListingId,
 } from "@/lib/property-reports/property-report-access";
+import {
+  buildConnectPaymentIntentParams,
+  buildPaymentSplitMetadata,
+  resolvePropertyReportPaymentSplit,
+  type PropertyReportPaymentSplit,
+} from "@/lib/property-reports/resolve-payment-split";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
 const paymentIntentMetadata = (buyerId: string, listingId: number) => ({
@@ -30,6 +36,7 @@ async function upsertPendingPayment(
   buyerId: string,
   listingId: number,
   paymentIntentId: string,
+  split: PropertyReportPaymentSplit,
 ) {
   const now = new Date();
   await db
@@ -39,6 +46,9 @@ async function upsertPendingPayment(
       listingId,
       stripePaymentIntentId: paymentIntentId,
       amountCents: PROPERTY_REPORT_PRICE_CENTS,
+      platformAmountCents: split.platformAmountCents,
+      realtorAmountCents: split.realtorAmountCents,
+      realtorInvestorId: split.realtorInvestorId,
       status: "pending",
       createdAt: now,
       updatedAt: now,
@@ -48,6 +58,9 @@ async function upsertPendingPayment(
       set: {
         stripePaymentIntentId: paymentIntentId,
         amountCents: PROPERTY_REPORT_PRICE_CENTS,
+        platformAmountCents: split.platformAmountCents,
+        realtorAmountCents: split.realtorAmountCents,
+        realtorInvestorId: split.realtorInvestorId,
         status: "pending",
         updatedAt: now,
       },
@@ -102,6 +115,9 @@ export async function POST(request: Request) {
     const stripe = getStripe();
     const customerId = await getOrCreateBuyerStripeCustomer(buyerId);
     const savedPaymentMethod = await getBuyerSavedPaymentMethodForBuyer(buyerId);
+    const split = await resolvePropertyReportPaymentSplit(buyerId);
+    const connectParams = buildConnectPaymentIntentParams(split);
+    const splitMetadata = buildPaymentSplitMetadata(split);
 
     if (useSavedCard) {
       if (!savedPaymentMethod) {
@@ -116,10 +132,14 @@ export async function POST(request: Request) {
         payment_method_types: ["card"],
         confirm: true,
         off_session: false,
-        metadata: paymentIntentMetadata(buyerId, listingId),
+        metadata: {
+          ...paymentIntentMetadata(buyerId, listingId),
+          ...splitMetadata,
+        },
+        ...connectParams,
       });
 
-      await upsertPendingPayment(buyerId, listingId, paymentIntent.id);
+      await upsertPendingPayment(buyerId, listingId, paymentIntent.id, split);
 
       if (paymentIntent.status === "succeeded") {
         await syncBuyerPaymentMethodFromIntent(buyerId, paymentIntent.id);
@@ -155,14 +175,18 @@ export async function POST(request: Request) {
       customer: customerId,
       automatic_payment_methods: { enabled: true, allow_redirects: "never" },
       setup_future_usage: "off_session",
-      metadata: paymentIntentMetadata(buyerId, listingId),
+      metadata: {
+        ...paymentIntentMetadata(buyerId, listingId),
+        ...splitMetadata,
+      },
+      ...connectParams,
     });
 
     if (!paymentIntent.client_secret) {
       return NextResponse.json({ error: "Failed to initialize payment" }, { status: 500 });
     }
 
-    await upsertPendingPayment(buyerId, listingId, paymentIntent.id);
+    await upsertPendingPayment(buyerId, listingId, paymentIntent.id, split);
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,

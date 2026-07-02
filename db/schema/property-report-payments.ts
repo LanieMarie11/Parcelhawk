@@ -21,6 +21,9 @@ export const buyerPropertyReportPayments = pgTable(
       .references(() => mergedListings.id, { onDelete: "cascade" }),
     stripePaymentIntentId: text("stripe_payment_intent_id").notNull(),
     amountCents: integer("amount_cents").notNull(),
+    platformAmountCents: integer("platform_amount_cents").notNull().default(300),
+    realtorAmountCents: integer("realtor_amount_cents").notNull().default(0),
+    realtorInvestorId: uuid("realtor_investor_id"),
     status: propertyReportPaymentStatusEnum("status").notNull().default("pending"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

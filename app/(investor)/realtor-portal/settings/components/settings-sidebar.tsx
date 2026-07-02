@@ -8,6 +8,7 @@ const navItems = [
   // { href: "#notification-preferences", label: "Notification Preferences" },
   // { href: "#saved-search-alerts", label: "Saved Search Alerts" },
   { href: "#invite-link-setting", label: "Invite Link" },
+  { href: "#payout-settings", label: "Payout Settings" },
   { href: "#security", label: "Security" },
   { href: "#buyer-connection-setting", label: "Buyer Connection" },
   { href: "#account-danger-zone", label: "Account Danger Zone" },
